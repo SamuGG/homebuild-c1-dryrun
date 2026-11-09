@@ -31,7 +31,7 @@ public class DomainTests
     {
         var unit = NewUnit();
         var buyer = BuyerId.New();
-        var reservation = unit.Reserve(buyer, new Money(5000m, "GBP"), MinDeposit, Hold, Now);
+        var reservation = Assert.IsType<Reserved>(unit.Reserve(buyer, new Money(5000m, "GBP"), MinDeposit, Hold, Now).Value).Reservation;
         Assert.Equal(unit.Id, reservation.UnitId);
         Assert.Equal(buyer, reservation.BuyerId);
         Assert.Equal(UnitStatus.Reserved, unit.Status);
@@ -42,16 +42,14 @@ public class DomainTests
     {
         var unit = NewUnit();
         unit.Reserve(BuyerId.New(), new Money(5000m, "GBP"), MinDeposit, Hold, Now);
-        Assert.Throws<InvalidOperationException>(() =>
-            unit.Reserve(BuyerId.New(), new Money(5000m, "GBP"), MinDeposit, Hold, Now));
+        Assert.IsType<UnitUnavailable>(unit.Reserve(BuyerId.New(), new Money(5000m, "GBP"), MinDeposit, Hold, Now).Value);
     }
 
     [Theory]
     [InlineData(999)]
     [InlineData(250_001)]
     public void Deposit_below_minimum_or_above_price_is_rejected(decimal amount) =>
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            NewUnit().Reserve(BuyerId.New(), new Money(amount, "GBP"), MinDeposit, Hold, Now));
+        Assert.IsType<DepositRejected>(NewUnit().Reserve(BuyerId.New(), new Money(amount, "GBP"), MinDeposit, Hold, Now).Value);
 
     [Fact]
     public void Deposit_in_other_currency_is_rejected() =>
@@ -61,7 +59,7 @@ public class DomainTests
     [Fact]
     public void Reservation_expires_after_hold_period()
     {
-        var reservation = NewUnit().Reserve(BuyerId.New(), new Money(5000m, "GBP"), MinDeposit, Hold, Now);
+        var reservation = Assert.IsType<Reserved>(NewUnit().Reserve(BuyerId.New(), new Money(5000m, "GBP"), MinDeposit, Hold, Now).Value).Reservation;
         Assert.Equal(Now + Hold, reservation.ExpiresAt);
         Assert.False(reservation.IsExpired(Now + Hold - TimeSpan.FromSeconds(1)));
         Assert.True(reservation.IsExpired(Now + Hold));

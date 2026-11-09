@@ -33,27 +33,27 @@ public sealed class Unit
 
     public UnitStatus Status { get; private set; } = UnitStatus.Available;
 
-    public Reservation Reserve(BuyerId buyerId, Money deposit, Money minimumDeposit, TimeSpan holdPeriod, DateTimeOffset now)
+    public ReserveResult Reserve(BuyerId buyerId, Money deposit, Money minimumDeposit, TimeSpan holdPeriod, DateTimeOffset now)
     {
         ArgumentNullException.ThrowIfNull(deposit);
         ArgumentNullException.ThrowIfNull(minimumDeposit);
-        if (Status != UnitStatus.Available)
-        {
-            throw new InvalidOperationException($"Unit {Id} is {Status}.");
-        }
-
         if (deposit.Currency != Price.Currency)
         {
             throw new ArgumentException($"Deposit must be in {Price.Currency}.", nameof(deposit));
         }
 
+        if (Status != UnitStatus.Available)
+        {
+            return new UnitUnavailable(Id, Status);
+        }
+
         if (deposit.Amount < minimumDeposit.Amount || deposit.Amount > Price.Amount)
         {
-            throw new ArgumentOutOfRangeException(nameof(deposit), deposit.Amount, "Deposit must be between the minimum and the price.");
+            return new DepositRejected(minimumDeposit, deposit);
         }
 
         var reservation = new Reservation(ReservationId.New(), Id, buyerId, deposit, now, now + holdPeriod);
         Status = UnitStatus.Reserved;
-        return reservation;
+        return new Reserved(reservation);
     }
 }

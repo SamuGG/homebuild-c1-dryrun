@@ -21,6 +21,7 @@ public sealed class Reservation
         Deposit = deposit;
         CreatedAt = createdAt;
         ExpiresAt = expiresAt;
+        State = new Held(expiresAt);
     }
 
     public ReservationId Id { get; }
@@ -35,5 +36,21 @@ public sealed class Reservation
 
     public DateTimeOffset ExpiresAt { get; }
 
+    public ReservationState State { get; private set; }
+
     public bool IsExpired(DateTimeOffset now) => now >= ExpiresAt;
+
+    public TransitionResult Expire(DateTimeOffset now) => Apply(State.Expire(now));
+
+    public TransitionResult Confirm(DateTimeOffset depositPaidAt) => Apply(State.Confirm(depositPaidAt));
+
+    private TransitionResult Apply(TransitionResult result)
+    {
+        if (result is Transitioned transitioned)
+        {
+            State = transitioned.To;
+        }
+
+        return result;
+    }
 }
