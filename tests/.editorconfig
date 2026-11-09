@@ -1,0 +1,4 @@
+# Test names such as Money_rejects_negative_amount read as specifications,
+# so CA1707 (no underscores in identifiers) is off for test projects only.
+[*.cs]
+dotnet_diagnostic.CA1707.severity = none

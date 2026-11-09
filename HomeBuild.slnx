@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/HomeBuild.Api/HomeBuild.Api.csproj" />
+    <Project Path="src/HomeBuild.Domain/HomeBuild.Domain.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/HomeBuild.Domain.Tests/HomeBuild.Domain.Tests.csproj" />
+  </Folder>
+</Solution>
