@@ -2,10 +2,10 @@ namespace HomeBuild.Domain;
 
 public sealed class Reservation
 {
-    public Reservation(Guid id, Guid unitId, Guid buyerId, Money deposit, DateTimeOffset createdAt, DateTimeOffset expiresAt)
+    public Reservation(ReservationId id, UnitId unitId, BuyerId buyerId, Money deposit, DateTimeOffset createdAt, DateTimeOffset expiresAt)
     {
         ArgumentNullException.ThrowIfNull(deposit);
-        if (unitId == Guid.Empty)
+        if (unitId == default)
         {
             throw new ArgumentException("A reservation needs a unit.", nameof(unitId));
         }
@@ -23,11 +23,11 @@ public sealed class Reservation
         ExpiresAt = expiresAt;
     }
 
-    public Guid Id { get; }
+    public ReservationId Id { get; }
 
-    public Guid UnitId { get; }
+    public UnitId UnitId { get; }
 
-    public Guid BuyerId { get; }
+    public BuyerId BuyerId { get; }
 
     public Money Deposit { get; }
 

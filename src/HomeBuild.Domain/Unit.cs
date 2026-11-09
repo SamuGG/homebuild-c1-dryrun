@@ -2,17 +2,30 @@ namespace HomeBuild.Domain;
 
 public sealed class Unit
 {
-    public Unit(Guid id, string plotNumber, Money price)
+    public Unit(UnitId id, DevelopmentId developmentId, string plotNumber, Money price)
     {
+        if (id == default)
+        {
+            throw new ArgumentException("A unit needs an ID.", nameof(id));
+        }
+
+        if (developmentId == default)
+        {
+            throw new ArgumentException("A unit needs a development.", nameof(developmentId));
+        }
+
         ArgumentException.ThrowIfNullOrWhiteSpace(plotNumber);
         ArgumentNullException.ThrowIfNull(price);
         ArgumentOutOfRangeException.ThrowIfZero(price.Amount);
         Id = id;
+        DevelopmentId = developmentId;
         PlotNumber = plotNumber;
         Price = price;
     }
 
-    public Guid Id { get; }
+    public UnitId Id { get; }
+
+    public DevelopmentId DevelopmentId { get; }
 
     public string PlotNumber { get; }
 
@@ -20,7 +33,7 @@ public sealed class Unit
 
     public UnitStatus Status { get; private set; } = UnitStatus.Available;
 
-    public Reservation Reserve(Guid buyerId, Money deposit, Money minimumDeposit, TimeSpan holdPeriod, DateTimeOffset now)
+    public Reservation Reserve(BuyerId buyerId, Money deposit, Money minimumDeposit, TimeSpan holdPeriod, DateTimeOffset now)
     {
         ArgumentNullException.ThrowIfNull(deposit);
         ArgumentNullException.ThrowIfNull(minimumDeposit);
@@ -39,7 +52,7 @@ public sealed class Unit
             throw new ArgumentOutOfRangeException(nameof(deposit), deposit.Amount, "Deposit must be between the minimum and the price.");
         }
 
-        var reservation = new Reservation(Guid.NewGuid(), Id, buyerId, deposit, now, now + holdPeriod);
+        var reservation = new Reservation(ReservationId.New(), Id, buyerId, deposit, now, now + holdPeriod);
         Status = UnitStatus.Reserved;
         return reservation;
     }
