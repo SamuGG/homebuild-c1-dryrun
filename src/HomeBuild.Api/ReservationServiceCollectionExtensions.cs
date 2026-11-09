@@ -16,6 +16,7 @@ public static class ReservationServiceCollectionExtensions
             var o = sp.GetRequiredService<IOptions<ReservationOptions>>().Value;
             return new ReservationPolicy(o.HoldPeriod, new Money(o.MinimumDeposit, o.Currency));
         });
+        services.AddHostedService<PolicyStartupLogger>();
         return services;
     }
 }
