@@ -33,10 +33,12 @@ public sealed class Unit
 
     public UnitStatus Status { get; private set; } = UnitStatus.Available;
 
-    public ReserveResult Reserve(BuyerId buyerId, Money deposit, Money minimumDeposit, TimeSpan holdPeriod, DateTimeOffset now)
+    public ReserveResult Reserve(BuyerId buyerId, Money deposit, ReservationPolicy policy, DateTimeOffset now)
     {
         ArgumentNullException.ThrowIfNull(deposit);
-        ArgumentNullException.ThrowIfNull(minimumDeposit);
+        ArgumentNullException.ThrowIfNull(policy);
+        var minimumDeposit = policy.MinimumDeposit;
+        var holdPeriod = policy.HoldPeriod;
         if (deposit.Currency != Price.Currency)
         {
             throw new ArgumentException($"Deposit must be in {Price.Currency}.", nameof(deposit));

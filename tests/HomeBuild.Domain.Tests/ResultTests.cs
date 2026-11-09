@@ -5,11 +5,12 @@ public class ResultTests
     private static readonly DateTimeOffset Now = new(2026, 11, 9, 12, 0, 0, TimeSpan.Zero);
     private static readonly TimeSpan Hold = TimeSpan.FromDays(7);
     private static readonly Money MinDeposit = new(1000m, "GBP");
+    private static readonly ReservationPolicy Policy = new(Hold, MinDeposit);
 
     private static Unit NewUnit() => new(UnitId.New(), DevelopmentId.New(), "P-01", new Money(250_000m, "GBP"));
 
     private static ReserveResult Reserve(Unit unit, decimal deposit = 5000m) =>
-        unit.Reserve(BuyerId.New(), new Money(deposit, "GBP"), MinDeposit, Hold, Now);
+        unit.Reserve(BuyerId.New(), new Money(deposit, "GBP"), Policy, Now);
 
     private static string Describe(ReserveResult result) => result switch
     {
