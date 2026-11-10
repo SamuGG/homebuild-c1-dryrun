@@ -24,6 +24,7 @@ builder.Services.AddProblemDetails(options =>
 builder.Services.AddExceptionHandler<LoggingExceptionHandler>();
 builder.Services.AddHomeBuildRateLimiting();
 
+builder.Services.AddTenancy();
 builder.Services.AddCatalogueModule();
 builder.Services.AddSalesModule();
 var app = builder.Build();
@@ -38,6 +39,8 @@ app.UseRouting();
 // 4. Rate limiter: after routing, so it can read each endpoint's policy; before the endpoint, so a rejected request costs nothing.
 //    C4 puts authentication and authorisation between routing and this, once limits are per user or tenant.
 app.UseRateLimiter();
+// 5. Tenant: every API call names its tenant (X-Tenant-Id until C4's token claim); after routing so the OpenAPI route is exempt.
+app.UseMiddleware<TenantMiddleware>();
 
 // The OpenAPI document is published only in Development and in CI, where Bruno and reviewers use it.
 if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("CI"))

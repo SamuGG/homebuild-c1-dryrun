@@ -13,7 +13,18 @@ public sealed class PostgresFixture : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:18").Build();
 
-    public async ValueTask InitializeAsync() => await _container.StartAsync();
+    // Throwaway password for the test container's application role.
+    private const string AppPassword = "app-test";
+
+    public async ValueTask InitializeAsync()
+    {
+        await _container.StartAsync();
+        // The migration creates homebuild_app NOLOGIN when it is missing; each environment gives it a login.
+        await using var connection = new NpgsqlConnection(AdminConnectionString);
+        await connection.OpenAsync();
+        await using var create = new NpgsqlCommand($"CREATE ROLE homebuild_app LOGIN PASSWORD '{AppPassword}'", connection);
+        await create.ExecuteNonQueryAsync();
+    }
 
     public ValueTask DisposeAsync() => _container.DisposeAsync();
 
@@ -42,13 +53,31 @@ public sealed class PostgresFixture : IAsyncLifetime
     }
 
     public async Task<ApiFactory> CreateApiAsync() => new(await CreateDatabaseAsync());
+
+    /// <summary>The connection string the application uses: the non-owner role that row-level security applies to.</summary>
+    public static string AppConnectionString(string ownerConnectionString) =>
+        new NpgsqlConnectionStringBuilder(ownerConnectionString) { Username = "homebuild_app", Password = AppPassword }.ToString();
 }
 
-/// <summary>The API, pointed at one test database.</summary>
+/// <summary>The tenants used by tests. C2's fixed data belongs to <see cref="Demo"/>.</summary>
+public static class TestTenants
+{
+    public static readonly Guid Demo = Guid.Parse("0198a000-0000-7000-8000-00000000000a");
+    public static readonly Guid Other = Guid.Parse("0198a000-0000-7000-8000-00000000000b");
+}
+
+/// <summary>The API, pointed at one test database. Clients send <see cref="TestTenants.Demo"/> unless told otherwise.</summary>
 public sealed class ApiFactory(string connectionString) : WebApplicationFactory<Program>
 {
-    public string ConnectionString { get; } = connectionString;
+    public string ConnectionString { get; } = PostgresFixture.AppConnectionString(connectionString);
 
     protected override void ConfigureWebHost(IWebHostBuilder builder) =>
         builder.UseSetting("ConnectionStrings:" + HomeBuildDatabase.ConnectionStringName, ConnectionString);
+
+    protected override void ConfigureClient(HttpClient client)
+    {
+        ArgumentNullException.ThrowIfNull(client);
+        base.ConfigureClient(client);
+        client.DefaultRequestHeaders.Add("X-Tenant-Id", TestTenants.Demo.ToString());
+    }
 }

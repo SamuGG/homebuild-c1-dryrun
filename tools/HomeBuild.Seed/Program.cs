@@ -1,7 +1,8 @@
 // Writes HomeBuild's deterministic volume data set for Labs 4 to 6:
-// 200 developments, 50,000 units (250 each), 150,000 price-history rows, 5,000 reservations.
+// 20 tenants (10 developments each), 200 developments, 50,000 units (250 each), 150,000 price-history rows, 5,000 reservations.
 // Usage: dotnet run --project tools/HomeBuild.Seed -- "<connection string>"
-// Run after the migrations; it refuses to run twice on the same database.
+// Run after the migrations, as the table owner (it writes every tenant, so it must not be subject to RLS);
+// it refuses to run twice on the same database.
 using System.Diagnostics;
 using System.Globalization;
 using Npgsql;
@@ -12,6 +13,7 @@ const int UnitsPerDevelopment = 250;
 const int PricesPerUnit = 3;
 const int Reservations = 5_000;
 const int Buyers = 1_000;
+const int Tenants = 20;
 
 var connectionString = args.Length > 0 ? args[0]
     : Environment.GetEnvironmentVariable("ConnectionStrings__HomeBuild")
@@ -44,7 +46,9 @@ Guid NextGuid()
     return new Guid(bytes);
 }
 
+var tenantIds = Enumerable.Range(0, Tenants).Select(_ => NextGuid()).ToArray();
 var developmentIds = Enumerable.Range(0, Developments).Select(_ => NextGuid()).ToArray();
+var tenantOf = developmentIds.Select((d, i) => (d, tenantIds[i % Tenants])).ToDictionary(x => x.d, x => x.Item2);
 var units = new List<(Guid Id, Guid Development, string Plot, decimal Price)>(Developments * UnitsPerDevelopment);
 foreach (var development in developmentIds)
 {
@@ -61,18 +65,18 @@ await using var connection = await dataSource.OpenConnectionAsync();
 await using var transaction = await connection.BeginTransactionAsync();
 
 await using (var copy = await connection.BeginBinaryImportAsync(
-    "COPY catalogue.developments (id, name, town, deposit_strategy) FROM STDIN (FORMAT BINARY)"))
+    "COPY catalogue.developments (id, tenant_id, name, town, deposit_strategy) FROM STDIN (FORMAT BINARY)"))
 {
     for (var i = 0; i < Developments; i++)
     {
-        await copy.WriteRowAsync(default, developmentIds[i], $"Development {i + 1:000}", $"Town {i % 37:00}", i % 2 == 0 ? "fixed" : "percentage");
+        await copy.WriteRowAsync(default, developmentIds[i], tenantOf[developmentIds[i]], $"Development {i + 1:000}", $"Town {i % 37:00}", i % 2 == 0 ? "fixed" : "percentage");
     }
 
     await copy.CompleteAsync();
 }
 
 await using (var copy = await connection.BeginBinaryImportAsync(
-    "COPY catalogue.units (id, development_id, plot_number, price_amount, price_currency, specification, name, description) FROM STDIN (FORMAT BINARY)"))
+    "COPY catalogue.units (id, tenant_id, development_id, plot_number, price_amount, price_currency, specification, name, description) FROM STDIN (FORMAT BINARY)"))
 {
     foreach (var u in units)
     {
@@ -81,6 +85,7 @@ await using (var copy = await connection.BeginBinaryImportAsync(
             $"{{\"Bedrooms\": {bedrooms}, \"Bathrooms\": {Math.Max(1, bedrooms - 1)}, \"Balcony\": {(random.Next(10) == 0 ? "true" : "false")}, \"Finishes\": [\"oak floors\"]}}");
         await copy.StartRowAsync();
         await copy.WriteAsync(u.Id, NpgsqlDbType.Uuid);
+        await copy.WriteAsync(tenantOf[u.Development], NpgsqlDbType.Uuid);
         await copy.WriteAsync(u.Development, NpgsqlDbType.Uuid);
         await copy.WriteAsync(u.Plot, NpgsqlDbType.Varchar);
         await copy.WriteAsync(u.Price, NpgsqlDbType.Numeric);
@@ -94,7 +99,7 @@ await using (var copy = await connection.BeginBinaryImportAsync(
 }
 
 await using (var copy = await connection.BeginBinaryImportAsync(
-    "COPY catalogue.unit_prices (id, unit_id, development_id, amount, currency, effective_from) FROM STDIN (FORMAT BINARY)"))
+    "COPY catalogue.unit_prices (id, tenant_id, unit_id, development_id, amount, currency, effective_from) FROM STDIN (FORMAT BINARY)"))
 {
     foreach (var u in units)
     {
@@ -102,6 +107,7 @@ await using (var copy = await connection.BeginBinaryImportAsync(
         {
             await copy.StartRowAsync();
             await copy.WriteAsync(NextGuid(), NpgsqlDbType.Uuid);
+            await copy.WriteAsync(tenantOf[u.Development], NpgsqlDbType.Uuid);
             await copy.WriteAsync(u.Id, NpgsqlDbType.Uuid);
             await copy.WriteAsync(u.Development, NpgsqlDbType.Uuid);
             await copy.WriteAsync(u.Price - (step * 5_000m), NpgsqlDbType.Numeric);
@@ -115,18 +121,18 @@ await using (var copy = await connection.BeginBinaryImportAsync(
 
 var reserved = reservedUnits.Select(u => u.Id).ToHashSet();
 await using (var copy = await connection.BeginBinaryImportAsync(
-    "COPY sales.units (id, development_id, plot_number, price_amount, price_currency, status) FROM STDIN (FORMAT BINARY)"))
+    "COPY sales.units (id, tenant_id, development_id, plot_number, price_amount, price_currency, status) FROM STDIN (FORMAT BINARY)"))
 {
     foreach (var u in units)
     {
-        await copy.WriteRowAsync(default, u.Id, u.Development, u.Plot, u.Price, "GBP", reserved.Contains(u.Id) ? "Reserved" : "Available");
+        await copy.WriteRowAsync(default, u.Id, tenantOf[u.Development], u.Development, u.Plot, u.Price, "GBP", reserved.Contains(u.Id) ? "Reserved" : "Available");
     }
 
     await copy.CompleteAsync();
 }
 
 await using (var copy = await connection.BeginBinaryImportAsync(
-    "COPY sales.reservations (id, unit_id, buyer_id, created_at, expires_at, state, deposit_amount, deposit_currency) FROM STDIN (FORMAT BINARY)"))
+    "COPY sales.reservations (id, tenant_id, unit_id, buyer_id, created_at, expires_at, state, deposit_amount, deposit_currency) FROM STDIN (FORMAT BINARY)"))
 {
     foreach (var u in reservedUnits)
     {
@@ -135,6 +141,7 @@ await using (var copy = await connection.BeginBinaryImportAsync(
         var expires = created.AddDays(7);
         await copy.StartRowAsync();
         await copy.WriteAsync(NextGuid(), NpgsqlDbType.Uuid);
+        await copy.WriteAsync(tenantOf[u.Development], NpgsqlDbType.Uuid);
         await copy.WriteAsync(u.Id, NpgsqlDbType.Uuid);
         await copy.WriteAsync(buyers[random.Next(Buyers)], NpgsqlDbType.Uuid);
         await copy.WriteAsync(created.UtcDateTime, NpgsqlDbType.TimestampTz);

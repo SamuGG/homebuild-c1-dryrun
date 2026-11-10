@@ -26,7 +26,9 @@ jobs:
           --health-cmd "pg_isready -U homebuild -d homebuild"
           --health-interval 2s --health-timeout 3s --health-retries 15
     env:
-      ConnectionStrings__HomeBuild: Host=localhost;Port=5432;Database=homebuild;Username=homebuild;Password=homebuild-ci
+      # Migrations run as the table owner; the API runs as homebuild_app, which row-level security applies to.
+      MIGRATIONS_CONNECTION: Host=localhost;Port=5432;Database=homebuild;Username=homebuild;Password=homebuild-ci
+      ConnectionStrings__HomeBuild: Host=localhost;Port=5432;Database=homebuild;Username=homebuild_app;Password=homebuild-ci-app
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1      # v7.0.1
       - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73  # v6.1.0
@@ -65,10 +67,14 @@ jobs:
           for run in 1 2; do
             for name in catalogue sales; do
               echo "::group::run $run: migrate-$name"
-              ./artifacts/migrate-$name --connection "$ConnectionStrings__HomeBuild"
+              ./artifacts/migrate-$name --connection "$MIGRATIONS_CONNECTION"
               echo "::endgroup::"
             done
           done
+      - name: Give the application role a login (CI-only password)
+        env:
+          PGPASSWORD: homebuild-ci
+        run: psql -h localhost -U homebuild -d homebuild -c "ALTER ROLE homebuild_app LOGIN PASSWORD 'homebuild-ci-app'"
       - name: Publish migration bundles and scripts
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:

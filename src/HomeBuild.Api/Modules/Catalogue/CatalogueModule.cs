@@ -17,7 +17,8 @@ public static class CatalogueModule
     public static IServiceCollection AddCatalogueModule(this IServiceCollection services)
     {
         // Scoped (AddDbContext's default): a DbContext is not thread-safe and tracks entities per request.
-        services.AddDbContext<CatalogueDbContext>((sp, options) => Configure(options, HomeBuildDatabase.ConnectionString(sp)));
+        services.AddDbContext<CatalogueDbContext>((sp, options) => Configure(options, HomeBuildDatabase.ConnectionString(sp))
+            .AddInterceptors(new TenantCommandInterceptor(sp.GetRequiredService<ITenantContext>())));
         // Scoped: wraps the scoped DbContext.
         services.AddScoped<EfCatalogueStore>();
         services.AddScoped<ICatalogueStore>(sp => sp.GetRequiredService<EfCatalogueStore>());
@@ -34,8 +35,13 @@ public static class CatalogueModule
             .UseSeeding((db, _) => CatalogueDbContext.SeedAsync(db, CancellationToken.None).GetAwaiter().GetResult())
             .UseAsyncSeeding((db, _, ct) => CatalogueDbContext.SeedAsync(db, ct));
 
-    internal static CatalogueDbContext CreateDbContext(string connectionString) =>
-        new((DbContextOptions<CatalogueDbContext>)Configure(new DbContextOptionsBuilder<CatalogueDbContext>(), connectionString).Options);
+    /// <summary>A context outside a request, for tools and tests; <paramref name="tenantId"/> null means no tenant.</summary>
+    internal static CatalogueDbContext CreateDbContext(string connectionString, Guid? tenantId = null)
+    {
+        var tenant = new FixedTenantContext(tenantId);
+        return new((DbContextOptions<CatalogueDbContext>)Configure(new DbContextOptionsBuilder<CatalogueDbContext>(), connectionString)
+            .AddInterceptors(new TenantCommandInterceptor(tenant)).Options, tenant);
+    }
 
     public static IEndpointRouteBuilder MapCatalogueModule(this IEndpointRouteBuilder endpoints)
     {

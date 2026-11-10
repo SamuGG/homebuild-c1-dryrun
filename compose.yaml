@@ -1,4 +1,7 @@
 # Local PostgreSQL for development. Throwaway credentials: never reused outside this container.
+# homebuild owns the tables and runs migrations (dotnet ef, bundles). The API connects as homebuild_app, which the
+# RowLevelSecurity migration creates NOLOGIN; give it a login once after migrating:
+#   docker compose exec postgres psql -U homebuild -c "ALTER ROLE homebuild_app LOGIN PASSWORD 'homebuild-dev-app'"
 services:
   postgres:
     image: postgres:18

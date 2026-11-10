@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using HomeBuild.Api.Http;
 using HomeBuild.Api.Modules.Catalogue;
 using HomeBuild.Api.Modules.Sales;
 using Microsoft.AspNetCore.TestHost;
@@ -51,7 +52,8 @@ public sealed class QueryPerformanceTests(PostgresFixture database)
 
         var counter = new CommandCounter();
         await using var db = new SalesDbContext((DbContextOptions<SalesDbContext>)SalesModule
-            .Configure(new DbContextOptionsBuilder<SalesDbContext>(), cs).AddInterceptors(counter).Options);
+            .Configure(new DbContextOptionsBuilder<SalesDbContext>(), cs).AddInterceptors(counter).Options,
+            new FixedTenantContext(TestTenants.Demo));
 
         var expired = await new ReservationExpiry(db).ExpireStaleAsync(DateTimeOffset.UtcNow.AddDays(8), Ct);
 

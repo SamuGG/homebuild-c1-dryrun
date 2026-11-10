@@ -19,19 +19,19 @@ public sealed partial class IndexPlanTests(PostgresFixture database)
         // Enough rows that the planner prefers an index: 100 developments × 200 units, 4,000 held reservations
         // over 1,000 buyers, expiring across the next 7 days.
         await ExecuteAsync(connection, """
-            INSERT INTO sales.units (id, development_id, plot_number, status, price_amount, price_currency)
-            SELECT gen_random_uuid(), ('00000000-0000-4000-8000-' || lpad((g % 100)::text, 12, '0'))::uuid, 'P' || g,
+            INSERT INTO sales.units (id, tenant_id, development_id, plot_number, status, price_amount, price_currency)
+            SELECT gen_random_uuid(), '0198a000-0000-7000-8000-00000000000a', ('00000000-0000-4000-8000-' || lpad((g % 100)::text, 12, '0'))::uuid, 'P' || g,
                    CASE WHEN g % 10 = 0 THEN 'Reserved' ELSE 'Available' END, 250000, 'GBP'
             FROM generate_series(1, 20000) g;
-            INSERT INTO sales.reservations (id, unit_id, buyer_id, created_at, expires_at, state, deposit_amount, deposit_currency)
-            SELECT gen_random_uuid(), u.id, ('00000000-0000-4000-9000-' || lpad((row_number() OVER () % 1000)::text, 12, '0'))::uuid,
+            INSERT INTO sales.reservations (id, tenant_id, unit_id, buyer_id, created_at, expires_at, state, deposit_amount, deposit_currency)
+            SELECT gen_random_uuid(), u.tenant_id, u.id, ('00000000-0000-4000-9000-' || lpad((row_number() OVER () % 1000)::text, 12, '0'))::uuid,
                    now() - (row_number() OVER ()) * interval '2 minutes', now() + (row_number() OVER ()) * interval '2 minutes',
                    'Held|2026-11-17T00:00:00.0000000+00:00', 5000, 'GBP'
             FROM sales.units u WHERE u.plot_number LIKE 'P%' LIMIT 4000;
             ANALYZE sales.units;
             ANALYZE sales.reservations;
             """);
-        await using var db = SalesModule.CreateDbContext(cs);
+        await using var db = SalesModule.CreateDbContext(cs, TestTenants.Demo);
         var now = DateTimeOffset.UtcNow;
         var development = new DevelopmentId(Guid.Parse("00000000-0000-4000-8000-000000000007"));
         var buyer = new BuyerId(Guid.Parse("00000000-0000-4000-9000-000000000042"));

@@ -18,14 +18,14 @@ public sealed class MappingTests(PostgresFixture database)
         var developmentId = DevelopmentId.New();
         var unit = new Unit(UnitId.New(), developmentId, "P42", new Money(412_500.50m, "GBP"),
             new UnitSpecification(3, 2, true, ["oak floors", "quartz worktops"]));
-        await using (var db = CatalogueModule.CreateDbContext(cs))
+        await using (var db = CatalogueModule.CreateDbContext(cs, TestTenants.Demo))
         {
             db.Developments.Add(new Development(developmentId, "Round Trip", "York", "fixed"));
             db.Units.Add(unit);
             await db.SaveChangesAsync(Ct);
         }
 
-        await using var read = CatalogueModule.CreateDbContext(cs);
+        await using var read = CatalogueModule.CreateDbContext(cs, TestTenants.Demo);
         var loaded = await read.Units.AsNoTracking().SingleAsync(u => u.Id == unit.Id, Ct);
 
         Assert.Equal(unit.DevelopmentId, loaded.DevelopmentId);
@@ -44,7 +44,7 @@ public sealed class MappingTests(PostgresFixture database)
         var unitId = new UnitId(Guid.Parse(EndpointTests.RiversidePlot1));
         var policy = new ReservationPolicy(TimeSpan.FromDays(7), new Money(1000m, "GBP"));
         Reservation reservation;
-        await using (var db = SalesModule.CreateDbContext(cs))
+        await using (var db = SalesModule.CreateDbContext(cs, TestTenants.Demo))
         {
             var unit = await db.Units.SingleAsync(u => u.Id == unitId, Ct);
             reservation = Assert.IsType<Reserved>(unit.Reserve(BuyerId.New(), new Money(5000m, "GBP"), policy, Now).Value).Reservation;
@@ -52,7 +52,7 @@ public sealed class MappingTests(PostgresFixture database)
             await db.SaveChangesAsync(Ct);
         }
 
-        await using (var db = SalesModule.CreateDbContext(cs))
+        await using (var db = SalesModule.CreateDbContext(cs, TestTenants.Demo))
         {
             var held = await db.Reservations.SingleAsync(r => r.Id == reservation.Id, Ct);
             Assert.Equal(new Held(Now.AddDays(7)), held.State);
@@ -64,7 +64,7 @@ public sealed class MappingTests(PostgresFixture database)
             await db.SaveChangesAsync(Ct);
         }
 
-        await using var read = SalesModule.CreateDbContext(cs);
+        await using var read = SalesModule.CreateDbContext(cs, TestTenants.Demo);
         var cancelled = await read.Reservations.AsNoTracking().SingleAsync(r => r.Id == reservation.Id, Ct);
         Assert.Equal(new Cancelled(Now.AddHours(1)), cancelled.State);
         Assert.Equal("cancelled", await read.Reservations.Where(r => r.Id == reservation.Id)

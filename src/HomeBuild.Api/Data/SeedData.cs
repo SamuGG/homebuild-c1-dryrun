@@ -5,6 +5,9 @@ namespace HomeBuild.Api.Data;
 /// <summary>The small fixed data set the tests and the Bruno collection address by ID (C2 Lab 1).</summary>
 internal static class SeedData
 {
+    /// <summary>The tenant that owns C2's fixed data set (both developments).</summary>
+    public static readonly Guid DemoTenant = Guid.Parse("0198a000-0000-7000-8000-00000000000a");
+
     public static readonly DevelopmentId Riverside = new(Guid.Parse("0198a000-0000-7000-8000-000000000001"));
     public static readonly DevelopmentId Hillcrest = new(Guid.Parse("0198a000-0000-7000-8000-000000000002"));
 

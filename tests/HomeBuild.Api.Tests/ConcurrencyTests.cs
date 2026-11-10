@@ -48,7 +48,7 @@ public sealed class ConcurrencyTests(PostgresFixture database)
         var cs = await database.CreateDatabaseAsync();
         var unitId = new UnitId(Guid.Parse(EndpointTests.RiversidePlot1));
         var now = DateTimeOffset.UtcNow;
-        await using (var db = SalesModule.CreateDbContext(cs))
+        await using (var db = SalesModule.CreateDbContext(cs, TestTenants.Demo))
         {
             var unit = await db.Units.SingleAsync(u => u.Id == unitId, Ct);
             var first = Assert.IsType<Reserved>(unit.Reserve(BuyerId.New(), new Money(5000m, "GBP"),
@@ -58,7 +58,7 @@ public sealed class ConcurrencyTests(PostgresFixture database)
         }
 
         // A second write path that never touches the unit, so its version check cannot help.
-        await using var other = SalesModule.CreateDbContext(cs);
+        await using var other = SalesModule.CreateDbContext(cs, TestTenants.Demo);
         other.Reservations.Add(new Reservation(ReservationId.New(), unitId, BuyerId.New(), new Money(5000m, "GBP"), now, now.AddDays(7)));
 
         var ex = await Assert.ThrowsAsync<DbUpdateException>(() => other.SaveChangesAsync(Ct));
