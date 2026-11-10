@@ -19,7 +19,9 @@ internal static class ReserveUnitEndpoint
         group.MapPost("/units/{unitId}/reservations", Reserve)
             .WithName("ReserveUnit")
             .WithSummary("Reserve a unit with a deposit")
-            .ProducesValidationProblem(); // AddValidation and the default-ID filter answer before the handler
+            .ProducesValidationProblem() // AddValidation and the default-ID filter answer before the handler
+            .ProducesProblem(StatusCodes.Status429TooManyRequests)
+            .RequireRateLimiting(RateLimiting.Reservations);
 
     internal static Results<Created<ReservationResponse>, NotFound, Conflict<ProblemDetails>, UnprocessableEntity<ProblemDetails>>
         Reserve(
