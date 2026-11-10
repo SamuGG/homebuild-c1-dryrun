@@ -1,3 +1,4 @@
+using HomeBuild.Api.Http;
 using HomeBuild.Api.Modules.Catalogue;
 using HomeBuild.Domain;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -11,7 +12,7 @@ internal static class CancelReservationEndpoint
         group.MapDelete("/reservations/{reservationId}", Handle);
 
     private static Results<NoContent, NotFound, Conflict<ProblemDetails>> Handle(
-        ReservationId reservationId, IReservationStore reservations, ICatalogueQueries catalogue, TimeProvider time)
+        ReservationId reservationId, IReservationStore reservations, ICatalogueQueries catalogue, TimeProvider time, HttpContext http)
     {
         if (reservations.Find(reservationId) is not { } reservation)
         {
@@ -26,12 +27,8 @@ internal static class CancelReservationEndpoint
         return reservation.Cancel(time.GetUtcNow()) switch
         {
             Transitioned => Release(catalogue, reservation.UnitId),
-            InvalidTransition invalid => TypedResults.Conflict(new ProblemDetails
-            {
-                Title = "Reservation cannot be cancelled",
-                Detail = invalid.Reason,
-                Status = StatusCodes.Status409Conflict,
-            }),
+            InvalidTransition invalid => TypedResults.Conflict(Problems.Business(
+                http, "reservation-not-cancellable", "Reservation cannot be cancelled", StatusCodes.Status409Conflict, invalid.Reason)),
         };
     }
 
