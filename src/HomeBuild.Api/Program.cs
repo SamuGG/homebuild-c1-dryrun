@@ -15,7 +15,9 @@ builder.Host.UseDefaultServiceProvider(options =>
     options.ValidateOnBuild = true;
 });
 
-builder.Services.AddOpenApi();
+builder.Services.AddHomeBuildApiVersioning();
+builder.Services.AddOpenApi("v1");
+builder.Services.AddOpenApi("v2");
 builder.Services.AddValidation();
 builder.Services.AddProblemDetails(options =>
     options.CustomizeProblemDetails = context => Problems.AddTraceId(context.ProblemDetails, context.HttpContext));

@@ -43,8 +43,8 @@ public sealed class LifetimeTests
         using var client = factory.CreateClient();
         var deposit = EndpointTests.Deposit(5000); // above the fixed minimum (1000), below 5% of 330,000
 
-        var percentage = await client.PostAsJsonAsync($"/units/{HillcrestPlot1}/reservations", deposit, TestContext.Current.CancellationToken);
-        var fixedRule = await client.PostAsJsonAsync($"/units/{RiversidePlot1}/reservations", deposit, TestContext.Current.CancellationToken);
+        var percentage = await client.PostAsJsonAsync($"/v1/units/{HillcrestPlot1}/reservations", deposit, TestContext.Current.CancellationToken);
+        var fixedRule = await client.PostAsJsonAsync($"/v1/units/{RiversidePlot1}/reservations", deposit, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, percentage.StatusCode);
         Assert.Contains("16500", await percentage.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), StringComparison.Ordinal);

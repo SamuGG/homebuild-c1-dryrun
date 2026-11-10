@@ -1,0 +1,20 @@
+meta {
+  name: Get unit v2
+  type: http
+  seq: 20
+}
+
+get {
+  url: {{baseUrlV2}}/units/{{unitId}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.id: eq {{unitId}}
+  res.body.price.amount: isNumber
+  res.body.price.currency: eq GBP
+  res.headers.deprecation: isUndefined
+  res.headers.sunset: isUndefined
+}

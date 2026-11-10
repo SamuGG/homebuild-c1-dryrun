@@ -1,0 +1,15 @@
+meta {
+  name: Get unknown unit v2
+  type: http
+  seq: 21
+}
+
+get {
+  url: {{baseUrlV2}}/units/0198a000-0000-7000-8001-0000000000ff
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 404
+}

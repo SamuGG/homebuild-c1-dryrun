@@ -27,7 +27,7 @@ public static class SalesModule
 
     public static IEndpointRouteBuilder MapSalesModule(this IEndpointRouteBuilder endpoints)
     {
-        var group = endpoints.MapGroup("").WithTags(Name).AddEndpointFilter<RejectDefaultUnitIdFilter>();
+        var group = endpoints.MapVersionedGroup().WithTags(Name).AddEndpointFilter<RejectDefaultUnitIdFilter>();
         group.MapReserveUnit();
         group.MapGetReservation();
         group.MapCancelReservation();

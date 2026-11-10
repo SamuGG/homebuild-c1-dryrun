@@ -23,7 +23,7 @@ public static class CatalogueModule
 
     public static IEndpointRouteBuilder MapCatalogueModule(this IEndpointRouteBuilder endpoints)
     {
-        var group = endpoints.MapGroup("").WithTags(Name).AddEndpointFilter<RejectDefaultUnitIdFilter>();
+        var group = endpoints.MapVersionedGroup().WithTags(Name).AddEndpointFilter<RejectDefaultUnitIdFilter>();
         group.MapListDevelopments();
         group.MapGetDevelopment();
         group.MapListUnits();
