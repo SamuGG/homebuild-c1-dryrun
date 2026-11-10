@@ -137,8 +137,8 @@
         "tags": [
           "Catalogue"
         ],
-        "summary": "List a development's units, optionally by status",
-        "operationId": "ListUnits",
+        "summary": "List a development's units by price, one keyset page at a time (v2)",
+        "operationId": "ListUnitsV2",
         "parameters": [
           {
             "name": "developmentId",
@@ -146,6 +146,26 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 20
             }
           },
           {
@@ -162,16 +182,63 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/UnitSummary"
-                  }
+                  "$ref": "#/components/schemas/UnitPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
           },
           "404": {
             "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/v2/units/search": {
+      "get": {
+        "tags": [
+          "Catalogue"
+        ],
+        "summary": "Full-text search over unit names and descriptions (English stemming, web search syntax)",
+        "operationId": "SearchUnits",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnitSearchResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -189,7 +256,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -754,6 +822,27 @@
           }
         }
       },
+      "UnitPage": {
+        "required": [
+          "items",
+          "next"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UnitSummary"
+            }
+          },
+          "next": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "UnitResponseV2": {
         "required": [
           "id",
@@ -780,6 +869,58 @@
           },
           "status": {
             "type": "string"
+          }
+        }
+      },
+      "UnitSearchHit": {
+        "required": [
+          "id",
+          "developmentId",
+          "name",
+          "plotNumber",
+          "price",
+          "currency"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "developmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "plotNumber": {
+            "type": "string"
+          },
+          "price": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "currency": {
+            "type": "string"
+          }
+        }
+      },
+      "UnitSearchResult": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UnitSearchHit"
+            }
           }
         }
       },

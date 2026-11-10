@@ -17,12 +17,12 @@ internal static class GetUnitEndpoint
 {
     public static void MapGetUnit(this RouteGroupBuilder group)
     {
-        group.MapGet("/units/{unitId}", HandleV1)
+        group.MapGet("/units/{unitId:guid}", HandleV1)
             .MapToApiVersion(ApiVersions.V1)
             .WithName("GetUnit")
             .WithSummary("Get a unit (v1: price and currency as separate fields)")
             .ProducesProblem(StatusCodes.Status400BadRequest); // the default-ID filter answers before the handler
-        group.MapGet("/units/{unitId}", HandleV2)
+        group.MapGet("/units/{unitId:guid}", HandleV2)
             .MapToApiVersion(ApiVersions.V2)
             .WithName("GetUnitV2")
             .WithSummary("Get a unit (v2: price as { amount, currency })")

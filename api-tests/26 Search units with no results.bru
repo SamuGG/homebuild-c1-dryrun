@@ -1,0 +1,16 @@
+meta {
+  name: Search units with no results
+  type: http
+  seq: 26
+}
+
+get {
+  url: {{baseUrl}}/units/search?q=penthouse
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.items: length 0
+}

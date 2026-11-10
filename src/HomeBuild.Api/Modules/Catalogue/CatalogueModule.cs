@@ -6,6 +6,7 @@ using HomeBuild.Api.Modules.Catalogue.GetDevelopmentPage;
 using HomeBuild.Api.Modules.Catalogue.GetUnit;
 using HomeBuild.Api.Modules.Catalogue.ListDevelopments;
 using HomeBuild.Api.Modules.Catalogue.ListUnits;
+using HomeBuild.Api.Modules.Catalogue.SearchUnits;
 
 namespace HomeBuild.Api.Modules.Catalogue;
 
@@ -22,6 +23,9 @@ public static class CatalogueModule
         services.AddScoped<ICatalogueStore>(sp => sp.GetRequiredService<EfCatalogueStore>());
         // Scoped: the public read surface for other modules, over the same context.
         services.AddScoped<ICatalogueQueries>(sp => sp.GetRequiredService<EfCatalogueStore>());
+        // Singleton: the cursor protector is stateless; Data Protection keeps its own key ring.
+        services.AddDataProtection();
+        services.AddSingleton<UnitsCursor>();
         return services;
     }
 
@@ -40,6 +44,7 @@ public static class CatalogueModule
         group.MapGetDevelopment();
         group.MapGetDevelopmentPage();
         group.MapListUnits();
+        group.MapSearchUnits();
         group.MapGetUnit();
         return endpoints;
     }

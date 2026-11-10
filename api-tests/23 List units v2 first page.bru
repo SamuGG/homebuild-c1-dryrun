@@ -1,0 +1,22 @@
+meta {
+  name: List units v2 first page
+  type: http
+  seq: 23
+}
+
+get {
+  url: {{baseUrlV2}}/developments/{{riverside}}/units?size=2
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.items: length 2
+  res.body.next: isString
+  res.body.total: isUndefined
+}
+
+script:post-response {
+  bru.setVar("unitsCursor", res.body.next);
+}

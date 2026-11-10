@@ -1,0 +1,17 @@
+meta {
+  name: List units v2 last page
+  type: http
+  seq: 24
+}
+
+get {
+  url: {{baseUrlV2}}/developments/{{riverside}}/units?size=2&after={{unitsCursor}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.items: length 1
+  res.body.next: isNull
+}
