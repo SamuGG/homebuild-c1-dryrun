@@ -1,0 +1,6 @@
+{
+  "version": "1",
+  "name": "HomeBuild API",
+  "type": "collection",
+  "ignore": ["node_modules", ".git", "results"]
+}

@@ -1,0 +1,21 @@
+meta {
+  name: List available units
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/developments/{{riverside}}/units?status=Available
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body: isArray
+  res.body[0].status: eq Available
+}
+
+script:post-response {
+  bru.setVar("unitId", res.body[0].id);
+}

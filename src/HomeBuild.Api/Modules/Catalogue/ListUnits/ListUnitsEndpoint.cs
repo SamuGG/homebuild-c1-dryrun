@@ -8,7 +8,9 @@ internal sealed record UnitSummary(Guid Id, string PlotNumber, decimal Price, st
 internal static class ListUnitsEndpoint
 {
     public static void MapListUnits(this RouteGroupBuilder group) =>
-        group.MapGet("/developments/{developmentId}/units", Handle);
+        group.MapGet("/developments/{developmentId}/units", Handle)
+            .WithName("ListUnits")
+            .WithSummary("List a development's units, optionally by status");
 
     private static Results<Ok<List<UnitSummary>>, NotFound> Handle(DevelopmentId developmentId, ICatalogueStore store, UnitStatus? status = null)
     {

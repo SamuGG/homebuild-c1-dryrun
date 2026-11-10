@@ -1,0 +1,16 @@
+meta {
+  name: Read reservation
+  type: http
+  seq: 14
+}
+
+get {
+  url: {{baseUrl}}{{reservationPath}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.state: eq Held
+}

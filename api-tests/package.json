@@ -1,0 +1,12 @@
+{
+  "name": "homebuild-api-tests",
+  "private": true,
+  "description": "Bruno collection for the HomeBuild API, run in CI.",
+  "scripts": {
+    "test:local": "bru run --env local",
+    "test:ci": "mkdir -p results && bru run --env ci --reporter-junit results/junit.xml"
+  },
+  "devDependencies": {
+    "@usebruno/cli": "4.3.0"
+  }
+}

@@ -1,0 +1,17 @@
+meta {
+  name: List developments with bad paging
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/developments?page=0&size=10
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 400
+  res.body.errors.page: isDefined
+  res.body.traceId: isString
+}

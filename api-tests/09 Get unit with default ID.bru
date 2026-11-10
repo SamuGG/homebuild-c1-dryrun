@@ -1,0 +1,16 @@
+meta {
+  name: Get unit with default ID
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/units/00000000-0000-0000-0000-000000000000
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 400
+  res.body.title: eq Invalid unit ID
+}

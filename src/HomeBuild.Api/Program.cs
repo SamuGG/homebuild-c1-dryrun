@@ -15,6 +15,7 @@ builder.Host.UseDefaultServiceProvider(options =>
     options.ValidateOnBuild = true;
 });
 
+builder.Services.AddOpenApi();
 builder.Services.AddValidation();
 builder.Services.AddProblemDetails(options =>
     options.CustomizeProblemDetails = context => Problems.AddTraceId(context.ProblemDetails, context.HttpContext));
@@ -31,6 +32,12 @@ app.UseExceptionHandler();
 app.UseStatusCodePages();
 // 3. Routing: picks the endpoint, so middleware after it (rate limiter in Lab 7, auth in C4) can read endpoint metadata.
 app.UseRouting();
+
+// The OpenAPI document is published only in Development and in CI, where Bruno and reviewers use it.
+if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("CI"))
+{
+    app.MapOpenApi();
+}
 
 app.MapCatalogueModule();
 app.MapSalesModule();

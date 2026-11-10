@@ -1,0 +1,15 @@
+meta {
+  name: Get unknown reservation
+  type: http
+  seq: 18
+}
+
+get {
+  url: {{baseUrl}}/reservations/0198a000-0000-7000-8000-0000000000ff
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 404
+}

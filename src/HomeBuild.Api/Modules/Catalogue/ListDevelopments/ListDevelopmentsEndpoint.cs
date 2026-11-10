@@ -11,7 +11,9 @@ internal static class ListDevelopmentsEndpoint
     private const int MaxSize = 100;
 
     public static void MapListDevelopments(this RouteGroupBuilder group) =>
-        group.MapGet("/developments", Handle);
+        group.MapGet("/developments", Handle)
+            .WithName("ListDevelopments")
+            .WithSummary("List developments, one page at a time");
 
     private static Results<Ok<DevelopmentPage>, ValidationProblem> Handle(ICatalogueStore store, int page = 1, int size = 20)
     {
