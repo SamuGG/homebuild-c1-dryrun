@@ -1,0 +1,30 @@
+meta {
+  name: Reserve unit
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/units/{{unitId}}/reservations
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "buyerId": "11111111-1111-1111-1111-111111111111",
+    "deposit": 5000,
+    "currency": "GBP"
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.headers.location: isString
+  res.body.state: eq Held
+  res.body.unitId: eq {{unitId}}
+}
+
+script:post-response {
+  bru.setVar("reservationPath", res.headers.location);
+}

@@ -15,7 +15,10 @@ internal sealed record ReserveRequest(
 internal static class ReserveUnitEndpoint
 {
     public static void MapReserveUnit(this RouteGroupBuilder group) =>
-        group.MapPost("/units/{unitId}/reservations", Reserve);
+        group.MapPost("/units/{unitId}/reservations", Reserve)
+            .WithName("ReserveUnit")
+            .WithSummary("Reserve a unit with a deposit")
+            .ProducesValidationProblem(); // AddValidation and the default-ID filter answer before the handler
 
     internal static Results<Created<ReservationResponse>, NotFound, Conflict<ProblemDetails>, UnprocessableEntity<ProblemDetails>>
         Reserve(

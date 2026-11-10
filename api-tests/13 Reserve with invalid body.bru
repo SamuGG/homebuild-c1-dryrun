@@ -1,0 +1,25 @@
+meta {
+  name: Reserve with invalid body
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{baseUrl}}/units/{{riversidePlot3}}/reservations
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "buyerId": "11111111-1111-1111-1111-111111111111",
+    "deposit": -5,
+    "currency": "pounds"
+  }
+}
+
+assert {
+  res.status: eq 400
+  res.body.errors.Deposit: isArray
+  res.body.errors.Currency: isArray
+}

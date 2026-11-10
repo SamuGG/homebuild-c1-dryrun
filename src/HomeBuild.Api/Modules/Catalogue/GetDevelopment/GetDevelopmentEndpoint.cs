@@ -8,7 +8,9 @@ internal sealed record DevelopmentResponse(Guid Id, string Name, string Town);
 internal static class GetDevelopmentEndpoint
 {
     public static void MapGetDevelopment(this RouteGroupBuilder group) =>
-        group.MapGet("/developments/{developmentId}", Handle);
+        group.MapGet("/developments/{developmentId}", Handle)
+            .WithName("GetDevelopment")
+            .WithSummary("Get a development");
 
     private static Results<Ok<DevelopmentResponse>, NotFound> Handle(DevelopmentId developmentId, ICatalogueStore store) =>
         store.FindDevelopment(developmentId) is { } d

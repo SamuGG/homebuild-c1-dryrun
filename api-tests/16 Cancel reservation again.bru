@@ -1,0 +1,15 @@
+meta {
+  name: Cancel reservation again
+  type: http
+  seq: 16
+}
+
+delete {
+  url: {{baseUrl}}{{reservationPath}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 204
+}

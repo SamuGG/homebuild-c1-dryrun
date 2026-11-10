@@ -19,6 +19,9 @@ public sealed class ModuleTests
         var endpoints = factory.Services.GetRequiredService<EndpointDataSource>().Endpoints.OfType<RouteEndpoint>().ToList();
 
         Assert.NotEmpty(endpoints);
+
+        // Lab 5: Program.cs also maps the OpenAPI document (Development and CI only). It is infrastructure, not a feature.
+        endpoints = endpoints.Where(e => e.RoutePattern.RawText != "/openapi/{documentName}.json").ToList();
         Assert.All(endpoints, e =>
         {
             var tags = e.Metadata.GetOrderedMetadata<ITagsMetadata>().SelectMany(t => t.Tags);

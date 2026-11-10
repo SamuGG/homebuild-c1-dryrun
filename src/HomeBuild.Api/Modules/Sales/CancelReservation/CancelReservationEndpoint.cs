@@ -9,7 +9,9 @@ namespace HomeBuild.Api.Modules.Sales.CancelReservation;
 internal static class CancelReservationEndpoint
 {
     public static void MapCancelReservation(this RouteGroupBuilder group) =>
-        group.MapDelete("/reservations/{reservationId}", Handle);
+        group.MapDelete("/reservations/{reservationId}", Handle)
+            .WithName("CancelReservation")
+            .WithSummary("Cancel a reservation (idempotent)");
 
     private static Results<NoContent, NotFound, Conflict<ProblemDetails>> Handle(
         ReservationId reservationId, IReservationStore reservations, ICatalogueQueries catalogue, TimeProvider time, HttpContext http)

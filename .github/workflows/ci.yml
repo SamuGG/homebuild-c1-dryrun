@@ -24,3 +24,29 @@ jobs:
       - run: dotnet restore --locked-mode
       - run: dotnet build --no-restore -c Release
       - run: dotnet test --no-build -c Release
+      - name: OpenAPI snapshot is up to date
+        run: git diff --exit-code -- src/HomeBuild.Api/openapi.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1     # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: api-tests/package-lock.json
+      - run: npm ci
+        working-directory: api-tests
+      - name: Start the API
+        env:
+          ASPNETCORE_ENVIRONMENT: CI
+        run: |
+          dotnet run --no-build -c Release --no-launch-profile --project src/HomeBuild.Api --urls http://localhost:5080 > api.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf -o /dev/null http://localhost:5080/openapi/v1.json && exit 0; sleep 1; done
+          cat api.log; exit 1
+      - name: Bruno collection
+        run: npm run test:ci
+        working-directory: api-tests
+      - name: Publish Bruno JUnit report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: bruno-junit
+          path: api-tests/results/junit.xml
+          if-no-files-found: ignore

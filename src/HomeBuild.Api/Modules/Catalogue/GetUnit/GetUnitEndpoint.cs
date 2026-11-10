@@ -8,7 +8,10 @@ internal sealed record UnitResponse(Guid Id, Guid DevelopmentId, string PlotNumb
 internal static class GetUnitEndpoint
 {
     public static void MapGetUnit(this RouteGroupBuilder group) =>
-        group.MapGet("/units/{unitId}", Handle);
+        group.MapGet("/units/{unitId}", Handle)
+            .WithName("GetUnit")
+            .WithSummary("Get a unit")
+            .ProducesProblem(StatusCodes.Status400BadRequest); // the default-ID filter answers before the handler
 
     private static Results<Ok<UnitResponse>, NotFound> Handle(UnitId unitId, ICatalogueStore store) =>
         store.FindUnit(unitId) is { } u

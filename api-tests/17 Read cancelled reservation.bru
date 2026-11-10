@@ -1,0 +1,16 @@
+meta {
+  name: Read cancelled reservation
+  type: http
+  seq: 17
+}
+
+get {
+  url: {{baseUrl}}{{reservationPath}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.state: eq Cancelled
+}

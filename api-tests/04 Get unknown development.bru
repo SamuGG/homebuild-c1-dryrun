@@ -1,0 +1,16 @@
+meta {
+  name: Get unknown development
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/developments/0198a000-0000-7000-8000-0000000000ff
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 404
+  res.body.traceId: isString
+}

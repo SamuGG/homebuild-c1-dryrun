@@ -1,0 +1,25 @@
+meta {
+  name: Reserve reserved unit
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/units/{{unitId}}/reservations
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "buyerId": "11111111-1111-1111-1111-111111111111",
+    "deposit": 5000,
+    "currency": "GBP"
+  }
+}
+
+assert {
+  res.status: eq 409
+  res.body.type: eq https://homebuild.dev/problems/unit-unavailable
+  res.body.traceId: isString
+}

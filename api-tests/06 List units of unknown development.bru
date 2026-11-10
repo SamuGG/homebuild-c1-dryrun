@@ -1,0 +1,15 @@
+meta {
+  name: List units of unknown development
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/developments/0198a000-0000-7000-8000-0000000000ff/units
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 404
+}
