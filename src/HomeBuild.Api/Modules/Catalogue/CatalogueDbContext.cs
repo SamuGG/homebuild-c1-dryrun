@@ -13,6 +13,8 @@ internal sealed class CatalogueDbContext(DbContextOptions<CatalogueDbContext> op
 
     public DbSet<Unit> Units => Set<Unit>();
 
+    public DbSet<UnitPrice> UnitPrices => Set<UnitPrice>();
+
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
         configurationBuilder.AddStronglyTypedIds();
 
@@ -26,6 +28,16 @@ internal sealed class CatalogueDbContext(DbContextOptions<CatalogueDbContext> op
             development.Property(d => d.Name).HasMaxLength(200);
             development.Property(d => d.Town).HasMaxLength(100);
             development.Property(d => d.DepositStrategy).HasMaxLength(20);
+            development.HasMany(d => d.Units).WithOne().HasForeignKey(u => u.DevelopmentId);
+            development.HasMany(d => d.PriceHistory).WithOne().HasForeignKey(p => p.DevelopmentId);
+        });
+
+        modelBuilder.Entity<UnitPrice>(price =>
+        {
+            price.HasKey(p => p.Id);
+            price.Property(p => p.Amount).HasPrecision(12, 2);
+            price.Property(p => p.Currency).HasMaxLength(3).IsFixedLength();
+            price.HasOne<Unit>().WithMany().HasForeignKey(p => p.UnitId);
         });
 
         modelBuilder.Entity<Unit>(unit =>
@@ -48,7 +60,6 @@ internal sealed class CatalogueDbContext(DbContextOptions<CatalogueDbContext> op
                 specification.PrimitiveCollection(x => x.Finishes);
             });
             unit.Ignore(u => u.Status); // availability belongs to Sales
-            unit.HasOne<Development>().WithMany().HasForeignKey(u => u.DevelopmentId);
         });
     }
 

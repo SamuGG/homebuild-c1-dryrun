@@ -12,5 +12,5 @@ internal static class GetReservationEndpoint
 
     private static async Task<Results<Ok<ReservationResponse>, NotFound>> Handle(
         ReservationId reservationId, IReservationStore reservations, CancellationToken cancellationToken) =>
-        await reservations.FindAsync(reservationId, cancellationToken) is { } r ? TypedResults.Ok(ReservationResponse.From(r)) : TypedResults.NotFound();
+        await reservations.FindReadOnlyAsync(reservationId, cancellationToken) is { } r ? TypedResults.Ok(ReservationResponse.From(r)) : TypedResults.NotFound();
 }

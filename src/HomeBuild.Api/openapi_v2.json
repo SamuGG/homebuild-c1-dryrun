@@ -98,6 +98,40 @@
         }
       }
     },
+    "/v2/developments/{developmentId}/page": {
+      "get": {
+        "tags": [
+          "Catalogue"
+        ],
+        "summary": "The development page: every unit with its latest reservation and price history",
+        "operationId": "GetDevelopmentPage",
+        "parameters": [
+          {
+            "name": "developmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevelopmentPageResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
     "/v2/developments/{developmentId}/units": {
       "get": {
         "tags": [
@@ -383,6 +417,80 @@
           }
         }
       },
+      "DevelopmentPageResponse": {
+        "required": [
+          "id",
+          "name",
+          "town",
+          "units"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "town": {
+            "type": "string"
+          },
+          "units": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DevelopmentPageUnit"
+            }
+          }
+        }
+      },
+      "DevelopmentPageUnit": {
+        "required": [
+          "id",
+          "plotNumber",
+          "price",
+          "currency",
+          "latestReservation",
+          "priceHistory"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "plotNumber": {
+            "type": "string"
+          },
+          "price": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "latestReservation": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LatestReservationView"
+              }
+            ]
+          },
+          "priceHistory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PricePoint"
+            }
+          }
+        }
+      },
       "DevelopmentResponse": {
         "required": [
           "id",
@@ -467,6 +575,52 @@
                 "type": "string"
               }
             }
+          }
+        }
+      },
+      "LatestReservationView": {
+        "required": [
+          "id",
+          "status",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PricePoint": {
+        "required": [
+          "amount",
+          "currency",
+          "effectiveFrom"
+        ],
+        "type": "object",
+        "properties": {
+          "amount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "effectiveFrom": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },

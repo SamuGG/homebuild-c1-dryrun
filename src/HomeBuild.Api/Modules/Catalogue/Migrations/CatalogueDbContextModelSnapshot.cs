@@ -54,6 +54,49 @@ namespace HomeBuild.Api.Modules.Catalogue.Migrations
                     b.ToTable("developments", "catalogue");
                 });
 
+            modelBuilder.Entity("HomeBuild.Api.Modules.Catalogue.UnitPrice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character(3)")
+                        .HasColumnName("currency")
+                        .IsFixedLength();
+
+                    b.Property<Guid>("DevelopmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("development_id");
+
+                    b.Property<DateTimeOffset>("EffectiveFrom")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("effective_from");
+
+                    b.Property<Guid>("UnitId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("unit_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_unit_prices");
+
+                    b.HasIndex("DevelopmentId")
+                        .HasDatabaseName("ix_unit_prices_development_id");
+
+                    b.HasIndex("UnitId")
+                        .HasDatabaseName("ix_unit_prices_unit_id");
+
+                    b.ToTable("unit_prices", "catalogue");
+                });
+
             modelBuilder.Entity("HomeBuild.Domain.Unit", b =>
                 {
                     b.Property<Guid>("Id")
@@ -114,14 +157,38 @@ namespace HomeBuild.Api.Modules.Catalogue.Migrations
                     b.ToTable("units", "catalogue");
                 });
 
+            modelBuilder.Entity("HomeBuild.Api.Modules.Catalogue.UnitPrice", b =>
+                {
+                    b.HasOne("HomeBuild.Api.Modules.Catalogue.Development", null)
+                        .WithMany("PriceHistory")
+                        .HasForeignKey("DevelopmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_unit_prices_developments_development_id");
+
+                    b.HasOne("HomeBuild.Domain.Unit", null)
+                        .WithMany()
+                        .HasForeignKey("UnitId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_unit_prices_units_unit_id");
+                });
+
             modelBuilder.Entity("HomeBuild.Domain.Unit", b =>
                 {
                     b.HasOne("HomeBuild.Api.Modules.Catalogue.Development", null)
-                        .WithMany()
+                        .WithMany("Units")
                         .HasForeignKey("DevelopmentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_units_developments_development_id");
+                });
+
+            modelBuilder.Entity("HomeBuild.Api.Modules.Catalogue.Development", b =>
+                {
+                    b.Navigation("PriceHistory");
+
+                    b.Navigation("Units");
                 });
 #pragma warning restore 612, 618
         }

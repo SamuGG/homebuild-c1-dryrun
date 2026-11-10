@@ -2,6 +2,7 @@ using HomeBuild.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using HomeBuild.Api.Http;
 using HomeBuild.Api.Modules.Catalogue.GetDevelopment;
+using HomeBuild.Api.Modules.Catalogue.GetDevelopmentPage;
 using HomeBuild.Api.Modules.Catalogue.GetUnit;
 using HomeBuild.Api.Modules.Catalogue.ListDevelopments;
 using HomeBuild.Api.Modules.Catalogue.ListUnits;
@@ -37,6 +38,7 @@ public static class CatalogueModule
         var group = endpoints.MapVersionedGroup().WithTags(Name).AddEndpointFilter<RejectDefaultUnitIdFilter>();
         group.MapListDevelopments();
         group.MapGetDevelopment();
+        group.MapGetDevelopmentPage();
         group.MapListUnits();
         group.MapGetUnit();
         return endpoints;
