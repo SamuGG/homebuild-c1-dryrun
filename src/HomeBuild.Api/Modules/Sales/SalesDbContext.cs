@@ -1,4 +1,5 @@
 using HomeBuild.Api.Data;
+using HomeBuild.Api.Http;
 using HomeBuild.Domain;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,8 +9,25 @@ namespace HomeBuild.Api.Modules.Sales;
 /// Sales' tables, in schema <c>sales</c>. Sales owns availability and reservations, so it keeps its own copy of
 /// each unit's price and status and never reads Catalogue's tables.
 /// </summary>
-internal sealed class SalesDbContext(DbContextOptions<SalesDbContext> options) : DbContext(options)
+internal sealed class SalesDbContext(DbContextOptions<SalesDbContext> options, ITenantContext tenant) : DbContext(options), ITenantScoped
 {
+    /// <summary>The tenant every query is filtered on (layer 1). Guid.Empty matches nothing.</summary>
+    public Guid CurrentTenantId => tenant.TenantId ?? Guid.Empty;
+
+    public ITenantContext Tenant => tenant;
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        ChangeTracker.StampTenant(tenant);
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        ChangeTracker.StampTenant(tenant);
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
     public const string Schema = "sales";
     public const string ActiveReservationIndex = "ux_reservations_one_active_per_unit";
 
@@ -74,17 +92,24 @@ internal sealed class SalesDbContext(DbContextOptions<SalesDbContext> options) :
             reservation.HasIndex(r => new { r.BuyerId, r.CreatedAt }).IsDescending(false, true)
                 .HasDatabaseName("ix_reservations_buyer_id_created_at");
         });
+
+        modelBuilder.Entity<Unit>().HasTenant(this);
+        modelBuilder.Entity<Reservation>().HasTenant(this);
     }
 
     internal static async Task SeedAsync(DbContext db, CancellationToken cancellationToken)
     {
         var context = (SalesDbContext)db;
-        if (await context.Units.AnyAsync(cancellationToken))
+        if (await context.Units.IgnoreQueryFilters().AnyAsync(cancellationToken))
         {
             return;
         }
 
-        context.Units.AddRange(SeedData.Units());
+        foreach (var unit in SeedData.Units())
+        {
+            context.Entry(context.Units.Add(unit).Entity).Property(TenantModel.TenantId).CurrentValue = SeedData.DemoTenant;
+        }
+
         await context.SaveChangesAsync(cancellationToken);
     }
 }

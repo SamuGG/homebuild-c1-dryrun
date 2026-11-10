@@ -81,7 +81,7 @@ public sealed class PagingAndSearchTests(PostgresFixture database)
 
     private static async Task AddUnitsAsync(string cs, IEnumerable<decimal> prices)
     {
-        await using var db = CatalogueModule.CreateDbContext(cs);
+        await using var db = CatalogueModule.CreateDbContext(cs, TestTenants.Demo);
         foreach (var price in prices)
         {
             db.Units.Add(new Unit(UnitId.New(), RiversideId, "N" + Guid.NewGuid().ToString("N")[..6], new Money(price, "GBP")));
@@ -92,7 +92,7 @@ public sealed class PagingAndSearchTests(PostgresFixture database)
 
     private static async Task<List<Guid>> UnitIdsInRiversideAsync(string cs)
     {
-        await using var db = CatalogueModule.CreateDbContext(cs);
+        await using var db = CatalogueModule.CreateDbContext(cs, TestTenants.Demo);
         return [.. db.Units.Where(u => u.DevelopmentId == RiversideId).Select(u => u.Id).AsEnumerable().Select(id => id.Value)];
     }
 }

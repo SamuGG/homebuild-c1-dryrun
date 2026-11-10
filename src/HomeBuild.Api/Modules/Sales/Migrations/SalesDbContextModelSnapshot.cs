@@ -55,6 +55,10 @@ namespace HomeBuild.Api.Modules.Sales.Migrations
                         .HasColumnName("status")
                         .HasComputedColumnSql("lower(split_part(state, '|', 1))", true);
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("UnitId")
                         .HasColumnType("uuid")
                         .HasColumnName("unit_id");
@@ -82,6 +86,9 @@ namespace HomeBuild.Api.Modules.Sales.Migrations
                     b.HasIndex("ExpiresAt")
                         .HasDatabaseName("ix_reservations_held_expires_at")
                         .HasFilter("status = 'held'");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_reservations_tenant_id");
 
                     b.HasIndex("UnitId")
                         .IsUnique()
@@ -117,6 +124,10 @@ namespace HomeBuild.Api.Modules.Sales.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("status");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<uint>("Version")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
@@ -142,6 +153,9 @@ namespace HomeBuild.Api.Modules.Sales.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_units");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_units_tenant_id");
 
                     b.HasIndex("DevelopmentId", "Status")
                         .HasDatabaseName("ix_units_development_id_status");

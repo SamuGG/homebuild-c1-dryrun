@@ -1,4 +1,5 @@
 using HomeBuild.Api.Data;
+using HomeBuild.Api.Http;
 using HomeBuild.Domain;
 using Microsoft.EntityFrameworkCore;
 using NpgsqlTypes;
@@ -6,8 +7,25 @@ using NpgsqlTypes;
 namespace HomeBuild.Api.Modules.Catalogue;
 
 /// <summary>Catalogue's tables, in schema <c>catalogue</c>. Catalogue owns a unit's description, price and specification.</summary>
-internal sealed class CatalogueDbContext(DbContextOptions<CatalogueDbContext> options) : DbContext(options)
+internal sealed class CatalogueDbContext(DbContextOptions<CatalogueDbContext> options, ITenantContext tenant) : DbContext(options), ITenantScoped
 {
+    /// <summary>The tenant every query is filtered on (layer 1). Guid.Empty matches nothing.</summary>
+    public Guid CurrentTenantId => tenant.TenantId ?? Guid.Empty;
+
+    public ITenantContext Tenant => tenant;
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        ChangeTracker.StampTenant(tenant);
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        ChangeTracker.StampTenant(tenant);
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
     public const string Schema = "catalogue";
     public const string UnitName = "Name";
     public const string UnitDescription = "Description";
@@ -73,23 +91,33 @@ internal sealed class CatalogueDbContext(DbContextOptions<CatalogueDbContext> op
             // Keyset index (development_id, price_amount, id) is created in migration UnitSearchAndKeyset with raw SQL:
             // EF Core 10 cannot index a complex-type property such as Price.Amount.
         });
+
+        modelBuilder.Entity<Development>().HasTenant(this);
+        modelBuilder.Entity<Unit>().HasTenant(this);
+        modelBuilder.Entity<UnitPrice>().HasTenant(this);
     }
 
     internal static async Task SeedAsync(DbContext db, CancellationToken cancellationToken)
     {
         var context = (CatalogueDbContext)db;
-        if (await context.Developments.AnyAsync(cancellationToken))
+        if (await context.Developments.IgnoreQueryFilters().AnyAsync(cancellationToken))
         {
             return;
         }
 
-        context.Developments.AddRange(SeedData.Developments().Select(d => new Development(d.Id, d.Name, d.Town, d.DepositStrategy)));
+        foreach (var d in SeedData.Developments())
+        {
+            context.Entry(context.Developments.Add(new Development(d.Id, d.Name, d.Town, d.DepositStrategy)).Entity)
+                .Property(TenantModel.TenantId).CurrentValue = SeedData.DemoTenant;
+        }
+
         foreach (var unit in SeedData.Units())
         {
             var entry = context.Units.Add(unit);
             var (name, description) = SeedData.TextFor(unit);
             entry.Property(UnitName).CurrentValue = name;
             entry.Property(UnitDescription).CurrentValue = description;
+            entry.Property(TenantModel.TenantId).CurrentValue = SeedData.DemoTenant;
         }
 
         await context.SaveChangesAsync(cancellationToken);

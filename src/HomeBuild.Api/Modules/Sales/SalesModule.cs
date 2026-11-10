@@ -18,7 +18,8 @@ public static class SalesModule
         // Singleton: the system clock is stateless and thread-safe.
         services.AddSingleton(TimeProvider.System);
         // Scoped (AddDbContext's default): a DbContext is not thread-safe and tracks entities per request.
-        services.AddDbContext<SalesDbContext>((sp, options) => Configure(options, HomeBuildDatabase.ConnectionString(sp)));
+        services.AddDbContext<SalesDbContext>((sp, options) => Configure(options, HomeBuildDatabase.ConnectionString(sp))
+            .AddInterceptors(new TenantCommandInterceptor(sp.GetRequiredService<ITenantContext>())));
         // Scoped: wraps the scoped DbContext.
         services.AddScoped<EfReservationStore>();
         services.AddScoped<IReservationStore>(sp => sp.GetRequiredService<EfReservationStore>());
@@ -39,8 +40,13 @@ public static class SalesModule
             .UseSeeding((db, _) => SalesDbContext.SeedAsync(db, CancellationToken.None).GetAwaiter().GetResult())
             .UseAsyncSeeding((db, _, ct) => SalesDbContext.SeedAsync(db, ct));
 
-    internal static SalesDbContext CreateDbContext(string connectionString) =>
-        new((DbContextOptions<SalesDbContext>)Configure(new DbContextOptionsBuilder<SalesDbContext>(), connectionString).Options);
+    /// <summary>A context outside a request, for tools and tests; <paramref name="tenantId"/> null means no tenant.</summary>
+    internal static SalesDbContext CreateDbContext(string connectionString, Guid? tenantId = null)
+    {
+        var tenant = new FixedTenantContext(tenantId);
+        return new((DbContextOptions<SalesDbContext>)Configure(new DbContextOptionsBuilder<SalesDbContext>(), connectionString)
+            .AddInterceptors(new TenantCommandInterceptor(tenant)).Options, tenant);
+    }
 
     public static IEndpointRouteBuilder MapSalesModule(this IEndpointRouteBuilder endpoints)
     {

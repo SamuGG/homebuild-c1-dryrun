@@ -43,6 +43,10 @@ namespace HomeBuild.Api.Modules.Catalogue.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("name");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("Town")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -51,6 +55,9 @@ namespace HomeBuild.Api.Modules.Catalogue.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_developments");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_developments_tenant_id");
 
                     b.ToTable("developments", "catalogue");
                 });
@@ -82,6 +89,10 @@ namespace HomeBuild.Api.Modules.Catalogue.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("effective_from");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<Guid>("UnitId")
                         .HasColumnType("uuid")
                         .HasColumnName("unit_id");
@@ -91,6 +102,9 @@ namespace HomeBuild.Api.Modules.Catalogue.Migrations
 
                     b.HasIndex("DevelopmentId")
                         .HasDatabaseName("ix_unit_prices_development_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_unit_prices_tenant_id");
 
                     b.HasIndex("UnitId")
                         .HasDatabaseName("ix_unit_prices_unit_id");
@@ -133,6 +147,10 @@ namespace HomeBuild.Api.Modules.Catalogue.Migrations
                         .HasColumnType("tsvector")
                         .HasColumnName("search_vector")
                         .HasComputedColumnSql("to_tsvector('english'::regconfig, coalesce(name, '') || ' ' || coalesce(description, ''))", true);
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
 
                     b.ComplexProperty(typeof(Dictionary<string, object>), "Price", "HomeBuild.Domain.Unit.Price#Money", b1 =>
                         {
@@ -179,6 +197,9 @@ namespace HomeBuild.Api.Modules.Catalogue.Migrations
                         .HasDatabaseName("ix_units_search_vector");
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchVector"), "GIN");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_units_tenant_id");
 
                     b.ToTable("units", "catalogue");
                 });
