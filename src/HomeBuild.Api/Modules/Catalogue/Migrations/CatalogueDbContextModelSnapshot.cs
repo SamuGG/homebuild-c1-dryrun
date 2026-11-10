@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using NpgsqlTypes;
 
 #nullable disable
 
@@ -103,15 +104,35 @@ namespace HomeBuild.Api.Modules.Catalogue.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("Description")
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasDefaultValue("")
+                        .HasColumnName("description");
+
                     b.Property<Guid>("DevelopmentId")
                         .HasColumnType("uuid")
                         .HasColumnName("development_id");
+
+                    b.Property<string>("Name")
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasDefaultValue("")
+                        .HasColumnName("name");
 
                     b.Property<string>("PlotNumber")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasColumnName("plot_number");
+
+                    b.Property<NpgsqlTsVector>("SearchVector")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("tsvector")
+                        .HasColumnName("search_vector")
+                        .HasComputedColumnSql("to_tsvector('english'::regconfig, coalesce(name, '') || ' ' || coalesce(description, ''))", true);
 
                     b.ComplexProperty(typeof(Dictionary<string, object>), "Price", "HomeBuild.Domain.Unit.Price#Money", b1 =>
                         {
@@ -153,6 +174,11 @@ namespace HomeBuild.Api.Modules.Catalogue.Migrations
 
                     b.HasIndex("DevelopmentId")
                         .HasDatabaseName("ix_units_development_id");
+
+                    b.HasIndex("SearchVector")
+                        .HasDatabaseName("ix_units_search_vector");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchVector"), "GIN");
 
                     b.ToTable("units", "catalogue");
                 });

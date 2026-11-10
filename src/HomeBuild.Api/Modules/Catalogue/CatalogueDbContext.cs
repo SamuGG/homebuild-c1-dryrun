@@ -1,6 +1,7 @@
 using HomeBuild.Api.Data;
 using HomeBuild.Domain;
 using Microsoft.EntityFrameworkCore;
+using NpgsqlTypes;
 
 namespace HomeBuild.Api.Modules.Catalogue;
 
@@ -8,6 +9,9 @@ namespace HomeBuild.Api.Modules.Catalogue;
 internal sealed class CatalogueDbContext(DbContextOptions<CatalogueDbContext> options) : DbContext(options)
 {
     public const string Schema = "catalogue";
+    public const string UnitName = "Name";
+    public const string UnitDescription = "Description";
+    public const string UnitSearchVector = "SearchVector";
 
     public DbSet<Development> Developments => Set<Development>();
 
@@ -60,6 +64,14 @@ internal sealed class CatalogueDbContext(DbContextOptions<CatalogueDbContext> op
                 specification.PrimitiveCollection(x => x.Finishes);
             });
             unit.Ignore(u => u.Status); // availability belongs to Sales
+            // Catalogue's marketing text, searched by GET /units/search. Shadow properties: the domain has no use for them.
+            unit.Property<string>(UnitName).HasMaxLength(200).HasDefaultValue("");
+            unit.Property<string>(UnitDescription).HasMaxLength(2000).HasDefaultValue("");
+            unit.Property<NpgsqlTsVector>(UnitSearchVector)
+                .HasComputedColumnSql("to_tsvector('english'::regconfig, coalesce(name, '') || ' ' || coalesce(description, ''))", stored: true);
+            unit.HasIndex(UnitSearchVector).HasMethod("GIN");
+            // Keyset index (development_id, price_amount, id) is created in migration UnitSearchAndKeyset with raw SQL:
+            // EF Core 10 cannot index a complex-type property such as Price.Amount.
         });
     }
 
@@ -72,7 +84,14 @@ internal sealed class CatalogueDbContext(DbContextOptions<CatalogueDbContext> op
         }
 
         context.Developments.AddRange(SeedData.Developments().Select(d => new Development(d.Id, d.Name, d.Town, d.DepositStrategy)));
-        context.Units.AddRange(SeedData.Units());
+        foreach (var unit in SeedData.Units())
+        {
+            var entry = context.Units.Add(unit);
+            var (name, description) = SeedData.TextFor(unit);
+            entry.Property(UnitName).CurrentValue = name;
+            entry.Property(UnitDescription).CurrentValue = description;
+        }
+
         await context.SaveChangesAsync(cancellationToken);
     }
 }

@@ -23,6 +23,16 @@ internal static class SeedData
         }
     }
 
+    public static (string Name, string Description) TextFor(Unit unit)
+    {
+        ArgumentNullException.ThrowIfNull(unit);
+        var development = unit.DevelopmentId == Riverside ? "Riverside" : "Hillcrest";
+        var view = unit.DevelopmentId == Riverside ? "views over the river" : "views across the hills";
+        var outdoor = unit.Specification.Balcony ? "a south-facing balcony" : "a private garden";
+        return ($"{development} plot {unit.PlotNumber}",
+            $"{unit.Specification.Bedrooms}-bedroom home with {outdoor}, {view} and {string.Join(", ", unit.Specification.Finishes)}.");
+    }
+
     private static Unit NewUnit(DevelopmentId development, int developmentNumber, int plot, decimal price) => new(
         new UnitId(Guid.Parse($"0198a000-0000-7000-8{developmentNumber:000}-{plot:000000000000}")),
         development,

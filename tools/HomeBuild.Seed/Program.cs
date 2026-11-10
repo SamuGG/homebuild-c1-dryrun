@@ -30,6 +30,11 @@ await using (var check = dataSource.CreateCommand("SELECT count(*) FROM catalogu
     }
 }
 
+string Describe(int bedrooms) =>
+    $"{bedrooms}-bedroom {Pick("home", "apartment", "townhouse", "cottage")} with {Pick("a south-facing balcony", "a private garden", "a roof terrace", "a courtyard")}, {Pick("views over the river", "views across the hills", "a quiet cul-de-sac setting", "walking distance to the station")} and {Pick("oak floors", "quartz worktops", "underfloor heating", "a fitted kitchen")}.";
+
+string Pick(params string[] options) => options[random.Next(options.Length)];
+
 Guid NextGuid()
 {
     Span<byte> bytes = stackalloc byte[16];
@@ -67,7 +72,7 @@ await using (var copy = await connection.BeginBinaryImportAsync(
 }
 
 await using (var copy = await connection.BeginBinaryImportAsync(
-    "COPY catalogue.units (id, development_id, plot_number, price_amount, price_currency, specification) FROM STDIN (FORMAT BINARY)"))
+    "COPY catalogue.units (id, development_id, plot_number, price_amount, price_currency, specification, name, description) FROM STDIN (FORMAT BINARY)"))
 {
     foreach (var u in units)
     {
@@ -81,6 +86,8 @@ await using (var copy = await connection.BeginBinaryImportAsync(
         await copy.WriteAsync(u.Price, NpgsqlDbType.Numeric);
         await copy.WriteAsync("GBP", NpgsqlDbType.Char);
         await copy.WriteAsync(spec, NpgsqlDbType.Jsonb);
+        await copy.WriteAsync($"{u.Plot}, {u.Development.ToString()[..8]}", NpgsqlDbType.Varchar);
+        await copy.WriteAsync(Describe(bedrooms), NpgsqlDbType.Varchar);
     }
 
     await copy.CompleteAsync();

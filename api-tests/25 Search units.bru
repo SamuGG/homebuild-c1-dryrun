@@ -1,0 +1,16 @@
+meta {
+  name: Search units
+  type: http
+  seq: 25
+}
+
+get {
+  url: {{baseUrl}}/units/search?q=balconies
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.items: length 4
+}
