@@ -4,17 +4,21 @@ using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace HomeBuild.Api.Tests;
 
-public sealed class RateLimitTests : IDisposable
+public sealed class RateLimitTests(PostgresFixture database) : IAsyncLifetime
 {
-    private readonly WebApplicationFactory<Program> _factory = new();
-    private readonly HttpClient _client;
+    private ApiFactory _factory = null!;
+    private HttpClient _client = null!;
 
-    public RateLimitTests() => _client = _factory.CreateClient();
+    public async ValueTask InitializeAsync()
+    {
+        _factory = await database.CreateApiAsync();
+        _client = _factory.CreateClient();
+    }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         _client.Dispose();
-        _factory.Dispose();
+        await _factory.DisposeAsync();
     }
 
     [Fact]

@@ -1,5 +1,4 @@
 using HomeBuild.Api.Http;
-using HomeBuild.Api.Modules.Catalogue;
 using HomeBuild.Domain;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -13,10 +12,10 @@ internal static class CancelReservationEndpoint
             .WithName("CancelReservation")
             .WithSummary("Cancel a reservation (idempotent)");
 
-    private static Results<NoContent, NotFound, Conflict<ProblemDetails>> Handle(
-        ReservationId reservationId, IReservationStore reservations, ICatalogueQueries catalogue, TimeProvider time, HttpContext http)
+    private static async Task<Results<NoContent, NotFound, Conflict<ProblemDetails>>> Handle(
+        ReservationId reservationId, IReservationStore reservations, TimeProvider time, HttpContext http, CancellationToken cancellationToken)
     {
-        if (reservations.Find(reservationId) is not { } reservation)
+        if (await reservations.FindAsync(reservationId, cancellationToken) is not { } reservation)
         {
             return TypedResults.NotFound();
         }
@@ -28,15 +27,16 @@ internal static class CancelReservationEndpoint
 
         return reservation.Cancel(time.GetUtcNow()) switch
         {
-            Transitioned => Release(catalogue, reservation.UnitId),
+            Transitioned => await ReleaseAsync(reservations, reservation.UnitId, cancellationToken),
             InvalidTransition invalid => TypedResults.Conflict(Problems.Business(
                 http, "reservation-not-cancellable", "Reservation cannot be cancelled", StatusCodes.Status409Conflict, invalid.Reason)),
         };
     }
 
-    private static NoContent Release(ICatalogueQueries catalogue, UnitId unitId)
+    private static async Task<NoContent> ReleaseAsync(IReservationStore reservations, UnitId unitId, CancellationToken cancellationToken)
     {
-        catalogue.FindUnit(unitId)?.Release();
+        (await reservations.FindUnitAsync(unitId, cancellationToken))?.Release();
+        await reservations.SaveChangesAsync(cancellationToken);
         return TypedResults.NoContent();
     }
 }

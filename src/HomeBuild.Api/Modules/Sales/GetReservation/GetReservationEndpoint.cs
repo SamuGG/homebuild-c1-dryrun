@@ -10,6 +10,7 @@ internal static class GetReservationEndpoint
             .WithName("GetReservation")
             .WithSummary("Get a reservation");
 
-    private static Results<Ok<ReservationResponse>, NotFound> Handle(ReservationId reservationId, IReservationStore reservations) =>
-        reservations.Find(reservationId) is { } r ? TypedResults.Ok(ReservationResponse.From(r)) : TypedResults.NotFound();
+    private static async Task<Results<Ok<ReservationResponse>, NotFound>> Handle(
+        ReservationId reservationId, IReservationStore reservations, CancellationToken cancellationToken) =>
+        await reservations.FindAsync(reservationId, cancellationToken) is { } r ? TypedResults.Ok(ReservationResponse.From(r)) : TypedResults.NotFound();
 }

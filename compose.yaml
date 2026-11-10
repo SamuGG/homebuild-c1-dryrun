@@ -1,0 +1,21 @@
+# Local PostgreSQL for development. Throwaway credentials: never reused outside this container.
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: homebuild
+      POSTGRES_USER: homebuild
+      POSTGRES_PASSWORD: homebuild-dev
+    ports:
+      - "5432:5432"
+    volumes:
+      # PostgreSQL 18 images keep PGDATA at /var/lib/postgresql/18/docker, so the volume mounts one level up.
+      - pgdata:/var/lib/postgresql
+    mem_limit: 1g
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U homebuild -d homebuild"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+volumes:
+  pgdata:

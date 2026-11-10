@@ -1,62 +1,35 @@
-using System.Collections.Concurrent;
 using HomeBuild.Domain;
+using Microsoft.EntityFrameworkCore;
 
 namespace HomeBuild.Api.Modules.Catalogue;
 
 internal interface ICatalogueStore
 {
-    IReadOnlyList<Development> Developments();
+    Task<IReadOnlyList<Development>> DevelopmentsAsync(CancellationToken cancellationToken);
 
-    Development? FindDevelopment(DevelopmentId id);
+    Task<Development?> FindDevelopmentAsync(DevelopmentId id, CancellationToken cancellationToken);
 
-    IReadOnlyList<Unit> UnitsIn(DevelopmentId id);
+    Task<IReadOnlyList<Unit>> UnitsInAsync(DevelopmentId id, CancellationToken cancellationToken);
 
-    Unit? FindUnit(UnitId id);
+    Task<Unit?> FindUnitAsync(UnitId id, CancellationToken cancellationToken);
 }
 
-/// <summary>
-/// In-memory catalogue seeded with fixed IDs so external tests can address them.
-/// It is a singleton, so every request shares it: the collections are concurrent and
-/// <see cref="Unit"/> instances are shared. That is correct for one in-process store, and wrong for
-/// EF Core in C3, where a DbContext is scoped, not thread-safe, and tracks entities per request.
-/// </summary>
-internal sealed class InMemoryCatalogueStore : ICatalogueStore, ICatalogueQueries
+/// <summary>Read-only access to the catalogue. Scoped, like the DbContext it wraps; every read is untracked.</summary>
+internal sealed class EfCatalogueStore(CatalogueDbContext db) : ICatalogueStore, ICatalogueQueries
 {
-    public static readonly DevelopmentId Riverside = new(Guid.Parse("0198a000-0000-7000-8000-000000000001"));
-    public static readonly DevelopmentId Hillcrest = new(Guid.Parse("0198a000-0000-7000-8000-000000000002"));
+    public async Task<IReadOnlyList<Development>> DevelopmentsAsync(CancellationToken cancellationToken) =>
+        await db.Developments.AsNoTracking().OrderBy(d => d.Name).ToListAsync(cancellationToken);
 
-    private readonly ConcurrentDictionary<DevelopmentId, Development> _developments = new();
-    private readonly ConcurrentDictionary<UnitId, Unit> _units = new();
+    public Task<Development?> FindDevelopmentAsync(DevelopmentId id, CancellationToken cancellationToken) =>
+        db.Developments.AsNoTracking().SingleOrDefaultAsync(d => d.Id == id, cancellationToken);
 
-    public InMemoryCatalogueStore()
-    {
-        _developments[Riverside] = new Development(Riverside, "Riverside", "York", "fixed");
-        _developments[Hillcrest] = new Development(Hillcrest, "Hillcrest", "Leeds", "percentage");
-        for (var plot = 1; plot <= 3; plot++)
-        {
-            AddUnit(Riverside, plot, 250_000m + (plot * 10_000m));
-            AddUnit(Hillcrest, plot, 320_000m + (plot * 10_000m));
-        }
-    }
+    public async Task<IReadOnlyList<Unit>> UnitsInAsync(DevelopmentId id, CancellationToken cancellationToken) =>
+        await db.Units.AsNoTracking().Where(u => u.DevelopmentId == id).OrderBy(u => u.PlotNumber).ToListAsync(cancellationToken);
 
-    public static UnitId UnitIdFor(DevelopmentId development, int plot) =>
-        new(Guid.Parse($"0198a000-0000-7000-8{(development == Riverside ? 1 : 2):000}-{plot:000000000000}"));
+    public Task<Unit?> FindUnitAsync(UnitId id, CancellationToken cancellationToken) =>
+        db.Units.AsNoTracking().SingleOrDefaultAsync(u => u.Id == id, cancellationToken);
 
-    public IReadOnlyList<Development> Developments() => [.. _developments.Values.OrderBy(d => d.Name, StringComparer.Ordinal)];
-
-    public Development? FindDevelopment(DevelopmentId id) => _developments.GetValueOrDefault(id);
-
-    public IReadOnlyList<Unit> UnitsIn(DevelopmentId id) =>
-        [.. _units.Values.Where(u => u.DevelopmentId == id).OrderBy(u => u.PlotNumber, StringComparer.Ordinal)];
-
-    public Unit? FindUnit(UnitId id) => _units.GetValueOrDefault(id);
-
-    public string DepositStrategyFor(DevelopmentId developmentId) =>
-        _developments.TryGetValue(developmentId, out var d) ? d.DepositStrategy : "fixed";
-
-    private void AddUnit(DevelopmentId development, int plot, decimal price)
-    {
-        var id = UnitIdFor(development, plot);
-        _units[id] = new Unit(id, development, $"P{plot}", new Money(price, "GBP"));
-    }
+    public async Task<string> DepositStrategyForAsync(DevelopmentId developmentId, CancellationToken cancellationToken = default) =>
+        await db.Developments.Where(d => d.Id == developmentId).Select(d => d.DepositStrategy).SingleOrDefaultAsync(cancellationToken)
+        ?? "fixed";
 }

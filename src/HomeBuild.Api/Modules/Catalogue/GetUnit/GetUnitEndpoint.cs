@@ -1,4 +1,5 @@
 using HomeBuild.Api.Http;
+using HomeBuild.Api.Modules.Sales;
 using HomeBuild.Domain;
 using Microsoft.AspNetCore.Http.HttpResults;
 
@@ -29,13 +30,27 @@ internal static class GetUnitEndpoint
     }
 
     // Both versions share the lookup and differ only in mapping.
-    private static Results<Ok<UnitResponse>, NotFound> HandleV1(UnitId unitId, ICatalogueStore store) =>
-        store.FindUnit(unitId) is { } u
-            ? TypedResults.Ok(new UnitResponse(u.Id.Value, u.DevelopmentId.Value, u.PlotNumber, u.Price.Amount, u.Price.Currency, u.Status.ToString()))
+    private static async Task<Results<Ok<UnitResponse>, NotFound>> HandleV1(
+        UnitId unitId, ICatalogueStore store, IUnitAvailability availability, CancellationToken cancellationToken) =>
+        await FindAsync(unitId, store, availability, cancellationToken) is var (u, status) && u is not null
+            ? TypedResults.Ok(new UnitResponse(u.Id.Value, u.DevelopmentId.Value, u.PlotNumber, u.Price.Amount, u.Price.Currency, status.ToString()))
             : TypedResults.NotFound();
 
-    private static Results<Ok<UnitResponseV2>, NotFound> HandleV2(UnitId unitId, ICatalogueStore store) =>
-        store.FindUnit(unitId) is { } u
-            ? TypedResults.Ok(new UnitResponseV2(u.Id.Value, u.DevelopmentId.Value, u.PlotNumber, new PriceResponse(u.Price.Amount, u.Price.Currency), u.Status.ToString()))
+    private static async Task<Results<Ok<UnitResponseV2>, NotFound>> HandleV2(
+        UnitId unitId, ICatalogueStore store, IUnitAvailability availability, CancellationToken cancellationToken) =>
+        await FindAsync(unitId, store, availability, cancellationToken) is var (u, status) && u is not null
+            ? TypedResults.Ok(new UnitResponseV2(u.Id.Value, u.DevelopmentId.Value, u.PlotNumber, new PriceResponse(u.Price.Amount, u.Price.Currency), status.ToString()))
             : TypedResults.NotFound();
+
+    private static async Task<(Unit? Unit, UnitStatus Status)> FindAsync(
+        UnitId unitId, ICatalogueStore store, IUnitAvailability availability, CancellationToken cancellationToken)
+    {
+        if (await store.FindUnitAsync(unitId, cancellationToken) is not { } unit)
+        {
+            return (null, default);
+        }
+
+        var statuses = await availability.StatusOfAsync([unitId], cancellationToken);
+        return (unit, statuses.GetValueOrDefault(unitId));
+    }
 }
