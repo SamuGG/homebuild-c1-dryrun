@@ -44,6 +44,8 @@ public sealed class Reservation
 
     public TransitionResult Confirm(DateTimeOffset depositPaidAt) => Apply(State.Confirm(depositPaidAt));
 
+    public TransitionResult Cancel(DateTimeOffset now) => Apply(State.Cancel(now));
+
     private TransitionResult Apply(TransitionResult result)
     {
         if (result is Transitioned transitioned)

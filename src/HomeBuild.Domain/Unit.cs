@@ -58,4 +58,15 @@ public sealed class Unit
         Status = UnitStatus.Reserved;
         return new Reserved(reservation);
     }
+
+    /// <summary>Makes a reserved unit available again, for example after its reservation is cancelled.</summary>
+    public void Release()
+    {
+        if (Status != UnitStatus.Reserved)
+        {
+            throw new InvalidOperationException($"Only a reserved unit can be released; this one is {Status}.");
+        }
+
+        Status = UnitStatus.Available;
+    }
 }

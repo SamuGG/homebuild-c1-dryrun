@@ -1,3 +1,4 @@
+using HomeBuild.Api.Http;
 using HomeBuild.Api.Modules.Catalogue.GetDevelopment;
 using HomeBuild.Api.Modules.Catalogue.GetUnit;
 using HomeBuild.Api.Modules.Catalogue.ListDevelopments;
@@ -19,7 +20,7 @@ public static class CatalogueModule
 
     public static IEndpointRouteBuilder MapCatalogueModule(this IEndpointRouteBuilder endpoints)
     {
-        var group = endpoints.MapGroup("").WithTags(Name);
+        var group = endpoints.MapGroup("").WithTags(Name).AddEndpointFilter<RejectDefaultUnitIdFilter>();
         group.MapListDevelopments();
         group.MapGetDevelopment();
         group.MapListUnits();
