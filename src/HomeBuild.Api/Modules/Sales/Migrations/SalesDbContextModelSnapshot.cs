@@ -79,10 +79,18 @@ namespace HomeBuild.Api.Modules.Sales.Migrations
                     b.HasKey("Id")
                         .HasName("pk_reservations");
 
+                    b.HasIndex("ExpiresAt")
+                        .HasDatabaseName("ix_reservations_held_expires_at")
+                        .HasFilter("status = 'held'");
+
                     b.HasIndex("UnitId")
                         .IsUnique()
                         .HasDatabaseName("ux_reservations_one_active_per_unit")
                         .HasFilter("status IN ('held', 'confirmed')");
+
+                    b.HasIndex("BuyerId", "CreatedAt")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("ix_reservations_buyer_id_created_at");
 
                     b.ToTable("reservations", "sales");
                 });
@@ -134,6 +142,9 @@ namespace HomeBuild.Api.Modules.Sales.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_units");
+
+                    b.HasIndex("DevelopmentId", "Status")
+                        .HasDatabaseName("ix_units_development_id_status");
 
                     b.ToTable("units", "sales");
                 });

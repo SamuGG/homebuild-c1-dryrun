@@ -14,6 +14,13 @@ internal interface IReservationStore
 
     void Add(Reservation reservation);
 
+    // Lab 6's three hot queries.
+    Task<IReadOnlyList<Unit>> UnitsByStatusAsync(DevelopmentId developmentId, UnitStatus status, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<Reservation>> ExpiringBetweenAsync(DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<Reservation>> ForBuyerAsync(BuyerId buyerId, CancellationToken cancellationToken);
+
     /// <summary>
     /// Saves the reserved unit and its new reservation in one transaction. A stale unit version (another buyer won)
     /// or the one-active-reservation index both come back as <see cref="UnitUnavailable"/>.
@@ -35,6 +42,15 @@ internal sealed class EfReservationStore(SalesDbContext db) : IReservationStore,
 
     public Task<Reservation?> FindReadOnlyAsync(ReservationId id, CancellationToken cancellationToken) =>
         db.Reservations.AsNoTracking().SingleOrDefaultAsync(r => r.Id == id, cancellationToken);
+
+    public async Task<IReadOnlyList<Unit>> UnitsByStatusAsync(DevelopmentId developmentId, UnitStatus status, CancellationToken cancellationToken) =>
+        await HotQueries.UnitsByStatus(db, developmentId, status).ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<Reservation>> ExpiringBetweenAsync(DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken) =>
+        await HotQueries.ExpiringBetween(db, from, to).ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<Reservation>> ForBuyerAsync(BuyerId buyerId, CancellationToken cancellationToken) =>
+        await HotQueries.ForBuyer(db, buyerId).ToListAsync(cancellationToken);
 
     public void Add(Reservation reservation) => db.Reservations.Add(reservation);
 
@@ -93,4 +109,19 @@ internal sealed class EfReservationStore(SalesDbContext db) : IReservationStore,
             .ToListAsync(cancellationToken);
         return latest.ToDictionary(l => l.UnitId);
     }
+}
+
+/// <summary>The queries Lab 6 indexes, as IQueryable so tests can EXPLAIN the exact SQL EF sends.</summary>
+internal static class HotQueries
+{
+    public static IQueryable<Unit> UnitsByStatus(SalesDbContext db, DevelopmentId developmentId, UnitStatus status) =>
+        db.Units.AsNoTracking().Where(u => u.DevelopmentId == developmentId && u.Status == status);
+
+    public static IQueryable<Reservation> ExpiringBetween(SalesDbContext db, DateTimeOffset from, DateTimeOffset to) =>
+        db.Reservations.AsNoTracking()
+            .Where(r => EF.Property<string>(r, "Status") == "held" && r.ExpiresAt >= from && r.ExpiresAt < to)
+            .OrderBy(r => r.ExpiresAt);
+
+    public static IQueryable<Reservation> ForBuyer(SalesDbContext db, BuyerId buyerId) =>
+        db.Reservations.AsNoTracking().Where(r => r.BuyerId == buyerId).OrderByDescending(r => r.CreatedAt);
 }
