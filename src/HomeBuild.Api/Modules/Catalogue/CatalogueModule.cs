@@ -1,4 +1,5 @@
 using HomeBuild.Api.Modules.Catalogue.GetDevelopment;
+using HomeBuild.Api.Modules.Catalogue.GetUnit;
 using HomeBuild.Api.Modules.Catalogue.ListDevelopments;
 using HomeBuild.Api.Modules.Catalogue.ListUnits;
 
@@ -22,6 +23,7 @@ public static class CatalogueModule
         group.MapListDevelopments();
         group.MapGetDevelopment();
         group.MapListUnits();
+        group.MapGetUnit();
         return endpoints;
     }
 }
