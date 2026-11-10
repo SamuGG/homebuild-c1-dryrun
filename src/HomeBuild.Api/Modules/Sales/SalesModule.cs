@@ -1,3 +1,4 @@
+using HomeBuild.Api.Http;
 using HomeBuild.Api.Modules.Sales.CancelReservation;
 using HomeBuild.Api.Modules.Sales.GetReservation;
 using HomeBuild.Api.Modules.Sales.ReserveUnit;
@@ -18,7 +19,7 @@ public static class SalesModule
 
     public static IEndpointRouteBuilder MapSalesModule(this IEndpointRouteBuilder endpoints)
     {
-        var group = endpoints.MapGroup("").WithTags(Name);
+        var group = endpoints.MapGroup("").WithTags(Name).AddEndpointFilter<RejectDefaultUnitIdFilter>();
         group.MapReserveUnit();
         group.MapGetReservation();
         group.MapCancelReservation();

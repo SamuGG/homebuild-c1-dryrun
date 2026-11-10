@@ -1,4 +1,5 @@
 using HomeBuild.Domain;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace HomeBuild.Api.Modules.Catalogue.ListUnits;
 
@@ -9,9 +10,16 @@ internal static class ListUnitsEndpoint
     public static void MapListUnits(this RouteGroupBuilder group) =>
         group.MapGet("/developments/{developmentId}/units", Handle);
 
-    private static IResult Handle(DevelopmentId developmentId, ICatalogueStore store) =>
-        store.FindDevelopment(developmentId) is null
-            ? Results.NotFound()
-            : Results.Ok(store.UnitsIn(developmentId).Select(u =>
-                new UnitSummary(u.Id.Value, u.PlotNumber, u.Price.Amount, u.Price.Currency, u.Status.ToString())));
+    private static Results<Ok<List<UnitSummary>>, NotFound> Handle(DevelopmentId developmentId, ICatalogueStore store, UnitStatus? status = null)
+    {
+        if (store.FindDevelopment(developmentId) is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        return TypedResults.Ok(store.UnitsIn(developmentId)
+            .Where(u => status is null || u.Status == status)
+            .Select(u => new UnitSummary(u.Id.Value, u.PlotNumber, u.Price.Amount, u.Price.Currency, u.Status.ToString()))
+            .ToList());
+    }
 }

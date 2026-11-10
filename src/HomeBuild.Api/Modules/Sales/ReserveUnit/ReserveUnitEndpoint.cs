@@ -1,5 +1,7 @@
 using HomeBuild.Api.Modules.Catalogue;
 using HomeBuild.Domain;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 
 namespace HomeBuild.Api.Modules.Sales.ReserveUnit;
 
@@ -8,30 +10,48 @@ internal sealed record ReserveRequest(Guid BuyerId, decimal Deposit, string Curr
 internal static class ReserveUnitEndpoint
 {
     public static void MapReserveUnit(this RouteGroupBuilder group) =>
-        group.MapPost("/units/{unitId}/reservations", Handle);
+        group.MapPost("/units/{unitId}/reservations", Reserve);
 
-    private static IResult Handle(
-        UnitId unitId,
-        ReserveRequest request,
-        ICatalogueQueries catalogue,
-        IReservationStore reservations,
-        ReservationPolicy policy,
-        TimeProvider time,
-        ILogger<ReserveRequest> logger)
+    internal static Results<Created<ReservationResponse>, NotFound, Conflict<ProblemDetails>, UnprocessableEntity<ProblemDetails>>
+        Reserve(
+            UnitId unitId,
+            ReserveRequest request,
+            ICatalogueQueries catalogue,
+            IReservationStore reservations,
+            ReservationPolicy policy,
+            TimeProvider time,
+            ILogger<ReserveRequest> logger)
     {
         if (catalogue.FindUnit(unitId) is not { } unit)
         {
-            return Results.NotFound();
+            return TypedResults.NotFound();
         }
 
         var result = unit.Reserve(new BuyerId(request.BuyerId), new Money(request.Deposit, request.Currency), policy, time.GetUtcNow());
         logger.LogOutcome(unitId, result);
-        if (result is Reserved reserved)
-        {
-            reservations.Add(reserved.Reservation);
-            return Results.Created($"/reservations/{reserved.Reservation.Id}", ReservationResponse.From(reserved.Reservation));
-        }
 
-        return Results.Conflict();
+        // No default arm: a new ReserveResult case must fail the build here.
+        return result switch
+        {
+            Reserved r => Created(reservations, r.Reservation),
+            UnitUnavailable u => TypedResults.Conflict(new ProblemDetails
+            {
+                Title = "Unit unavailable",
+                Detail = $"Unit {u.UnitId} is {u.Status}.",
+                Status = StatusCodes.Status409Conflict,
+            }),
+            DepositRejected d => TypedResults.UnprocessableEntity(new ProblemDetails
+            {
+                Title = "Deposit rejected",
+                Detail = $"Deposit {d.Offered.Amount} {d.Offered.Currency} is outside the allowed range (minimum {d.Minimum.Amount} {d.Minimum.Currency}).",
+                Status = StatusCodes.Status422UnprocessableEntity,
+            }),
+        };
+    }
+
+    private static Created<ReservationResponse> Created(IReservationStore reservations, Reservation reservation)
+    {
+        reservations.Add(reservation);
+        return TypedResults.Created($"/reservations/{reservation.Id}", ReservationResponse.From(reservation));
     }
 }

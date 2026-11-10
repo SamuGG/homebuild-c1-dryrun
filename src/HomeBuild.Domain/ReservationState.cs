@@ -15,6 +15,12 @@ public closed record class ReservationState
         Held => new InvalidTransition(this, "The hold period has ended."),
         Expired or Confirmed or Cancelled => new InvalidTransition(this, "Only a held reservation can be confirmed."),
     };
+
+    public TransitionResult Cancel(DateTimeOffset now) => this switch
+    {
+        Held => new Transitioned(new Cancelled(now)),
+        Expired or Confirmed or Cancelled => new InvalidTransition(this, "Only a held reservation can be cancelled."),
+    };
 }
 
 public record Held(DateTimeOffset ExpiresAt) : ReservationState;
