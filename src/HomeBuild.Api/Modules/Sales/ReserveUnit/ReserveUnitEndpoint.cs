@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+using HomeBuild.Api.Http;
 using HomeBuild.Api.Modules.Catalogue;
 using HomeBuild.Domain;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -5,7 +7,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace HomeBuild.Api.Modules.Sales.ReserveUnit;
 
-internal sealed record ReserveRequest(Guid BuyerId, decimal Deposit, string Currency);
+internal sealed record ReserveRequest(
+    Guid BuyerId,
+    [property: Range(0.01, 100_000_000)] decimal Deposit,
+    [property: Required, RegularExpression("^[A-Z]{3}$")] string Currency);
 
 internal static class ReserveUnitEndpoint
 {
@@ -21,7 +26,8 @@ internal static class ReserveUnitEndpoint
             ReservationPolicy policy,
             DepositStrategySelector deposits,
             TimeProvider time,
-            ILogger<ReserveRequest> logger)
+            ILogger<ReserveRequest> logger,
+            HttpContext http)
     {
         if (catalogue.FindUnit(unitId) is not { } unit)
         {
@@ -36,18 +42,10 @@ internal static class ReserveUnitEndpoint
         return result switch
         {
             Reserved r => Created(reservations, r.Reservation),
-            UnitUnavailable u => TypedResults.Conflict(new ProblemDetails
-            {
-                Title = "Unit unavailable",
-                Detail = $"Unit {u.UnitId} is {u.Status}.",
-                Status = StatusCodes.Status409Conflict,
-            }),
-            DepositRejected d => TypedResults.UnprocessableEntity(new ProblemDetails
-            {
-                Title = "Deposit rejected",
-                Detail = $"Deposit {d.Offered.Amount} {d.Offered.Currency} is outside the allowed range (minimum {d.Minimum.Amount} {d.Minimum.Currency}).",
-                Status = StatusCodes.Status422UnprocessableEntity,
-            }),
+            UnitUnavailable u => TypedResults.Conflict(Problems.Business(
+                http, "unit-unavailable", "Unit unavailable", StatusCodes.Status409Conflict, $"Unit {u.UnitId} is {u.Status}.")),
+            DepositRejected d => TypedResults.UnprocessableEntity(Problems.Business(
+                http, "deposit-rejected", "Deposit rejected", StatusCodes.Status422UnprocessableEntity, $"Deposit {d.Offered.Amount} {d.Offered.Currency} is outside the allowed range (minimum {d.Minimum.Amount} {d.Minimum.Currency}).")),
         };
     }
 
