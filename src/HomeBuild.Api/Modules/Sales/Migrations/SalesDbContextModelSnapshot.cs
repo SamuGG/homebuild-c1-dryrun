@@ -80,7 +80,9 @@ namespace HomeBuild.Api.Modules.Sales.Migrations
                         .HasName("pk_reservations");
 
                     b.HasIndex("UnitId")
-                        .HasDatabaseName("ix_reservations_unit_id");
+                        .IsUnique()
+                        .HasDatabaseName("ux_reservations_one_active_per_unit")
+                        .HasFilter("status IN ('held', 'confirmed')");
 
                     b.ToTable("reservations", "sales");
                 });
@@ -106,6 +108,12 @@ namespace HomeBuild.Api.Modules.Sales.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasColumnName("status");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.ComplexProperty(typeof(Dictionary<string, object>), "Price", "HomeBuild.Domain.Unit.Price#Money", b1 =>
                         {
