@@ -10,6 +10,8 @@ internal interface IReservationStore
 
     Task<Reservation?> FindAsync(ReservationId id, CancellationToken cancellationToken);
 
+    Task<Reservation?> FindReadOnlyAsync(ReservationId id, CancellationToken cancellationToken);
+
     void Add(Reservation reservation);
 
     /// <summary>
@@ -30,6 +32,9 @@ internal sealed class EfReservationStore(SalesDbContext db) : IReservationStore,
 
     public Task<Reservation?> FindAsync(ReservationId id, CancellationToken cancellationToken) =>
         db.Reservations.SingleOrDefaultAsync(r => r.Id == id, cancellationToken);
+
+    public Task<Reservation?> FindReadOnlyAsync(ReservationId id, CancellationToken cancellationToken) =>
+        db.Reservations.AsNoTracking().SingleOrDefaultAsync(r => r.Id == id, cancellationToken);
 
     public void Add(Reservation reservation) => db.Reservations.Add(reservation);
 
@@ -68,4 +73,24 @@ internal sealed class EfReservationStore(SalesDbContext db) : IReservationStore,
     public async Task<IReadOnlyDictionary<UnitId, UnitStatus>> StatusOfAsync(
         IReadOnlyCollection<UnitId> unitIds, CancellationToken cancellationToken = default) =>
         await db.Units.AsNoTracking().Where(u => unitIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.Status, cancellationToken);
+
+    public Task<LatestReservation?> LatestReservationAsync(UnitId unitId, CancellationToken cancellationToken = default) =>
+        db.Reservations.AsNoTracking()
+            .Where(r => r.UnitId == unitId)
+            .OrderByDescending(r => r.CreatedAt)
+            .Select(r => new LatestReservation(r.UnitId, r.Id, EF.Property<string>(r, "Status"), r.CreatedAt))
+            .FirstOrDefaultAsync(cancellationToken);
+
+    public async Task<IReadOnlyDictionary<UnitId, LatestReservation>> LatestReservationsAsync(
+        IReadOnlyCollection<UnitId> unitIds, CancellationToken cancellationToken = default)
+    {
+        var latest = await db.Reservations.AsNoTracking()
+            .Where(r => unitIds.Contains(r.UnitId))
+            .GroupBy(r => r.UnitId)
+            .Select(g => g.OrderByDescending(r => r.CreatedAt)
+                .Select(r => new LatestReservation(r.UnitId, r.Id, EF.Property<string>(r, "Status"), r.CreatedAt))
+                .First())
+            .ToListAsync(cancellationToken);
+        return latest.ToDictionary(l => l.UnitId);
+    }
 }

@@ -4,6 +4,9 @@
     <Project Path="src/HomeBuild.Domain/HomeBuild.Domain.csproj" />
     <Project Path="src/HomeBuild.Generators/HomeBuild.Generators.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/HomeBuild.Seed/HomeBuild.Seed.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/HomeBuild.Api.Tests/HomeBuild.Api.Tests.csproj" />
     <Project Path="tests/HomeBuild.Domain.Tests/HomeBuild.Domain.Tests.csproj" />
