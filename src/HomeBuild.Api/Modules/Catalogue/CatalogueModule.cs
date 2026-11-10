@@ -12,8 +12,11 @@ public static class CatalogueModule
 
     public static IServiceCollection AddCatalogueModule(this IServiceCollection services)
     {
+        // Singleton: the in-memory store is the data; one instance for the app's life (thread-safe collections).
         services.AddSingleton<InMemoryCatalogueStore>();
+        // Singleton: forwards to the same store instance, so slices and Sales see the same data.
         services.AddSingleton<ICatalogueStore>(sp => sp.GetRequiredService<InMemoryCatalogueStore>());
+        // Singleton: the public read surface for other modules; same instance, no per-request state.
         services.AddSingleton<ICatalogueQueries>(sp => sp.GetRequiredService<InMemoryCatalogueStore>());
         return services;
     }

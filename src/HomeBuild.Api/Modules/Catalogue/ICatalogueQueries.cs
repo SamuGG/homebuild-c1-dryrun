@@ -6,4 +6,7 @@ namespace HomeBuild.Api.Modules.Catalogue;
 public interface ICatalogueQueries
 {
     Unit? FindUnit(UnitId unitId);
+
+    /// <summary>The deposit strategy key ("fixed" or "percentage") of the unit's development.</summary>
+    string DepositStrategyFor(DevelopmentId developmentId);
 }

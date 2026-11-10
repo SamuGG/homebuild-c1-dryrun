@@ -11,9 +11,17 @@ public static class SalesModule
 
     public static IServiceCollection AddSalesModule(this IServiceCollection services)
     {
+        // Options, validator and ReservationPolicy: singletons, see AddReservationPolicy.
         services.AddReservationPolicy();
+        // Singleton: the system clock is stateless and thread-safe.
         services.AddSingleton(TimeProvider.System);
+        // Singleton: the in-memory store is the data (thread-safe collections); C3 makes it scoped with EF Core.
         services.AddSingleton<IReservationStore, InMemoryReservationStore>();
+        // Keyed singletons: stateless strategies, one per key, picked per development.
+        services.AddKeyedSingleton<IDepositStrategy, FixedDepositStrategy>(DepositStrategyKeys.Fixed);
+        services.AddKeyedSingleton<IDepositStrategy, PercentageDepositStrategy>(DepositStrategyKeys.Percentage);
+        // Singleton: holds only the two singleton strategies.
+        services.AddSingleton<DepositStrategySelector>();
         return services;
     }
 

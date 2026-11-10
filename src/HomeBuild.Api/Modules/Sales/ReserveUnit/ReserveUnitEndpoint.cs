@@ -19,6 +19,7 @@ internal static class ReserveUnitEndpoint
             ICatalogueQueries catalogue,
             IReservationStore reservations,
             ReservationPolicy policy,
+            DepositStrategySelector deposits,
             TimeProvider time,
             ILogger<ReserveRequest> logger)
     {
@@ -27,7 +28,8 @@ internal static class ReserveUnitEndpoint
             return TypedResults.NotFound();
         }
 
-        var result = unit.Reserve(new BuyerId(request.BuyerId), new Money(request.Deposit, request.Currency), policy, time.GetUtcNow());
+        var unitPolicy = deposits.PolicyFor(unit, catalogue.DepositStrategyFor(unit.DevelopmentId), policy);
+        var result = unit.Reserve(new BuyerId(request.BuyerId), new Money(request.Deposit, request.Currency), unitPolicy, time.GetUtcNow());
         logger.LogOutcome(unitId, result);
 
         // No default arm: a new ReserveResult case must fail the build here.
