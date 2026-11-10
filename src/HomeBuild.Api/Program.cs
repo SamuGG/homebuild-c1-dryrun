@@ -1,4 +1,5 @@
-using HomeBuild.Api;
+using HomeBuild.Api.Modules.Catalogue;
+using HomeBuild.Api.Modules.Sales;
 
 var builder = WebApplication.CreateBuilder(args);
 if (builder.Environment.IsDevelopment())
@@ -6,9 +7,11 @@ if (builder.Environment.IsDevelopment())
     builder.Logging.AddJsonConsole();
 }
 
-builder.Services.AddReservationPolicy();
+builder.Services.AddCatalogueModule();
+builder.Services.AddSalesModule();
 var app = builder.Build();
 
-app.MapGet("/", () => "Hello World!");
+app.MapCatalogueModule();
+app.MapSalesModule();
 
 app.Run();
