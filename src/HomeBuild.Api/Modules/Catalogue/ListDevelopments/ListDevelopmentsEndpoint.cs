@@ -15,7 +15,7 @@ internal static class ListDevelopmentsEndpoint
             .WithName("ListDevelopments")
             .WithSummary("List developments, one page at a time");
 
-    private static Results<Ok<DevelopmentPage>, ValidationProblem> Handle(ICatalogueStore store, int page = 1, int size = 20)
+    private static async Task<Results<Ok<DevelopmentPage>, ValidationProblem>> Handle(ICatalogueStore store, CancellationToken cancellationToken, int page = 1, int size = 20)
     {
         var errors = new Dictionary<string, string[]>();
         if (page < 1)
@@ -33,7 +33,7 @@ internal static class ListDevelopmentsEndpoint
             return TypedResults.ValidationProblem(errors);
         }
 
-        var all = store.Developments();
+        var all = await store.DevelopmentsAsync(cancellationToken);
         var items = all.Skip((page - 1) * size).Take(size).Select(d => new DevelopmentSummary(d.Id.Value, d.Name, d.Town)).ToList();
         return TypedResults.Ok(new DevelopmentPage(items, page, size, all.Count));
     }

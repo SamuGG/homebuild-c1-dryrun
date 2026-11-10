@@ -4,20 +4,24 @@ using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace HomeBuild.Api.Tests;
 
-public sealed class EndpointTests : IDisposable
+public sealed class EndpointTests(PostgresFixture database) : IAsyncLifetime
 {
     internal const string RiversidePlot1 = "0198a000-0000-7000-8001-000000000001";
     internal const string RiversidePlot2 = "0198a000-0000-7000-8001-000000000002";
 
-    private readonly WebApplicationFactory<Program> _factory = new();
-    private readonly HttpClient _client;
+    private ApiFactory _factory = null!;
+    private HttpClient _client = null!;
 
-    public EndpointTests() => _client = _factory.CreateClient();
+    public async ValueTask InitializeAsync()
+    {
+        _factory = await database.CreateApiAsync();
+        _client = _factory.CreateClient();
+    }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         _client.Dispose();
-        _factory.Dispose();
+        await _factory.DisposeAsync();
     }
 
     internal static object Deposit(decimal amount) => new { buyerId = Guid.NewGuid(), deposit = amount, currency = "GBP" };

@@ -24,6 +24,13 @@ public sealed class Reservation
         State = new Held(expiresAt);
     }
 
+    // For persistence mappers, which set the properties themselves.
+    private Reservation()
+    {
+        Deposit = null!;
+        State = null!;
+    }
+
     public ReservationId Id { get; }
 
     public UnitId UnitId { get; }

@@ -9,18 +9,22 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace HomeBuild.Api.Tests;
 
-public sealed class ErrorTests : IDisposable
+public sealed class ErrorTests(PostgresFixture database) : IAsyncLifetime
 {
     private const string Plot1 = EndpointTests.RiversidePlot1;
-    private readonly WebApplicationFactory<Program> _factory = new();
-    private readonly HttpClient _client;
+    private ApiFactory _factory = null!;
+    private HttpClient _client = null!;
 
-    public ErrorTests() => _client = _factory.CreateClient();
+    public async ValueTask InitializeAsync()
+    {
+        _factory = await database.CreateApiAsync();
+        _client = _factory.CreateClient();
+    }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         _client.Dispose();
-        _factory.Dispose();
+        await _factory.DisposeAsync();
     }
 
     [Fact]
@@ -107,8 +111,7 @@ public sealed class ErrorTests : IDisposable
     {
         public const string Secret = "connection string Server=db;Password=hunter2";
 
-        public Unit? FindUnit(UnitId unitId) => throw new InvalidOperationException(Secret);
-
-        public string DepositStrategyFor(DevelopmentId developmentId) => throw new InvalidOperationException(Secret);
+        public Task<string> DepositStrategyForAsync(DevelopmentId developmentId, CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException(Secret);
     }
 }

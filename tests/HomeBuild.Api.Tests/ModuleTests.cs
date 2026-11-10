@@ -15,7 +15,7 @@ public sealed class ModuleTests
     [Fact]
     public void Program_maps_only_module_entry_points()
     {
-        using var factory = new WebApplicationFactory<Program>();
+        using var factory = new ApiFactory("Host=unused"); // builds the endpoint table only; no database is touched
         var endpoints = factory.Services.GetRequiredService<EndpointDataSource>().Endpoints.OfType<RouteEndpoint>().ToList();
 
         Assert.NotEmpty(endpoints);

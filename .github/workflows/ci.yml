@@ -12,6 +12,21 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    services:
+      # Database for the Bruno run. Tests use Testcontainers instead. Throwaway CI-only credentials.
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: homebuild
+          POSTGRES_USER: homebuild
+          POSTGRES_PASSWORD: homebuild-ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U homebuild -d homebuild"
+          --health-interval 2s --health-timeout 3s --health-retries 15
+    env:
+      ConnectionStrings__HomeBuild: Host=localhost;Port=5432;Database=homebuild;Username=homebuild;Password=homebuild-ci
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1      # v7.0.1
       - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73  # v6.1.0
@@ -35,6 +50,11 @@ jobs:
           cache-dependency-path: api-tests/package-lock.json
       - run: npm ci
         working-directory: api-tests
+      - run: dotnet tool restore
+      - name: Apply migrations to the CI database
+        run: |
+          dotnet ef database update --no-build --configuration Release --project src/HomeBuild.Api --context CatalogueDbContext
+          dotnet ef database update --no-build --configuration Release --project src/HomeBuild.Api --context SalesDbContext
       - name: Start the API
         env:
           ASPNETCORE_ENVIRONMENT: CI

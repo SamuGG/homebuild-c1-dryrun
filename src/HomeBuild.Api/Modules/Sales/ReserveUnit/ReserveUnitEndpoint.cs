@@ -23,7 +23,7 @@ internal static class ReserveUnitEndpoint
             .ProducesProblem(StatusCodes.Status429TooManyRequests)
             .RequireRateLimiting(RateLimiting.Reservations);
 
-    internal static Results<Created<ReservationResponse>, NotFound, Conflict<ProblemDetails>, UnprocessableEntity<ProblemDetails>>
+    internal static async Task<Results<Created<ReservationResponse>, NotFound, Conflict<ProblemDetails>, UnprocessableEntity<ProblemDetails>>>
         Reserve(
             UnitId unitId,
             ReserveRequest request,
@@ -33,21 +33,23 @@ internal static class ReserveUnitEndpoint
             DepositStrategySelector deposits,
             TimeProvider time,
             ILogger<ReserveRequest> logger,
-            HttpContext http)
+            HttpContext http,
+            CancellationToken cancellationToken)
     {
-        if (catalogue.FindUnit(unitId) is not { } unit)
+        if (await reservations.FindUnitAsync(unitId, cancellationToken) is not { } unit)
         {
             return TypedResults.NotFound();
         }
 
-        var unitPolicy = deposits.PolicyFor(unit, catalogue.DepositStrategyFor(unit.DevelopmentId), policy);
+        var strategy = await catalogue.DepositStrategyForAsync(unit.DevelopmentId, cancellationToken);
+        var unitPolicy = deposits.PolicyFor(unit, strategy, policy);
         var result = unit.Reserve(new BuyerId(request.BuyerId), new Money(request.Deposit, request.Currency), unitPolicy, time.GetUtcNow());
         logger.LogOutcome(unitId, result);
 
         // No default arm: a new ReserveResult case must fail the build here.
         return result switch
         {
-            Reserved r => Created(reservations, r.Reservation, http),
+            Reserved r => await CreatedAsync(reservations, r.Reservation, http, cancellationToken),
             UnitUnavailable u => TypedResults.Conflict(Problems.Business(
                 http, "unit-unavailable", "Unit unavailable", StatusCodes.Status409Conflict, $"Unit {u.UnitId} is {u.Status}.")),
             DepositRejected d => TypedResults.UnprocessableEntity(Problems.Business(
@@ -55,9 +57,11 @@ internal static class ReserveUnitEndpoint
         };
     }
 
-    private static Created<ReservationResponse> Created(IReservationStore reservations, Reservation reservation, HttpContext http)
+    private static async Task<Created<ReservationResponse>> CreatedAsync(
+        IReservationStore reservations, Reservation reservation, HttpContext http, CancellationToken cancellationToken)
     {
         reservations.Add(reservation);
+        await reservations.SaveChangesAsync(cancellationToken); // the unit's new status and the reservation, in one transaction
         var version = http.RequestedApiVersion?.MajorVersion ?? 1;
         return TypedResults.Created($"/v{version}/reservations/{reservation.Id}", ReservationResponse.From(reservation));
     }

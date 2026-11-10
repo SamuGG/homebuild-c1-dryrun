@@ -12,8 +12,9 @@ internal static class GetDevelopmentEndpoint
             .WithName("GetDevelopment")
             .WithSummary("Get a development");
 
-    private static Results<Ok<DevelopmentResponse>, NotFound> Handle(DevelopmentId developmentId, ICatalogueStore store) =>
-        store.FindDevelopment(developmentId) is { } d
+    private static async Task<Results<Ok<DevelopmentResponse>, NotFound>> Handle(
+        DevelopmentId developmentId, ICatalogueStore store, CancellationToken cancellationToken) =>
+        await store.FindDevelopmentAsync(developmentId, cancellationToken) is { } d
             ? TypedResults.Ok(new DevelopmentResponse(d.Id.Value, d.Name, d.Town))
             : TypedResults.NotFound();
 }

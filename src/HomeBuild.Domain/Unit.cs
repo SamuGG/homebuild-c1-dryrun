@@ -2,7 +2,7 @@ namespace HomeBuild.Domain;
 
 public sealed class Unit
 {
-    public Unit(UnitId id, DevelopmentId developmentId, string plotNumber, Money price)
+    public Unit(UnitId id, DevelopmentId developmentId, string plotNumber, Money price, UnitSpecification? specification = null)
     {
         if (id == default)
         {
@@ -21,6 +21,15 @@ public sealed class Unit
         DevelopmentId = developmentId;
         PlotNumber = plotNumber;
         Price = price;
+        Specification = specification ?? UnitSpecification.Unspecified;
+    }
+
+    // For persistence mappers, which set the properties themselves.
+    private Unit()
+    {
+        PlotNumber = null!;
+        Price = null!;
+        Specification = UnitSpecification.Unspecified;
     }
 
     public UnitId Id { get; }
@@ -30,6 +39,8 @@ public sealed class Unit
     public string PlotNumber { get; }
 
     public Money Price { get; }
+
+    public UnitSpecification Specification { get; }
 
     public UnitStatus Status { get; private set; } = UnitStatus.Available;
 

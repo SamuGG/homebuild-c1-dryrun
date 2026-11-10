@@ -1,24 +1,33 @@
-using System.Collections.Concurrent;
 using HomeBuild.Domain;
+using Microsoft.EntityFrameworkCore;
 
 namespace HomeBuild.Api.Modules.Sales;
 
 internal interface IReservationStore
 {
+    Task<Unit?> FindUnitAsync(UnitId id, CancellationToken cancellationToken);
+
+    Task<Reservation?> FindAsync(ReservationId id, CancellationToken cancellationToken);
+
     void Add(Reservation reservation);
 
-    Reservation? Find(ReservationId id);
+    Task SaveChangesAsync(CancellationToken cancellationToken);
 }
 
-/// <summary>
-/// Singleton with a concurrent dictionary: correct while the data lives in process memory.
-/// Wrong for EF Core in C3, where the store wraps a scoped, non-thread-safe DbContext.
-/// </summary>
-internal sealed class InMemoryReservationStore : IReservationStore
+/// <summary>Scoped over <see cref="SalesDbContext"/>: the unit and its reservation are saved in one transaction.</summary>
+internal sealed class EfReservationStore(SalesDbContext db) : IReservationStore, IUnitAvailability
 {
-    private readonly ConcurrentDictionary<ReservationId, Reservation> _reservations = new();
+    public Task<Unit?> FindUnitAsync(UnitId id, CancellationToken cancellationToken) =>
+        db.Units.SingleOrDefaultAsync(u => u.Id == id, cancellationToken);
 
-    public void Add(Reservation reservation) => _reservations[reservation.Id] = reservation;
+    public Task<Reservation?> FindAsync(ReservationId id, CancellationToken cancellationToken) =>
+        db.Reservations.SingleOrDefaultAsync(r => r.Id == id, cancellationToken);
 
-    public Reservation? Find(ReservationId id) => _reservations.GetValueOrDefault(id);
+    public void Add(Reservation reservation) => db.Reservations.Add(reservation);
+
+    public Task SaveChangesAsync(CancellationToken cancellationToken) => db.SaveChangesAsync(cancellationToken);
+
+    public async Task<IReadOnlyDictionary<UnitId, UnitStatus>> StatusOfAsync(
+        IReadOnlyCollection<UnitId> unitIds, CancellationToken cancellationToken = default) =>
+        await db.Units.AsNoTracking().Where(u => unitIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.Status, cancellationToken);
 }
