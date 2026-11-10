@@ -7,6 +7,13 @@ if (builder.Environment.IsDevelopment())
     builder.Logging.AddJsonConsole();
 }
 
+// Scope validation in every environment, not only Development: captive dependencies fail at startup.
+builder.Host.UseDefaultServiceProvider(options =>
+{
+    options.ValidateScopes = true;
+    options.ValidateOnBuild = true;
+});
+
 builder.Services.AddCatalogueModule();
 builder.Services.AddSalesModule();
 var app = builder.Build();

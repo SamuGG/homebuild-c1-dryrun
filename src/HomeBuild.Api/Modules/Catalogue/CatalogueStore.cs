@@ -14,7 +14,12 @@ internal interface ICatalogueStore
     Unit? FindUnit(UnitId id);
 }
 
-/// <summary>In-memory catalogue seeded with fixed IDs so external tests can address them.</summary>
+/// <summary>
+/// In-memory catalogue seeded with fixed IDs so external tests can address them.
+/// It is a singleton, so every request shares it: the collections are concurrent and
+/// <see cref="Unit"/> instances are shared. That is correct for one in-process store, and wrong for
+/// EF Core in C3, where a DbContext is scoped, not thread-safe, and tracks entities per request.
+/// </summary>
 internal sealed class InMemoryCatalogueStore : ICatalogueStore, ICatalogueQueries
 {
     public static readonly DevelopmentId Riverside = new(Guid.Parse("0198a000-0000-7000-8000-000000000001"));
@@ -25,8 +30,8 @@ internal sealed class InMemoryCatalogueStore : ICatalogueStore, ICatalogueQuerie
 
     public InMemoryCatalogueStore()
     {
-        _developments[Riverside] = new Development(Riverside, "Riverside", "York");
-        _developments[Hillcrest] = new Development(Hillcrest, "Hillcrest", "Leeds");
+        _developments[Riverside] = new Development(Riverside, "Riverside", "York", "fixed");
+        _developments[Hillcrest] = new Development(Hillcrest, "Hillcrest", "Leeds", "percentage");
         for (var plot = 1; plot <= 3; plot++)
         {
             AddUnit(Riverside, plot, 250_000m + (plot * 10_000m));
@@ -45,6 +50,9 @@ internal sealed class InMemoryCatalogueStore : ICatalogueStore, ICatalogueQuerie
         [.. _units.Values.Where(u => u.DevelopmentId == id).OrderBy(u => u.PlotNumber, StringComparer.Ordinal)];
 
     public Unit? FindUnit(UnitId id) => _units.GetValueOrDefault(id);
+
+    public string DepositStrategyFor(DevelopmentId developmentId) =>
+        _developments.TryGetValue(developmentId, out var d) ? d.DepositStrategy : "fixed";
 
     private void AddUnit(DevelopmentId development, int plot, decimal price)
     {

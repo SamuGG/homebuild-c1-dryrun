@@ -10,6 +10,10 @@ internal interface IReservationStore
     Reservation? Find(ReservationId id);
 }
 
+/// <summary>
+/// Singleton with a concurrent dictionary: correct while the data lives in process memory.
+/// Wrong for EF Core in C3, where the store wraps a scoped, non-thread-safe DbContext.
+/// </summary>
 internal sealed class InMemoryReservationStore : IReservationStore
 {
     private readonly ConcurrentDictionary<ReservationId, Reservation> _reservations = new();
