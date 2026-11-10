@@ -43,13 +43,15 @@ internal static class ReserveUnitEndpoint
 
         var strategy = await catalogue.DepositStrategyForAsync(unit.DevelopmentId, cancellationToken);
         var unitPolicy = deposits.PolicyFor(unit, strategy, policy);
-        var result = unit.Reserve(new BuyerId(request.BuyerId), new Money(request.Deposit, request.Currency), unitPolicy, time.GetUtcNow());
+        // Saving can still lose the race: another buyer's write turns Reserved into UnitUnavailable.
+        var result = await reservations.ReserveAndSaveAsync(
+            unit, new BuyerId(request.BuyerId), new Money(request.Deposit, request.Currency), unitPolicy, time.GetUtcNow(), cancellationToken);
         logger.LogOutcome(unitId, result);
 
         // No default arm: a new ReserveResult case must fail the build here.
         return result switch
         {
-            Reserved r => await CreatedAsync(reservations, r.Reservation, http, cancellationToken),
+            Reserved r => Created(r.Reservation, http),
             UnitUnavailable u => TypedResults.Conflict(Problems.Business(
                 http, "unit-unavailable", "Unit unavailable", StatusCodes.Status409Conflict, $"Unit {u.UnitId} is {u.Status}.")),
             DepositRejected d => TypedResults.UnprocessableEntity(Problems.Business(
@@ -57,11 +59,8 @@ internal static class ReserveUnitEndpoint
         };
     }
 
-    private static async Task<Created<ReservationResponse>> CreatedAsync(
-        IReservationStore reservations, Reservation reservation, HttpContext http, CancellationToken cancellationToken)
+    private static Created<ReservationResponse> Created(Reservation reservation, HttpContext http)
     {
-        reservations.Add(reservation);
-        await reservations.SaveChangesAsync(cancellationToken); // the unit's new status and the reservation, in one transaction
         var version = http.RequestedApiVersion?.MajorVersion ?? 1;
         return TypedResults.Created($"/v{version}/reservations/{reservation.Id}", ReservationResponse.From(reservation));
     }

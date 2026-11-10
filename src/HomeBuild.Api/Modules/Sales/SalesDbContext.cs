@@ -11,6 +11,7 @@ namespace HomeBuild.Api.Modules.Sales;
 internal sealed class SalesDbContext(DbContextOptions<SalesDbContext> options) : DbContext(options)
 {
     public const string Schema = "sales";
+    public const string ActiveReservationIndex = "ux_reservations_one_active_per_unit";
 
     public DbSet<Unit> Units => Set<Unit>();
 
@@ -36,6 +37,9 @@ internal sealed class SalesDbContext(DbContextOptions<SalesDbContext> options) :
             });
             unit.Property(u => u.Status).HasConversion<string>().HasMaxLength(20);
             unit.Ignore(u => u.Specification); // Catalogue's concern
+            // Optimistic concurrency: Npgsql maps a uint row version to PostgreSQL's xmin system column (no schema change).
+            // A shadow property, so the domain type stays free of persistence concerns.
+            unit.Property<uint>("Version").IsRowVersion();
         });
 
         modelBuilder.Entity<Reservation>(reservation =>
@@ -55,6 +59,11 @@ internal sealed class SalesDbContext(DbContextOptions<SalesDbContext> options) :
             reservation.Property<string>("Status").HasMaxLength(20)
                 .HasComputedColumnSql("lower(split_part(state, '|', 1))", stored: true);
             reservation.HasOne<Unit>().WithMany().HasForeignKey(r => r.UnitId);
+            // The final guard: at most one active (held or confirmed) reservation per unit, whatever the code does.
+            reservation.HasIndex(r => r.UnitId)
+                .IsUnique()
+                .HasFilter("status IN ('held', 'confirmed')")
+                .HasDatabaseName(ActiveReservationIndex);
         });
     }
 
