@@ -25,7 +25,7 @@ public static class CatalogueModule
     }
 
     internal static DbContextOptionsBuilder Configure(DbContextOptionsBuilder options, string connectionString) =>
-        options.UseHomeBuildDatabase(connectionString)
+        options.UseHomeBuildDatabase(connectionString, CatalogueDbContext.Schema)
             .UseSeeding((db, _) => CatalogueDbContext.SeedAsync(db, CancellationToken.None).GetAwaiter().GetResult())
             .UseAsyncSeeding((db, _, ct) => CatalogueDbContext.SeedAsync(db, ct));
 
