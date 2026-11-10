@@ -25,7 +25,7 @@ public sealed class EndpointTests : IDisposable
     [Fact]
     public async Task Reserve_available_unit_returns_201_with_location()
     {
-        var response = await _client.PostAsJsonAsync($"/units/{RiversidePlot1}/reservations", Deposit(5000), TestContext.Current.CancellationToken);
+        var response = await _client.PostAsJsonAsync($"/v1/units/{RiversidePlot1}/reservations", Deposit(5000), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         Assert.NotNull(response.Headers.Location);
@@ -36,9 +36,9 @@ public sealed class EndpointTests : IDisposable
     [Fact]
     public async Task Reserve_reserved_unit_returns_409()
     {
-        await _client.PostAsJsonAsync($"/units/{RiversidePlot1}/reservations", Deposit(5000), TestContext.Current.CancellationToken);
+        await _client.PostAsJsonAsync($"/v1/units/{RiversidePlot1}/reservations", Deposit(5000), TestContext.Current.CancellationToken);
 
-        var second = await _client.PostAsJsonAsync($"/units/{RiversidePlot1}/reservations", Deposit(5000), TestContext.Current.CancellationToken);
+        var second = await _client.PostAsJsonAsync($"/v1/units/{RiversidePlot1}/reservations", Deposit(5000), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Conflict, second.StatusCode);
         Assert.Equal("application/problem+json", second.Content.Headers.ContentType?.MediaType);
@@ -47,7 +47,7 @@ public sealed class EndpointTests : IDisposable
     [Fact]
     public async Task Reserve_with_low_deposit_returns_422()
     {
-        var response = await _client.PostAsJsonAsync($"/units/{RiversidePlot2}/reservations", Deposit(1), TestContext.Current.CancellationToken);
+        var response = await _client.PostAsJsonAsync($"/v1/units/{RiversidePlot2}/reservations", Deposit(1), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
     }
@@ -55,7 +55,7 @@ public sealed class EndpointTests : IDisposable
     [Fact]
     public async Task Cancel_is_idempotent_and_returns_204_twice()
     {
-        var created = await _client.PostAsJsonAsync($"/units/{RiversidePlot1}/reservations", Deposit(5000), TestContext.Current.CancellationToken);
+        var created = await _client.PostAsJsonAsync($"/v1/units/{RiversidePlot1}/reservations", Deposit(5000), TestContext.Current.CancellationToken);
         var location = created.Headers.Location!;
 
         var first = await _client.DeleteAsync(location, TestContext.Current.CancellationToken);
@@ -63,7 +63,7 @@ public sealed class EndpointTests : IDisposable
 
         Assert.Equal(HttpStatusCode.NoContent, first.StatusCode);
         Assert.Equal(HttpStatusCode.NoContent, second.StatusCode);
-        var unit = await _client.GetFromJsonAsync<UnitView>($"/units/{RiversidePlot1}", TestContext.Current.CancellationToken);
+        var unit = await _client.GetFromJsonAsync<UnitView>($"/v1/units/{RiversidePlot1}", TestContext.Current.CancellationToken);
         Assert.Equal("Available", unit!.Status);
     }
 
@@ -72,8 +72,8 @@ public sealed class EndpointTests : IDisposable
     {
         var empty = Guid.Empty;
 
-        var get = await _client.GetAsync($"/units/{empty}", TestContext.Current.CancellationToken);
-        var post = await _client.PostAsJsonAsync($"/units/{empty}/reservations", Deposit(5000), TestContext.Current.CancellationToken);
+        var get = await _client.GetAsync($"/v1/units/{empty}", TestContext.Current.CancellationToken);
+        var post = await _client.PostAsJsonAsync($"/v1/units/{empty}/reservations", Deposit(5000), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, get.StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, post.StatusCode);

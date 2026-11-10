@@ -5,7 +5,7 @@
     "version": "1.0.0"
   },
   "paths": {
-    "/developments": {
+    "/v1/developments": {
       "get": {
         "tags": [
           "Catalogue"
@@ -64,7 +64,7 @@
         }
       }
     },
-    "/developments/{developmentId}": {
+    "/v1/developments/{developmentId}": {
       "get": {
         "tags": [
           "Catalogue"
@@ -98,7 +98,7 @@
         }
       }
     },
-    "/developments/{developmentId}/units": {
+    "/v1/developments/{developmentId}/units": {
       "get": {
         "tags": [
           "Catalogue"
@@ -142,12 +142,12 @@
         }
       }
     },
-    "/units/{unitId}": {
+    "/v1/units/{unitId}": {
       "get": {
         "tags": [
           "Catalogue"
         ],
-        "summary": "Get a unit",
+        "summary": "Get a unit (v1: price and currency as separate fields)",
         "operationId": "GetUnit",
         "parameters": [
           {
@@ -186,7 +186,7 @@
         }
       }
     },
-    "/units/{unitId}/reservations": {
+    "/v1/units/{unitId}/reservations": {
       "post": {
         "tags": [
           "Sales"
@@ -260,7 +260,7 @@
         }
       }
     },
-    "/reservations/{reservationId}": {
+    "/v1/reservations/{reservationId}": {
       "get": {
         "tags": [
           "Sales"

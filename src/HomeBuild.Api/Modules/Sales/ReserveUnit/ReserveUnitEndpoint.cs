@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Asp.Versioning;
 using HomeBuild.Api.Http;
 using HomeBuild.Api.Modules.Catalogue;
 using HomeBuild.Domain;
@@ -44,7 +45,7 @@ internal static class ReserveUnitEndpoint
         // No default arm: a new ReserveResult case must fail the build here.
         return result switch
         {
-            Reserved r => Created(reservations, r.Reservation),
+            Reserved r => Created(reservations, r.Reservation, http),
             UnitUnavailable u => TypedResults.Conflict(Problems.Business(
                 http, "unit-unavailable", "Unit unavailable", StatusCodes.Status409Conflict, $"Unit {u.UnitId} is {u.Status}.")),
             DepositRejected d => TypedResults.UnprocessableEntity(Problems.Business(
@@ -52,9 +53,10 @@ internal static class ReserveUnitEndpoint
         };
     }
 
-    private static Created<ReservationResponse> Created(IReservationStore reservations, Reservation reservation)
+    private static Created<ReservationResponse> Created(IReservationStore reservations, Reservation reservation, HttpContext http)
     {
         reservations.Add(reservation);
-        return TypedResults.Created($"/reservations/{reservation.Id}", ReservationResponse.From(reservation));
+        var version = http.RequestedApiVersion?.MajorVersion ?? 1;
+        return TypedResults.Created($"/v{version}/reservations/{reservation.Id}", ReservationResponse.From(reservation));
     }
 }

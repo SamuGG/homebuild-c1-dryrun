@@ -1,0 +1,17 @@
+meta {
+  name: v1 deprecation headers
+  type: http
+  seq: 22
+}
+
+get {
+  url: {{baseUrl}}/units/{{unitId}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.headers.deprecation: eq @1794268800
+  res.headers.sunset: eq Mon, 31 May 2027 00:00:00 GMT
+}
