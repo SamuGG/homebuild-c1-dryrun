@@ -33,7 +33,7 @@ public static class SalesModule
     }
 
     internal static DbContextOptionsBuilder Configure(DbContextOptionsBuilder options, string connectionString) =>
-        options.UseHomeBuildDatabase(connectionString)
+        options.UseHomeBuildDatabase(connectionString, SalesDbContext.Schema)
             .UseSeeding((db, _) => SalesDbContext.SeedAsync(db, CancellationToken.None).GetAwaiter().GetResult())
             .UseAsyncSeeding((db, _, ct) => SalesDbContext.SeedAsync(db, ct));
 

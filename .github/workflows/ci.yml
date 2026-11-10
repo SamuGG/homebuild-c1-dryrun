@@ -51,10 +51,29 @@ jobs:
       - run: npm ci
         working-directory: api-tests
       - run: dotnet tool restore
-      - name: Apply migrations to the CI database
+      - name: Build migration bundles and idempotent scripts
         run: |
-          dotnet ef database update --no-build --configuration Release --project src/HomeBuild.Api --context CatalogueDbContext
-          dotnet ef database update --no-build --configuration Release --project src/HomeBuild.Api --context SalesDbContext
+          for context in Catalogue Sales; do
+            name=$(echo "$context" | tr '[:upper:]' '[:lower:]')
+            dotnet ef migrations bundle --project src/HomeBuild.Api --context ${context}DbContext --configuration Release \
+              --self-contained --target-runtime linux-x64 --output artifacts/migrate-$name --force
+            dotnet ef migrations script --idempotent --no-build --configuration Release --project src/HomeBuild.Api \
+              --context ${context}DbContext --output artifacts/migrate-$name.sql
+          done
+      - name: Apply each bundle twice to the empty CI database
+        run: |
+          for run in 1 2; do
+            for name in catalogue sales; do
+              echo "::group::run $run: migrate-$name"
+              ./artifacts/migrate-$name --connection "$ConnectionStrings__HomeBuild"
+              echo "::endgroup::"
+            done
+          done
+      - name: Publish migration bundles and scripts
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: migrations
+          path: artifacts/
       - name: Start the API
         env:
           ASPNETCORE_ENVIRONMENT: CI

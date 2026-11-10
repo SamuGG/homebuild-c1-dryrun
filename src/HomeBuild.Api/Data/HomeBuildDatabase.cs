@@ -9,8 +9,10 @@ public static class HomeBuildDatabase
 {
     public const string ConnectionStringName = "HomeBuild";
 
-    internal static DbContextOptionsBuilder UseHomeBuildDatabase(this DbContextOptionsBuilder options, string connectionString) =>
-        options.UseNpgsql(connectionString).UseSnakeCaseNamingConvention();
+    /// <summary>Each module keeps its own migrations history table inside its own schema.</summary>
+    internal static DbContextOptionsBuilder UseHomeBuildDatabase(this DbContextOptionsBuilder options, string connectionString, string schema) =>
+        options.UseNpgsql(connectionString, npgsql => npgsql.MigrationsHistoryTable("__ef_migrations_history", schema))
+            .UseSnakeCaseNamingConvention();
 
     internal static string ConnectionString(IServiceProvider services) =>
         services.GetRequiredService<IConfiguration>().GetConnectionString(ConnectionStringName)
