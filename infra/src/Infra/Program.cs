@@ -16,4 +16,8 @@ var env = new Amazon.CDK.Environment
 
 _ = new FoundationStack(app, "HomeBuild-Foundation", new StackProps { Env = env });
 
+var identity = new IdentityStack(app, "HomeBuild-Identity", new StackProps { Env = env },
+    domainPrefix: app.Node.TryGetContext("domainPrefix") as string ?? "homebuild-dryrun-dev");
+Tags.Of(identity).Add("lab", "c4-lab2");
+
 app.Synth();
