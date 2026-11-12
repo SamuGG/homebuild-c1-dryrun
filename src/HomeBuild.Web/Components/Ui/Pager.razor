@@ -1,0 +1,35 @@
+@inject NavigationManager Navigation
+
+@* Cursor (keyset) paging from C3: the API returns an opaque "next" cursor and no total, so the pager offers First and Next.
+   A link that leads nowhere is left out rather than rendered disabled, so keyboard users never land on a dead stop. *@
+@if (!IsFirstPage || Next is not null)
+{
+    <nav aria-label="@Label" class="mt-4">
+        <ul class="flex gap-4">
+            @if (!IsFirstPage)
+            {
+                <li><a href="@Navigation.GetUriWithQueryParameter(QueryParameter, (string?)null)" class="@Styles.Link">First page</a></li>
+            }
+            @if (Next is not null)
+            {
+                <li><a href="@Navigation.GetUriWithQueryParameter(QueryParameter, Next)" rel="next" class="@Styles.Link">Next page</a></li>
+            }
+        </ul>
+    </nav>
+}
+
+@code {
+    /// <summary>The API's cursor for the next page, or null on the last page.</summary>
+    [Parameter]
+    public string? Next { get; set; }
+
+    [Parameter]
+    public bool IsFirstPage { get; set; } = true;
+
+    [Parameter]
+    public string QueryParameter { get; set; } = "after";
+
+    /// <summary>The landmark's accessible name, unique on the page.</summary>
+    [Parameter]
+    public string Label { get; set; } = "Pagination";
+}

@@ -1,0 +1,61 @@
+@page "/dev/components"
+@rendermode InteractiveServer
+@inject IWebHostEnvironment Environment
+@inject NavigationManager Navigation
+
+@* Development only: every UI component in one place, interactive so the Dialog and UnitCard can be tried with a keyboard. *@
+@if (Environment.IsDevelopment())
+{
+    <PageTitle>Components · HomeBuild</PageTitle>
+    <h1 class="mb-6 text-3xl font-bold">Components</h1>
+
+    <div class="grid gap-6">
+        <Card Title="Button and Dialog">
+            <div class="flex gap-4">
+                <Button OnClick="() => dialogOpen = true">Open dialog</Button>
+                <Button Variant="ButtonVariant.Secondary" Disabled="true">Disabled</Button>
+            </div>
+            <Dialog Open="dialogOpen" Title="Reserve this home?" OnClose="() => dialogOpen = false">
+                <p>Press Tab: focus stays in here. Press Escape to close.</p>
+                <p class="mt-2"><a href="developments" class="@Styles.Link">A link inside</a></p>
+            </Dialog>
+        </Card>
+
+        <Card Title="Badge and PriceTag">
+            <Badge Text="Available" Variant="BadgeVariant.Success" />
+            <Badge Text="Reserved" Variant="BadgeVariant.Warning" />
+            <Badge Text="Sold" />
+            <p class="mt-2"><PriceTag Amount="260000m" Currency="GBP" /></p>
+        </Card>
+
+        <Card Title="UnitCard (parameter changes)">
+            <div class="mb-3 flex gap-4">
+                @foreach (var (id, plot) in Plots)
+                {
+                    <Button Variant="ButtonVariant.Secondary" OnClick="() => unitId = id" aria-pressed="@((unitId == id).ToString().ToLowerInvariant())">Plot @plot</Button>
+                }
+            </div>
+            <UnitCard UnitId="unitId" />
+        </Card>
+    </div>
+}
+
+@code {
+    private static readonly (Guid Id, string Plot)[] Plots =
+    [
+        (Guid.Parse("0198a000-0000-7000-8001-000000000001"), "P1"),
+        (Guid.Parse("0198a000-0000-7000-8001-000000000002"), "P2"),
+        (Guid.Parse("0198a000-0000-7000-8001-000000000003"), "P3"),
+    ];
+
+    private bool dialogOpen;
+    private Guid unitId = Plots[0].Id;
+
+    protected override void OnInitialized()
+    {
+        if (!Environment.IsDevelopment())
+        {
+            Navigation.NotFound();
+        }
+    }
+}

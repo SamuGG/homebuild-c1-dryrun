@@ -10,41 +10,37 @@
     <p class="mb-6 text-brand-700">@development.Town</p>
 
     <h2 class="mb-3 text-xl font-semibold">Homes</h2>
-    @if (units.Count == 0)
-    {
-        <p>No homes listed yet.</p>
-    }
-    else
-    {
-        <table data-testid="units" class="w-full overflow-hidden rounded-card bg-white text-left shadow-sm">
-            <thead class="bg-brand-100">
-                <tr><th scope="col" class="p-3">Plot</th><th scope="col" class="p-3">Price</th><th scope="col" class="p-3">Status</th></tr>
-            </thead>
-            <tbody>
-                @foreach (var unit in units)
-                {
-                    <tr class="border-t border-brand-100">
-                        <td class="p-3"><a class="text-brand-700 hover:underline" href="units/@unit.Id">Plot @unit.PlotNumber</a></td>
-                        <td class="p-3">@Money.Format(unit.Price, unit.Currency)</td>
-                        <td class="p-3"><span class="@StatusClass(unit.Status) rounded-card px-2 py-1">@unit.Status</span></td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    }
+    <DataTable Items="units.Items" Caption="@($"Homes at {development.Name}, by price")" data-testid="units">
+        <HeaderContent>
+            <th scope="col" class="p-3">Plot</th>
+            <th scope="col" class="p-3">Price</th>
+            <th scope="col" class="p-3">Status</th>
+        </HeaderContent>
+        <RowTemplate Context="unit">
+            <td class="p-3"><a class="@Styles.Link" href="units/@unit.Id">Plot @unit.PlotNumber</a></td>
+            <td class="p-3"><PriceTag Amount="unit.Price" Currency="@unit.Currency" /></td>
+            <td class="p-3"><Badge Text="@unit.Status" Variant="Badge.ForUnitStatus(unit.Status)" /></td>
+        </RowTemplate>
+        <EmptyContent>
+            <p>No homes listed yet.</p>
+        </EmptyContent>
+    </DataTable>
+    <Pager Next="@units.Next" IsFirstPage="After is null" Label="Homes pages" />
 }
 
 @code {
+    public const int PageSize = 20;
+
     [Parameter]
     public Guid DevelopmentId { get; set; }
 
-    // Complete class names only: Tailwind finds classes by scanning source text, so "bg-" + colour would be missing.
-    private static string StatusClass(string status) => status == "Available" ? "bg-accent-500" : "bg-brand-100";
+    [SupplyParameterFromQuery]
+    public string? After { get; set; }
 
     private Development? development;
-    private IReadOnlyList<UnitSummary> units = [];
+    private UnitPage units = new([], null);
 
-    // Parameter-dependent data loads in OnParametersSetAsync, so a new ID never shows the previous development.
+    // Parameter-dependent data loads in OnParametersSetAsync, so a new ID or page never shows the previous one.
     protected override async Task OnParametersSetAsync()
     {
         development = await Catalogue.GetDevelopmentAsync(DevelopmentId);
@@ -54,6 +50,6 @@
             return;
         }
 
-        units = (await Catalogue.ListUnitsAsync(DevelopmentId))?.Items ?? [];
+        units = await Catalogue.ListUnitsAsync(DevelopmentId, After, PageSize) ?? new([], null);
     }
 }

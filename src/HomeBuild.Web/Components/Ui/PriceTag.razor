@@ -1,0 +1,10 @@
+@* <data> carries the machine-readable amount next to the formatted price. *@
+<data value="@Amount.ToString(System.Globalization.CultureInfo.InvariantCulture)" class="font-semibold">@Money.Format(Amount, Currency)</data>
+
+@code {
+    [Parameter, EditorRequired]
+    public decimal Amount { get; set; }
+
+    [Parameter, EditorRequired]
+    public required string Currency { get; set; }
+}

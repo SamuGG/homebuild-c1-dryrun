@@ -1,0 +1,27 @@
+@* Colour is never the only signal (WCAG 1.4.1): the badge always shows its text. *@
+<span class="@Classes">@Text</span>
+
+@code {
+    private const string Base = "inline-block rounded-card px-2 py-0.5 text-sm font-semibold text-brand-900";
+
+    [Parameter, EditorRequired]
+    public required string Text { get; set; }
+
+    [Parameter]
+    public BadgeVariant Variant { get; set; }
+
+    private string Classes => Variant switch
+    {
+        BadgeVariant.Success => $"{Base} bg-brand-100",
+        BadgeVariant.Warning => $"{Base} bg-accent-500",
+        _ => $"{Base} border border-brand-700 bg-white",
+    };
+
+    /// <summary>The badge for a unit status from the API.</summary>
+    public static BadgeVariant ForUnitStatus(string status) => status switch
+    {
+        "Available" => BadgeVariant.Success,
+        "Reserved" => BadgeVariant.Warning,
+        _ => BadgeVariant.Neutral,
+    };
+}

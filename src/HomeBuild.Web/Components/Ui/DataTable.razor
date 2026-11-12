@@ -1,0 +1,46 @@
+@typeparam TItem
+
+@* A real <table> with a <caption>, so screen readers announce what the table is and read cells with their headers.
+   HeaderContent supplies <th scope="col"> cells. *@
+@if (Items.Count == 0)
+{
+    @EmptyContent
+}
+else
+{
+    <table class="w-full overflow-hidden rounded-card bg-white text-left shadow-sm" @attributes="AdditionalAttributes">
+        <caption class="@(CaptionVisible ? "mb-2 text-left font-semibold" : "sr-only")">@Caption</caption>
+        <thead class="bg-brand-100">
+            <tr>@HeaderContent</tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Items)
+            {
+                <tr class="border-t border-brand-100">@RowTemplate(item)</tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public required string Caption { get; set; }
+
+    [Parameter]
+    public bool CaptionVisible { get; set; }
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<TItem> Items { get; set; } = [];
+
+    [Parameter, EditorRequired]
+    public RenderFragment? HeaderContent { get; set; }
+
+    [Parameter, EditorRequired]
+    public RenderFragment<TItem> RowTemplate { get; set; } = _ => _ => { };
+
+    [Parameter]
+    public RenderFragment? EmptyContent { get; set; }
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+}

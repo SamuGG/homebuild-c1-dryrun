@@ -1,0 +1,16 @@
+<dl data-testid="unit" class="grid max-w-md grid-cols-[auto_1fr] gap-x-6 gap-y-2 rounded-card bg-white p-6 shadow-sm">
+    <dt class="font-semibold">Price</dt>
+    <dd><PriceTag Amount="Unit.Price.Amount" Currency="@Unit.Price.Currency" /></dd>
+    <dt class="font-semibold">Status</dt>
+    <dd><Badge Text="@Unit.Status" Variant="Badge.ForUnitStatus(Unit.Status)" /></dd>
+    <dt class="font-semibold">Development</dt>
+    <dd>@Development.Name, @Development.Town</dd>
+</dl>
+
+@code {
+    [Parameter, EditorRequired]
+    public required Unit Unit { get; set; }
+
+    [Parameter, EditorRequired]
+    public required Development Development { get; set; }
+}

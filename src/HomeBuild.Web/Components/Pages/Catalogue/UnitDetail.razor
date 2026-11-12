@@ -6,16 +6,9 @@
 {
     <PageTitle>Plot @unit.PlotNumber, @development.Name · HomeBuild</PageTitle>
 
-    <p class="mb-2"><a class="text-brand-700 hover:underline" href="developments/@development.Id">@development.Name</a></p>
+    <p class="mb-2"><a class="@Styles.Link" href="developments/@development.Id">@development.Name</a></p>
     <h1 class="mb-6 text-3xl font-bold">Plot @unit.PlotNumber</h1>
-    <dl data-testid="unit" class="grid max-w-md grid-cols-[auto_1fr] gap-x-6 gap-y-2 rounded-card bg-white p-6 shadow-sm">
-        <dt class="font-semibold">Price</dt>
-        <dd>@Money.Format(unit.Price.Amount, unit.Price.Currency)</dd>
-        <dt class="font-semibold">Status</dt>
-        <dd>@unit.Status</dd>
-        <dt class="font-semibold">Development</dt>
-        <dd>@development.Name, @development.Town</dd>
-    </dl>
+    <UnitFacts Unit="unit" Development="development" />
 }
 
 @code {

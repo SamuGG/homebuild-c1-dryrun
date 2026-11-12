@@ -7,6 +7,7 @@
     <PackageVersion Include="Amazon.CDK.Lib" Version="2.276.0" />
     <PackageVersion Include="Amazon.Extensions.Configuration.SystemsManager" Version="7.1.1" />
     <PackageVersion Include="Constructs" Version="10.8.1" />
+    <PackageVersion Include="bunit" Version="2.15.2" />
     <PackageVersion Include="Asp.Versioning.Http" Version="10.2.3" />
     <PackageVersion Include="Asp.Versioning.Mvc.ApiExplorer" Version="10.2.1" />
     <PackageVersion Include="EFCore.NamingConventions" Version="10.0.1" />

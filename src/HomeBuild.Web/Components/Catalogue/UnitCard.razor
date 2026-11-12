@@ -1,0 +1,25 @@
+@inject CatalogueClient Catalogue
+
+@* Loads a unit by ID. The load is in OnParametersSetAsync: the parent can pass a new UnitId to this same instance. *@
+<section aria-live="polite" data-testid="unit-card">
+    @if (unit is null)
+    {
+        <p>Loading…</p>
+    }
+    else
+    {
+        <Card Title="@($"Plot {unit.PlotNumber}")" HeadingLevel="3">
+            <PriceTag Amount="unit.Price.Amount" Currency="@unit.Price.Currency" />
+            <Badge Text="@unit.Status" Variant="Badge.ForUnitStatus(unit.Status)" />
+        </Card>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid UnitId { get; set; }
+
+    private Unit? unit;
+
+    protected override async Task OnParametersSetAsync() => unit = await Catalogue.GetUnitAsync(UnitId);
+}
