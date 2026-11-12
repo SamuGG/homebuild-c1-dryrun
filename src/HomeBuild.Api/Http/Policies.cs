@@ -25,6 +25,8 @@ public static class Policies
     public const string CanReadReservations = nameof(CanReadReservations);
     public const string CanCancelReservations = nameof(CanCancelReservations);
     public const string CanReadPayments = nameof(CanReadPayments);
+    public const string CanViewBuildBoard = nameof(CanViewBuildBoard);
+    public const string CanReadOwnProgress = nameof(CanReadOwnProgress);
 
     public static IServiceCollection AddHomeBuildPolicies(this IServiceCollection services)
     {
@@ -34,7 +36,9 @@ public static class Policies
             .AddPolicy(CanReserveForOthers, p => p.RequireRole(Roles.SalesAgent))
             .AddPolicy(CanReadReservations, p => p.RequireRole(Roles.Buyer, Roles.SalesAgent, Roles.Finance, Roles.Admin))
             .AddPolicy(CanCancelReservations, p => p.RequireRole(Roles.Buyer, Roles.SalesAgent, Roles.Admin))
-            .AddPolicy(CanReadPayments, p => p.RequireRole(Roles.Buyer, Roles.Finance, Roles.Admin));
+            .AddPolicy(CanReadPayments, p => p.RequireRole(Roles.Buyer, Roles.Finance, Roles.Admin))
+            .AddPolicy(CanViewBuildBoard, p => p.RequireRole(Roles.SiteManager, Roles.Admin))
+            .AddPolicy(CanReadOwnProgress, p => p.RequireRole(Roles.Buyer));
         // Singleton: the handler is stateless.
         services.AddSingleton<IAuthorizationHandler, ReservationAccessHandler>();
         return services;

@@ -694,10 +694,266 @@
           }
         }
       }
+    },
+    "/v2/developments/{developmentId}/board": {
+      "get": {
+        "tags": [
+          "Construction"
+        ],
+        "summary": "A development's build milestones per unit, with internal fields (site staff, v2)",
+        "operationId": "GetBuildBoardV2",
+        "parameters": [
+          {
+            "name": "developmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BoardResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/v2/me/progress": {
+      "get": {
+        "tags": [
+          "Construction"
+        ],
+        "summary": "The signed-in buyer's homes and their simplified build progress (v2)",
+        "operationId": "GetMyProgressV2",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerProgressResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "BoardCell": {
+        "required": [
+          "milestone",
+          "status",
+          "completedOn",
+          "subcontractor",
+          "siteNotes",
+          "openDefects"
+        ],
+        "type": "object",
+        "properties": {
+          "milestone": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "completedOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "subcontractor": {
+            "type": "string"
+          },
+          "siteNotes": {
+            "type": "string"
+          },
+          "openDefects": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "BoardResponse": {
+        "required": [
+          "developmentId",
+          "developmentName",
+          "milestones",
+          "rows"
+        ],
+        "type": "object",
+        "properties": {
+          "developmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "developmentName": {
+            "type": "string"
+          },
+          "milestones": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BoardRow"
+            }
+          }
+        }
+      },
+      "BoardRow": {
+        "required": [
+          "unitId",
+          "plotNumber",
+          "cells"
+        ],
+        "type": "object",
+        "properties": {
+          "unitId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "plotNumber": {
+            "type": "string"
+          },
+          "cells": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BoardCell"
+            }
+          }
+        }
+      },
+      "BuyerHome": {
+        "required": [
+          "reservationId",
+          "unitId",
+          "plotNumber",
+          "developmentName",
+          "reservationState",
+          "reservationExpiresAt",
+          "progress"
+        ],
+        "type": "object",
+        "properties": {
+          "reservationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "unitId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "plotNumber": {
+            "type": "string"
+          },
+          "developmentName": {
+            "type": "string"
+          },
+          "reservationState": {
+            "type": "string"
+          },
+          "reservationExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "progress": {
+            "$ref": "#/components/schemas/BuyerProgress"
+          }
+        }
+      },
+      "BuyerProgress": {
+        "required": [
+          "stage",
+          "stepsDone",
+          "stepsTotal",
+          "nextStep"
+        ],
+        "type": "object",
+        "properties": {
+          "stage": {
+            "type": "string"
+          },
+          "stepsDone": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "stepsTotal": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "nextStep": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "BuyerProgressResponse": {
+        "required": [
+          "homes"
+        ],
+        "type": "object",
+        "properties": {
+          "homes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BuyerHome"
+            }
+          }
+        }
+      },
       "CreatedDevelopment": {
         "required": [
           "id",
@@ -1383,6 +1639,9 @@
     },
     {
       "name": "Catalogue"
+    },
+    {
+      "name": "Construction"
     },
     {
       "name": "Sales"

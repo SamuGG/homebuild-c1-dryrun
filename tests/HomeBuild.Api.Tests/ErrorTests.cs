@@ -113,5 +113,11 @@ public sealed class ErrorTests(PostgresFixture database) : IAsyncLifetime
 
         public Task<string> DepositStrategyForAsync(DevelopmentId developmentId, CancellationToken cancellationToken = default) =>
             throw new InvalidOperationException(Secret);
+
+        public Task<IReadOnlyList<PlotSummary>?> PlotsInAsync(DevelopmentId developmentId, CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException(Secret);
+
+        public Task<IReadOnlyDictionary<UnitId, PlotSummary>> PlotsAsync(IReadOnlyCollection<UnitId> unitIds, CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException(Secret);
     }
 }

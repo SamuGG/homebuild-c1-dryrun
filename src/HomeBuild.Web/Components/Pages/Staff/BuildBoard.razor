@@ -1,0 +1,29 @@
+@page "/staff/developments/{DevelopmentId:guid}/board"
+@attribute [Authorize(Roles = "site-manager,admin")]
+@inject CatalogueClient Catalogue
+@inject NavigationManager Navigation
+
+@* A static SSR page; only the MilestoneBoard island below is interactive. *@
+@if (development is not null)
+{
+    <PageTitle>Build board, @development.Name · HomeBuild</PageTitle>
+    <p class="mb-2"><a class="@Styles.Link" href="developments/@development.Id">@development.Name</a></p>
+    <h1 class="mb-6 text-3xl font-bold">Build board</h1>
+    <MilestoneBoard DevelopmentId="DevelopmentId" @rendermode="InteractiveServer" />
+}
+
+@code {
+    [Parameter]
+    public Guid DevelopmentId { get; set; }
+
+    private Development? development;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        development = await Catalogue.GetDevelopmentAsync(DevelopmentId);
+        if (development is null)
+        {
+            Navigation.NotFound();
+        }
+    }
+}

@@ -1,3 +1,4 @@
+using HomeBuild.Api.Modules.Construction;
 using HomeBuild.Api.Configuration;
 using HomeBuild.Api.Http;
 using HomeBuild.Api.Modules.Accounts;
@@ -37,6 +38,7 @@ builder.Services.AddTenancy();
 builder.Services.AddCatalogueModule();
 builder.Services.AddSalesModule();
 builder.Services.AddAccountsModule();
+builder.Services.AddConstructionModule();
 var app = builder.Build();
 
 // Pipeline order, one reason per line:
@@ -64,5 +66,6 @@ if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("CI"))
 app.MapCatalogueModule();
 app.MapSalesModule();
 app.MapAccountsModule();
+app.MapConstructionModule();
 
 app.Run();

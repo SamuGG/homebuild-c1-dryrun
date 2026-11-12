@@ -8,6 +8,9 @@
 
     <h1 class="text-3xl font-bold">@development.Name</h1>
     <p class="mb-6 text-brand-700">@development.Town</p>
+    <AuthorizeView Roles="site-manager,admin">
+        <p class="mb-6"><a class="@Styles.Link" href="staff/developments/@development.Id/board">Build board</a></p>
+    </AuthorizeView>
 
     <h2 class="mb-3 text-xl font-semibold">Homes</h2>
     <DataTable Items="units.Items" Caption="@($"Homes at {development.Name}, by price")" data-testid="units">

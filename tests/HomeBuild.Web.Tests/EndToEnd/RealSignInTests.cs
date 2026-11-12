@@ -12,9 +12,9 @@ public sealed partial class RealSignInTests
 {
     private const string User = "buyer.tenant-a@example.com";
 
-    private static readonly bool Enabled = Environment.GetEnvironmentVariable("HOMEBUILD_COGNITO_TESTS") == "1";
+    internal static readonly bool Enabled = Environment.GetEnvironmentVariable("HOMEBUILD_COGNITO_TESTS") == "1";
 
-    private static readonly string WebUrl = Environment.GetEnvironmentVariable("HOMEBUILD_WEB_URL") ?? "http://localhost:5266";
+    internal static readonly string WebUrl = Environment.GetEnvironmentVariable("HOMEBUILD_WEB_URL") ?? "http://localhost:5266";
 
     [Fact]
     public async Task Browser_storage_has_no_tokens()
@@ -59,18 +59,23 @@ public sealed partial class RealSignInTests
         Assert.True(await page.Locator("input[type=password]").IsVisibleAsync());
     }
 
-    private static async Task<BrowserSession> SignedInPageAsync()
+    /// <summary>A browser signed in as <paramref name="user"/> through the managed login, on <paramref name="path"/>.</summary>
+    internal static async Task<BrowserSession> SignedInPageAsync(string user = User, string path = "/my-home")
     {
         var playwright = await Playwright.CreateAsync();
         var browser = await playwright.Chromium.LaunchAsync();
-        var page = await browser.NewPageAsync();
-        await page.GotoAsync(WebUrl + "/my-home");
+        var page = await (await browser.NewContextAsync()).NewPageAsync();
+        await page.GotoAsync(WebUrl + path);
         await page.WaitForURLAsync(new Regex(@"amazoncognito\.com/login"));
-        await page.Locator("input[type=email]").FillAsync(User);
-        await page.Locator("input[type=password]").FillAsync(Password(User));
+        await page.Locator("input[type=email]").FillAsync(user);
+        await page.Locator("input[type=password]").FillAsync(Password(user));
         await page.Locator("button[type=submit]").ClickAsync();
-        await page.WaitForURLAsync(WebUrl + "/my-home");
-        Assert.Contains(User, await page.Locator("[data-testid=me]").InnerTextAsync(), StringComparison.Ordinal);
+        await page.WaitForURLAsync(WebUrl + path);
+        if (path == "/my-home")
+        {
+            Assert.Contains(user, await page.Locator("main").InnerTextAsync(), StringComparison.Ordinal);
+        }
+
         return new BrowserSession(playwright, browser, page);
     }
 
@@ -85,7 +90,7 @@ public sealed partial class RealSignInTests
     [GeneratedRegex(@"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.")]
     private static partial Regex Jwt();
 
-    private sealed record BrowserSession(IPlaywright Playwright, IBrowser Browser, IPage Page) : IAsyncDisposable
+    internal sealed record BrowserSession(IPlaywright Playwright, IBrowser Browser, IPage Page) : IAsyncDisposable
     {
         public async ValueTask DisposeAsync()
         {
