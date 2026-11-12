@@ -111,6 +111,9 @@ jobs:
         env:
           ASPNETCORE_ENVIRONMENT: CI
           CatalogueApi__BaseAddress: http://localhost:5080/v2/
+          # CI cannot sign in to Cognito: placeholders so the OIDC handler starts; only anonymous pages are smoke-tested.
+          Authentication__Cognito__Authority: https://cognito-idp.eu-west-2.amazonaws.com/eu-west-2_ci
+          Authentication__Cognito__ClientId: homebuild-ci
         run: |
           dotnet run --no-build -c Release --no-launch-profile --project src/HomeBuild.Web --urls http://localhost:5090 > web.log 2>&1 &
           for i in $(seq 1 30); do curl -sf -o /dev/null http://localhost:5090/ && exit 0; sleep 1; done

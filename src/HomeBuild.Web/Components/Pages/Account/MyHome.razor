@@ -1,0 +1,37 @@
+@page "/my-home"
+@attribute [Authorize]
+@inject HomeApiClient Api
+
+@* Static SSR behind sign-in: the authorization middleware challenges before this renders, so a signed-out
+   visitor is sent to Cognito. The API call carries the user's token, attached on the server. *@
+<PageTitle>My home · HomeBuild</PageTitle>
+
+<h1 class="mb-6 text-3xl font-bold">My home</h1>
+
+@if (me is not null)
+{
+    <Card Title="Your account">
+        <dl data-testid="me" class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2">
+            <dt class="font-semibold">Signed in as</dt>
+            <dd>@user?.Identity?.Name</dd>
+            <dt class="font-semibold">Roles</dt>
+            <dd>@string.Join(", ", me.Roles)</dd>
+            <dt class="font-semibold">Builder</dt>
+            <dd>@(me.TenantId?.ToString() ?? "none")</dd>
+        </dl>
+    </Card>
+}
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    private System.Security.Claims.ClaimsPrincipal? user;
+    private CurrentUser? me;
+
+    protected override async Task OnInitializedAsync()
+    {
+        user = AuthenticationState is null ? null : (await AuthenticationState).User;
+        me = await Api.GetMeAsync();
+    }
+}

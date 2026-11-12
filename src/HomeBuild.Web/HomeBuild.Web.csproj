@@ -1,9 +1,14 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <!-- Target framework, nullable, analysers and warnings-as-errors come from Directory.Build.props (the C1 baseline). -->
   <PropertyGroup>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+    <UserSecretsId>52e0ca11-a987-4475-a331-913ffb7a49a4</UserSecretsId>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" />
+  </ItemGroup>
 
   <!--
     Tailwind CSS: Styles/app.css -> wwwroot/app.css through the standalone CLI (tools/tailwindcss.sh pins and verifies it).
