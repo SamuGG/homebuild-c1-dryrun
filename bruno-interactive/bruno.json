@@ -1,0 +1,6 @@
+{
+  "version": "1",
+  "name": "HomeBuild Cognito sign-in (interactive)",
+  "type": "collection",
+  "ignore": ["node_modules", ".git"]
+}

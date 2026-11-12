@@ -45,13 +45,17 @@ public static class CatalogueModule
 
     public static IEndpointRouteBuilder MapCatalogueModule(this IEndpointRouteBuilder endpoints)
     {
-        var group = endpoints.MapVersionedGroup().WithTags(Name).AddEndpointFilter<RejectDefaultUnitIdFilter>();
+        // Public catalogue reads: anyone may browse developments and units.
+        var group = endpoints.MapVersionedGroup().WithTags(Name).AddEndpointFilter<RejectDefaultUnitIdFilter>().AllowAnonymous();
         group.MapListDevelopments();
         group.MapGetDevelopment();
-        group.MapGetDevelopmentPage();
         group.MapListUnits();
         group.MapSearchUnits();
         group.MapGetUnit();
+
+        // The development page shows Sales data (latest reservations), so it needs a signed-in user.
+        var signedIn = endpoints.MapVersionedGroup().WithTags(Name).AddEndpointFilter<RejectDefaultUnitIdFilter>();
+        signedIn.MapGetDevelopmentPage();
         return endpoints;
     }
 }
