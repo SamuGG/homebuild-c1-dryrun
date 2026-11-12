@@ -72,6 +72,28 @@ public sealed class IdentityStack : Stack
             PreventUserExistenceErrors = true,
         });
 
+        // C5 Lab 4: the web front end's BFF. A confidential client: the code exchange and the secret stay on the
+        // web server, the browser only ever holds a session cookie. Code flow with PKCE (the OIDC handler sends it).
+        var web = pool.AddClient("WebClient", new UserPoolClientOptions
+        {
+            UserPoolClientName = "homebuild-web",
+            GenerateSecret = true,
+            AuthFlows = new AuthFlow(), // no direct password or SRP sign-in: managed login only
+            OAuth = new OAuthSettings
+            {
+                Flows = new OAuthFlows { AuthorizationCodeGrant = true },
+                Scopes = [OAuthScope.OPENID, OAuthScope.EMAIL, OAuthScope.PROFILE],
+                CallbackUrls = ["http://localhost:5266/signin-oidc"],
+                LogoutUrls = ["http://localhost:5266/"],
+            },
+            SupportedIdentityProviders = [UserPoolClientIdentityProvider.COGNITO],
+            AccessTokenValidity = Duration.Minutes(60),
+            IdTokenValidity = Duration.Minutes(60),
+            RefreshTokenValidity = Duration.Days(1),
+            EnableTokenRevocation = true,
+            PreventUserExistenceErrors = true,
+        });
+
         var domain = pool.AddDomain("Domain", new UserPoolDomainOptions
         {
             CognitoDomain = new CognitoDomainOptions { DomainPrefix = domainPrefix },
@@ -86,8 +108,16 @@ public sealed class IdentityStack : Stack
             UseCognitoProvidedValues = true,
         });
 
+        _ = new CfnManagedLoginBranding(this, "WebBranding", new CfnManagedLoginBrandingProps
+        {
+            UserPoolId = pool.UserPoolId,
+            ClientId = web.UserPoolClientId,
+            UseCognitoProvidedValues = true,
+        });
+
         _ = new CfnOutput(this, "UserPoolId", new CfnOutputProps { Value = pool.UserPoolId });
         _ = new CfnOutput(this, "DevToolsClientId", new CfnOutputProps { Value = devTools.UserPoolClientId });
+        _ = new CfnOutput(this, "WebClientId", new CfnOutputProps { Value = web.UserPoolClientId });
         _ = new CfnOutput(this, "Issuer", new CfnOutputProps { Value = pool.UserPoolProviderUrl });
         _ = new CfnOutput(this, "ManagedLoginDomain", new CfnOutputProps { Value = domain.BaseUrl() });
     }

@@ -12,6 +12,37 @@ password written only to the password file, which must stay outside the reposito
 (a database in the local compose PostgreSQL) it also writes each user's tenant membership: `tenant-a` users
 belong to the demo tenant that owns C2's fixed data, `tenant-b` users to the second tenant.
 
+## Web sign-in (backend-for-frontend)
+
+`HomeBuild.Web` signs users in through the confidential client `homebuild-web`. It uses authorisation code with PKCE and a client secret, with callback `http://localhost:5266/signin-oidc` and sign-out return `http://localhost:5266/`. Code: `src/HomeBuild.Web/Auth/`.
+
+- **Where the tokens live.** The OIDC handler does the code exchange on the web server. `SaveTokens` is off: the access and refresh tokens go to `TokenStore` (server-side, a distributed cache), keyed by a session ID. The browser receives only the `homebuild.session` cookie (`HttpOnly`, `Secure`, `SameSite=Lax`), which holds the encrypted claims and that session ID.
+- **Calling the API.** `AccessTokenHandler` (a `DelegatingHandler` on `HomeApiClient`) adds the user's access token. `UserTokenService` refreshes it with the refresh token when it has expired, or will within a minute. Concurrent callers for one session share a single refresh.
+- **Interactive components** never read `HttpContext`. The handler finds the circuit's user through `CircuitServicesAccessor`.
+- **Sign-out** is a `POST /account/logout` with an antiforgery token. It deletes the stored tokens, clears the cookie, and redirects to Cognito's `/logout?client_id=…&logout_uri=…`, which ends the Cognito session too. Cognito's discovery document has no `end_session_endpoint`, so this URL is built by hand.
+- **Antiforgery.** `app.UseAntiforgery()` is called on purpose. .NET 11 also rejects cross-site form posts by `Sec-Fetch-Site` and `Origin` by default, and its template no longer calls `UseAntiforgery`; without the call, `<AntiforgeryToken />` renders nothing.
+- **The client secret** is in SSM (`/homebuild/web/Cognito/ClientSecret`, SecureString) and in local user-secrets. It is never in the repository.
+
+Running it locally against the dev pool:
+
+```bash
+# Web app: user-secrets (once)
+dotnet user-secrets set --project src/HomeBuild.Web "Authentication:Cognito:Authority" "https://cognito-idp.eu-west-2.amazonaws.com/<user-pool-id>"
+dotnet user-secrets set --project src/HomeBuild.Web "Authentication:Cognito:ClientId" "<web-client-id>"
+# the secret, piped so it is never printed or passed as an argument
+aws cognito-idp describe-user-pool-client --user-pool-id <user-pool-id> --client-id <web-client-id> \
+  --query UserPoolClient.ClientSecret --output text \
+  | python3 -c "import json,sys; print(json.dumps({'Authentication:Cognito:ClientSecret': sys.stdin.read().strip()}))" \
+  | dotnet user-secrets set --project src/HomeBuild.Web
+
+# API: trust the pool and the web client (Development otherwise trusts only dotnet user-jwts)
+Authentication__Schemes__Bearer__Authority=https://cognito-idp.eu-west-2.amazonaws.com/<user-pool-id> \
+Authentication__Schemes__Bearer__ValidIssuer=https://cognito-idp.eu-west-2.amazonaws.com/<user-pool-id> \
+Tokens__AllowedClientIds__1=<web-client-id> dotnet run --project src/HomeBuild.Api --launch-profile http
+```
+
+The Playwright tests in `tests/HomeBuild.Web.Tests/EndToEnd/` sign in through the real managed login. They are opt-in: `HOMEBUILD_COGNITO_TESTS=1 HOMEBUILD_TEST_USERS=<password-file> dotnet test tests/HomeBuild.Web.Tests`. The browsers are installed once with Playwright's `install chromium`.
+
 ## Removal policy
 
 | | Dev (this stack) | Production |

@@ -53,6 +53,14 @@ internal sealed class FakeCatalogueApi : HttpMessageHandler
             return Json(new UnitPage([new(PlotOne, "P1", 260_000m, "GBP", "Available")], null));
         }
 
+        if (path == "/v2/me")
+        {
+            // Like the API: no bearer token, no user.
+            return request.Headers.Authorization is { Scheme: "Bearer" }
+                ? Json(new HomeBuild.Web.Api.CurrentUser("sub-1", "web-test", ["buyer"], Guid.Parse("0198a000-0000-7000-8000-00000000000a")))
+                : new HttpResponseMessage(HttpStatusCode.Unauthorized);
+        }
+
         if (path == $"/v2/units/{PlotOne}")
         {
             return Json(new Unit(PlotOne, Riverside, "P1", new Price(260_000m, "GBP"), "Available"));
