@@ -1,0 +1,42 @@
+@page "/"
+@page "/developments"
+@attribute [StreamRendering]
+@inject CatalogueClient Catalogue
+
+<PageTitle>Developments · HomeBuild</PageTitle>
+
+<h1>Developments</h1>
+
+@if (developments is null)
+{
+    <p role="status" data-testid="loading">Loading developments…</p>
+}
+else if (developments.Count == 0)
+{
+    <p>No developments yet.</p>
+}
+else
+{
+    <ul data-testid="developments">
+        @foreach (var (development, units) in developments)
+        {
+            <li>
+                <h2><a href="developments/@development.Id">@development.Name</a></h2>
+                <p>@development.Town · @units.Count(u => u.Status == "Available") of @units.Count homes available</p>
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private List<(DevelopmentSummary Development, IReadOnlyList<UnitSummary> Units)>? developments;
+
+    // Streaming rendering: the shell above (heading and "Loading") is flushed first; this runs while the
+    // response stays open, and the list is streamed into the same response when the API calls finish.
+    protected override async Task OnInitializedAsync()
+    {
+        var page = await Catalogue.ListDevelopmentsAsync();
+        var units = await Task.WhenAll(page.Items.Select(d => Catalogue.ListUnitsAsync(d.Id)));
+        developments = [.. page.Items.Zip(units, (d, u) => (d, u?.Items ?? []))];
+    }
+}

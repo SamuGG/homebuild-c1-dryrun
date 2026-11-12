@@ -1,0 +1,26 @@
+meta {
+  name: 02 Development detail
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{webUrl}}/developments/{{riverside}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.headers["content-type"]: contains text/html
+}
+
+tests {
+  test("renders <h1>Riverside</h1>", function () {
+    expect(res.body).to.contain("<h1>Riverside</h1>");
+  });
+
+  test("is static SSR: no interactive component markers", function () {
+    expect(res.body).not.to.contain("<!--Blazor:{");
+  });
+}
