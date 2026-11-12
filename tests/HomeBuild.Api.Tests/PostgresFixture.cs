@@ -86,6 +86,7 @@ public sealed class ApiFactory(string connectionString) : WebApplicationFactory<
     {
         ArgumentNullException.ThrowIfNull(builder);
         builder.UseSetting("ConnectionStrings:" + HomeBuildDatabase.ConnectionStringName, ConnectionString);
+        builder.UseSetting("Ssm:Enabled", "false"); // tests never read SSM, even as Production
         foreach (var (key, value) in TestTokens.Settings())
         {
             builder.UseSetting(key, value);
