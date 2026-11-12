@@ -2,10 +2,5 @@
   "version": "1",
   "name": "HomeBuild API",
   "type": "collection",
-  "ignore": [
-    ".git",
-    "cognito-login",
-    "node_modules",
-    "results"
-  ]
+  "ignore": ["node_modules", ".git", "results"]
 }
