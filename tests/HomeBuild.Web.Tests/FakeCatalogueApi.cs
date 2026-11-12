@@ -9,6 +9,7 @@ internal sealed class FakeCatalogueApi : HttpMessageHandler
 {
     public static readonly Guid Riverside = Guid.Parse("0198a000-0000-7000-8000-000000000001");
     public static readonly Guid PlotOne = Guid.Parse("0198a000-0000-7000-8001-000000000001");
+    public static readonly Guid PlotTwo = Guid.Parse("0198a000-0000-7000-8001-000000000002");
 
     private readonly TaskCompletionSource unitsReleased = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -55,6 +56,11 @@ internal sealed class FakeCatalogueApi : HttpMessageHandler
         if (path == $"/v2/units/{PlotOne}")
         {
             return Json(new Unit(PlotOne, Riverside, "P1", new Price(260_000m, "GBP"), "Available"));
+        }
+
+        if (path == $"/v2/units/{PlotTwo}")
+        {
+            return Json(new Unit(PlotTwo, Riverside, "P2", new Price(270_000m, "GBP"), "Reserved"));
         }
 
         return new HttpResponseMessage(HttpStatusCode.NotFound);

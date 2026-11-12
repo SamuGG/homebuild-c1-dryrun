@@ -1,0 +1,30 @@
+@* A native <button>: focusable, activated by Enter and Space, announced as a button. type defaults to "button" so it never submits a form by accident. *@
+<button type="@Type" class="@Classes" disabled="@Disabled" @onclick="OnClick" @attributes="AdditionalAttributes">@ChildContent</button>
+
+@code {
+    private const string Base = "inline-flex items-center gap-2 rounded-card px-4 py-2 font-semibold disabled:cursor-not-allowed disabled:opacity-50 " + Styles.FocusRing;
+
+    [Parameter]
+    public string Type { get; set; } = "button";
+
+    [Parameter]
+    public ButtonVariant Variant { get; set; } = ButtonVariant.Primary;
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter]
+    public EventCallback<MouseEventArgs> OnClick { get; set; }
+
+    [Parameter, EditorRequired]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private string Classes => Variant switch
+    {
+        ButtonVariant.Secondary => $"{Base} border border-brand-700 bg-white text-brand-900 hover:bg-brand-100",
+        _ => $"{Base} bg-brand-700 text-white hover:bg-brand-900",
+    };
+}

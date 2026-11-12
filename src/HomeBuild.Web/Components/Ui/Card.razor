@@ -1,0 +1,38 @@
+@* An <article> labelled by its own heading, so screen readers list it by name. HeadingLevel keeps the page outline correct. *@
+<article class="rounded-card bg-white p-6 shadow-sm" aria-labelledby="@headingId" @attributes="AdditionalAttributes">
+    @switch (HeadingLevel)
+    {
+        case 3:
+            <h3 id="@headingId" class="text-lg font-semibold">@TitleContent</h3>
+            break;
+        default:
+            <h2 id="@headingId" class="text-xl font-semibold">@TitleContent</h2>
+            break;
+    }
+    <div class="mt-2">@ChildContent</div>
+</article>
+
+@code {
+    private readonly string headingId = $"card-{Guid.NewGuid():N}";
+
+    [Parameter, EditorRequired]
+    public required string Title { get; set; }
+
+    /// <summary>When set, the title is a link (the whole card's one link, so it is one tab stop).</summary>
+    [Parameter]
+    public string? Href { get; set; }
+
+    /// <summary>2 (default) or 3.</summary>
+    [Parameter]
+    public int HeadingLevel { get; set; } = 2;
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private RenderFragment TitleContent => Href is null
+        ? @<text>@Title</text>
+        : @<a href="@Href" class="@Styles.Link">@Title</a>;
+}

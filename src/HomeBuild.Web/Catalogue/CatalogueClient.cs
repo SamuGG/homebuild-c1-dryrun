@@ -41,9 +41,11 @@ public sealed class CatalogueClient(HttpClient http)
     public Task<Development?> GetDevelopmentAsync(Guid id, CancellationToken cancellationToken = default) =>
         GetOrNullAsync<Development>($"developments/{id}", cancellationToken);
 
-    /// <summary>The first page of a development's units by price, or null if the development does not exist.</summary>
-    public Task<UnitPage?> ListUnitsAsync(Guid developmentId, CancellationToken cancellationToken = default) =>
-        GetOrNullAsync<UnitPage>($"developments/{developmentId}/units?size=100", cancellationToken);
+    /// <summary>One keyset page of a development's units by price, or null if the development does not exist.</summary>
+    public Task<UnitPage?> ListUnitsAsync(Guid developmentId, string? after = null, int size = 100, CancellationToken cancellationToken = default) =>
+        GetOrNullAsync<UnitPage>(
+            $"developments/{developmentId}/units?size={size}" + (after is null ? "" : $"&after={Uri.EscapeDataString(after)}"),
+            cancellationToken);
 
     public Task<Unit?> GetUnitAsync(Guid id, CancellationToken cancellationToken = default) =>
         GetOrNullAsync<Unit>($"units/{id}", cancellationToken);

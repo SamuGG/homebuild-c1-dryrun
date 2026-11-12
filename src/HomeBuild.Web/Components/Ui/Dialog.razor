@@ -1,0 +1,95 @@
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+@* A modal dialog for interactive components (it needs events and JS, so it does nothing in static SSR).
+   Dialog.razor.js opens it with showModal(), which makes the rest of the page inert, so Tab cannot leave. Escape (the
+   browser's "cancel") and Close both raise OnClose; the parent's Open parameter stays the single source of truth.
+   The <dialog> element itself always stays in the DOM: removing an open modal would skip the browser's focus return
+   to the control that opened it. Only its content depends on Open. *@
+<dialog @ref="dialog" aria-labelledby="@titleId"
+        class="m-auto max-w-lg rounded-card bg-white p-6 text-brand-900 shadow-lg backdrop:bg-brand-900/50">
+    @if (Open)
+    {
+        <h2 id="@titleId" tabindex="-1" @ref="title" class="mb-4 text-xl font-semibold outline-none">@Title</h2>
+        <div>@ChildContent</div>
+        <div class="mt-6 flex justify-end">
+            <Button OnClick="CloseAsync">Close</Button>
+        </div>
+    }
+</dialog>
+
+@code {
+    public const string ModulePath = "./Components/Ui/Dialog.razor.js";
+
+    private readonly string titleId = $"dialog-{Guid.NewGuid():N}";
+    private ElementReference dialog;
+    private ElementReference title;
+    private IJSObjectReference? module;
+    private DotNetObjectReference<Dialog>? self;
+    private bool wasOpen;
+
+    [Parameter]
+    public bool Open { get; set; }
+
+    [Parameter, EditorRequired]
+    public required string Title { get; set; }
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    // The DOM exists only after render, so the dialog is shown or closed here, on each change of Open.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (Open == wasOpen)
+        {
+            return;
+        }
+
+        try
+        {
+            module ??= await JS.InvokeAsync<IJSObjectReference>("import", ModulePath);
+            if (Open)
+            {
+                self ??= DotNetObjectReference.Create(this);
+                await module.InvokeVoidAsync("show", dialog, self);
+                await title.FocusAsync();
+            }
+            else
+            {
+                await module.InvokeVoidAsync("close", dialog);
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit dropped; the reconnect UI takes over.
+            return;
+        }
+
+        wasOpen = Open;
+    }
+
+    private Task CloseAsync() => OnClose.InvokeAsync();
+
+    /// <summary>Called by Dialog.razor.js when the user presses Escape.</summary>
+    [JSInvokable]
+    public Task CloseFromBrowser() => CloseAsync();
+
+    public async ValueTask DisposeAsync()
+    {
+        self?.Dispose();
+        if (module is not null)
+        {
+            try
+            {
+                await module.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // The circuit is gone, and the module with it.
+            }
+        }
+    }
+}

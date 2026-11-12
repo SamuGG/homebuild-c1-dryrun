@@ -20,9 +20,10 @@ else
     <ul data-testid="developments" class="grid gap-4 sm:grid-cols-2">
         @foreach (var (development, units) in developments)
         {
-            <li class="rounded-card bg-white p-6 shadow-sm">
-                <h2 class="text-xl font-semibold"><a class="text-brand-700 hover:underline" href="developments/@development.Id">@development.Name</a></h2>
-                <p class="mt-2">@development.Town · @units.Count(u => u.Status == "Available") of @units.Count homes available</p>
+            <li>
+                <Card Title="@development.Name" Href="@($"developments/{development.Id}")">
+                    <p>@development.Town · @units.Count(u => u.Status == "Available") of @units.Count homes available</p>
+                </Card>
             </li>
         }
     </ul>
