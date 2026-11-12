@@ -6,27 +6,27 @@
 {
     <PageTitle>@development.Name · HomeBuild</PageTitle>
 
-    <h1>@development.Name</h1>
-    <p>@development.Town</p>
+    <h1 class="text-3xl font-bold">@development.Name</h1>
+    <p class="mb-6 text-brand-700">@development.Town</p>
 
-    <h2>Homes</h2>
+    <h2 class="mb-3 text-xl font-semibold">Homes</h2>
     @if (units.Count == 0)
     {
         <p>No homes listed yet.</p>
     }
     else
     {
-        <table data-testid="units">
-            <thead>
-                <tr><th scope="col">Plot</th><th scope="col">Price</th><th scope="col">Status</th></tr>
+        <table data-testid="units" class="w-full overflow-hidden rounded-card bg-white text-left shadow-sm">
+            <thead class="bg-brand-100">
+                <tr><th scope="col" class="p-3">Plot</th><th scope="col" class="p-3">Price</th><th scope="col" class="p-3">Status</th></tr>
             </thead>
             <tbody>
                 @foreach (var unit in units)
                 {
-                    <tr>
-                        <td><a href="units/@unit.Id">Plot @unit.PlotNumber</a></td>
-                        <td>@Money.Format(unit.Price, unit.Currency)</td>
-                        <td>@unit.Status</td>
+                    <tr class="border-t border-brand-100">
+                        <td class="p-3"><a class="text-brand-700 hover:underline" href="units/@unit.Id">Plot @unit.PlotNumber</a></td>
+                        <td class="p-3">@Money.Format(unit.Price, unit.Currency)</td>
+                        <td class="p-3"><span class="@StatusClass(unit.Status) rounded-card px-2 py-1">@unit.Status</span></td>
                     </tr>
                 }
             </tbody>
@@ -37,6 +37,9 @@
 @code {
     [Parameter]
     public Guid DevelopmentId { get; set; }
+
+    // Complete class names only: Tailwind finds classes by scanning source text, so "bg-" + colour would be missing.
+    private static string StatusClass(string status) => status == "Available" ? "bg-accent-500" : "bg-brand-100";
 
     private Development? development;
     private IReadOnlyList<UnitSummary> units = [];

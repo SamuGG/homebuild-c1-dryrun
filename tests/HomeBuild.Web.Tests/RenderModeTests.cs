@@ -25,7 +25,7 @@ public sealed class RenderModeTests
         // SignalR circuit (a WebSocket to /_blazor). Static SSR pages have none, so the browser opens no connection.
         Assert.DoesNotContain("<!--Blazor:{", html, StringComparison.Ordinal);
         Assert.DoesNotContain("\"type\":\"server\"", html, StringComparison.Ordinal);
-        Assert.Contains("<h1>", html, StringComparison.Ordinal);
+        Assert.Contains("<h1", html, StringComparison.Ordinal);
     }
 
     [Fact]

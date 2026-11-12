@@ -16,8 +16,8 @@ assert {
 }
 
 tests {
-  test("renders <h1>Plot P3</h1>", function () {
-    expect(res.body).to.contain("<h1>Plot P3</h1>");
+  test("renders >Plot P3</h1>", function () {
+    expect(res.body).to.contain(">Plot P3</h1>");
   });
 
   test("is static SSR: no interactive component markers", function () {

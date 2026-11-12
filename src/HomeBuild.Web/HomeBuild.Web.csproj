@@ -5,4 +5,35 @@
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
   </PropertyGroup>
 
+  <!--
+    Tailwind CSS: Styles/app.css -> wwwroot/app.css through the standalone CLI (tools/tailwindcss.sh pins and verifies it).
+    Inputs are every file the CLI scans plus the CSS and the script, so the target is skipped when none changed.
+    The stamp is per configuration, so switching Debug -> Release reruns it and the Release CSS is minified.
+  -->
+  <PropertyGroup>
+    <TailwindCli>$(MSBuildThisFileDirectory)../../tools/tailwindcss.sh</TailwindCli>
+    <TailwindInput>Styles/app.css</TailwindInput>
+    <TailwindOutput>wwwroot/app.css</TailwindOutput>
+    <TailwindStamp>$(BaseIntermediateOutputPath)$(Configuration)/tailwind.stamp</TailwindStamp>
+    <TailwindArgs Condition="'$(Configuration)' == 'Release'">--minify</TailwindArgs>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <TailwindInputs Include="Styles/**/*.css;Components/**/*.razor;**/*.cs;$(TailwindCli)" Exclude="bin/**;obj/**" />
+  </ItemGroup>
+
+  <Target Name="Tailwind" BeforeTargets="BeforeBuild;ResolveStaticWebAssetsInputs" Inputs="@(TailwindInputs)" Outputs="$(TailwindOutput);$(TailwindStamp)">
+    <Exec Command="&quot;$(TailwindCli)&quot; --input $(TailwindInput) --output $(TailwindOutput) $(TailwindArgs)" WorkingDirectory="$(MSBuildProjectDirectory)" />
+    <MakeDir Directories="$([System.IO.Path]::GetDirectoryName($(TailwindStamp)))" />
+    <Touch Files="$(TailwindStamp)" AlwaysCreate="true" />
+  </Target>
+
+  <!-- On a clean clone wwwroot/app.css does not exist when the project is evaluated, so add it as a static web asset here. -->
+  <Target Name="TailwindContent" AfterTargets="Tailwind">
+    <ItemGroup>
+      <Content Remove="$(TailwindOutput)" />
+      <Content Include="$(TailwindOutput)" />
+    </ItemGroup>
+  </Target>
+
 </Project>

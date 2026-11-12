@@ -1,6 +1,17 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 
-@Body
+<div class="min-h-screen bg-brand-50 font-sans text-brand-900">
+    <header class="bg-brand-700 text-white">
+        <nav class="mx-auto flex max-w-5xl items-center gap-6 px-4 py-3" aria-label="Main">
+            <a href="" class="text-lg font-semibold">HomeBuild</a>
+            <a href="developments" class="hover:underline">Developments</a>
+        </nav>
+    </header>
+
+    <main class="mx-auto max-w-5xl px-4 py-8">
+        @Body
+    </main>
+</div>
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.

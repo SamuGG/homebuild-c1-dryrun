@@ -16,8 +16,8 @@ assert {
 }
 
 tests {
-  test("renders <h1>Riverside</h1>", function () {
-    expect(res.body).to.contain("<h1>Riverside</h1>");
+  test("renders >Riverside</h1>", function () {
+    expect(res.body).to.contain(">Riverside</h1>");
   });
 
   test("is static SSR: no interactive component markers", function () {
