@@ -5,11 +5,11 @@
 
 <PageTitle>Developments · HomeBuild</PageTitle>
 
-<h1>Developments</h1>
+<h1 class="mb-6 text-3xl font-bold">Developments</h1>
 
 @if (developments is null)
 {
-    <p role="status" data-testid="loading">Loading developments…</p>
+    <p role="status" data-testid="loading" class="text-brand-700">Loading developments…</p>
 }
 else if (developments.Count == 0)
 {
@@ -17,12 +17,12 @@ else if (developments.Count == 0)
 }
 else
 {
-    <ul data-testid="developments">
+    <ul data-testid="developments" class="grid gap-4 sm:grid-cols-2">
         @foreach (var (development, units) in developments)
         {
-            <li>
-                <h2><a href="developments/@development.Id">@development.Name</a></h2>
-                <p>@development.Town · @units.Count(u => u.Status == "Available") of @units.Count homes available</p>
+            <li class="rounded-card bg-white p-6 shadow-sm">
+                <h2 class="text-xl font-semibold"><a class="text-brand-700 hover:underline" href="developments/@development.Id">@development.Name</a></h2>
+                <p class="mt-2">@development.Town · @units.Count(u => u.Status == "Available") of @units.Count homes available</p>
             </li>
         }
     </ul>

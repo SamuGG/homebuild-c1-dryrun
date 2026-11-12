@@ -1,0 +1,48 @@
+/* Source for wwwroot/app.css, which the Tailwind MSBuild target generates (not committed). */
+@import "tailwindcss";
+
+/* Scan Razor components and C# for class names. Class names must be complete strings: "bg-" + colour is invisible. */
+@source "../Components/**/*.razor";
+@source "../**/*.cs";
+
+/* HomeBuild design tokens. Each becomes utilities (bg-brand-600, rounded-card, font-sans, p-4 …) and a CSS variable. */
+@theme {
+  --color-brand-50: oklch(0.97 0.02 160);
+  --color-brand-100: oklch(0.93 0.05 160);
+  --color-brand-600: oklch(0.52 0.12 160);
+  --color-brand-700: oklch(0.45 0.11 160);
+  --color-brand-900: oklch(0.30 0.07 160);
+  --color-accent-500: oklch(0.75 0.16 70);
+  --color-danger-600: oklch(0.55 0.21 27);
+
+  --spacing: 0.25rem;
+  --radius-card: 0.75rem;
+  --font-sans: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", sans-serif;
+}
+
+@layer base {
+  h1:focus {
+    outline: none;
+  }
+}
+
+@layer components {
+  /* Blazor's own error and validation hooks (from the template), on the HomeBuild tokens. */
+  .validation-message {
+    color: var(--color-danger-600);
+  }
+
+  .invalid {
+    outline: 1px solid var(--color-danger-600);
+  }
+
+  .blazor-error-boundary {
+    background: var(--color-danger-600);
+    padding: calc(var(--spacing) * 4);
+    color: white;
+  }
+
+  .blazor-error-boundary::after {
+    content: "An error has occurred.";
+  }
+}
