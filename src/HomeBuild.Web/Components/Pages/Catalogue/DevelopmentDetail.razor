@@ -1,0 +1,56 @@
+@page "/developments/{DevelopmentId:guid}"
+@inject CatalogueClient Catalogue
+@inject NavigationManager Navigation
+
+@if (development is not null)
+{
+    <PageTitle>@development.Name · HomeBuild</PageTitle>
+
+    <h1>@development.Name</h1>
+    <p>@development.Town</p>
+
+    <h2>Homes</h2>
+    @if (units.Count == 0)
+    {
+        <p>No homes listed yet.</p>
+    }
+    else
+    {
+        <table data-testid="units">
+            <thead>
+                <tr><th scope="col">Plot</th><th scope="col">Price</th><th scope="col">Status</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var unit in units)
+                {
+                    <tr>
+                        <td><a href="units/@unit.Id">Plot @unit.PlotNumber</a></td>
+                        <td>@Money.Format(unit.Price, unit.Currency)</td>
+                        <td>@unit.Status</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+@code {
+    [Parameter]
+    public Guid DevelopmentId { get; set; }
+
+    private Development? development;
+    private IReadOnlyList<UnitSummary> units = [];
+
+    // Parameter-dependent data loads in OnParametersSetAsync, so a new ID never shows the previous development.
+    protected override async Task OnParametersSetAsync()
+    {
+        development = await Catalogue.GetDevelopmentAsync(DevelopmentId);
+        if (development is null)
+        {
+            Navigation.NotFound();
+            return;
+        }
+
+        units = (await Catalogue.ListUnitsAsync(DevelopmentId))?.Items ?? [];
+    }
+}

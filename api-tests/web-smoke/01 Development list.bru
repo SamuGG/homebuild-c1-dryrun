@@ -1,0 +1,26 @@
+meta {
+  name: 01 Development list
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{webUrl}}/
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.headers["content-type"]: contains text/html
+}
+
+tests {
+  test("renders homes available", function () {
+    expect(res.body).to.contain("homes available");
+  });
+
+  test("is static SSR: no interactive component markers", function () {
+    expect(res.body).not.to.contain("<!--Blazor:{");
+  });
+}

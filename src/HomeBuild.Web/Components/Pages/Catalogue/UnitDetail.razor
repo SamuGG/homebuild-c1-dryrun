@@ -1,0 +1,37 @@
+@page "/units/{UnitId:guid}"
+@inject CatalogueClient Catalogue
+@inject NavigationManager Navigation
+
+@if (unit is not null && development is not null)
+{
+    <PageTitle>Plot @unit.PlotNumber, @development.Name · HomeBuild</PageTitle>
+
+    <p><a href="developments/@development.Id">@development.Name</a></p>
+    <h1>Plot @unit.PlotNumber</h1>
+    <dl data-testid="unit">
+        <dt>Price</dt>
+        <dd>@Money.Format(unit.Price.Amount, unit.Price.Currency)</dd>
+        <dt>Status</dt>
+        <dd>@unit.Status</dd>
+        <dt>Development</dt>
+        <dd>@development.Name, @development.Town</dd>
+    </dl>
+}
+
+@code {
+    [Parameter]
+    public Guid UnitId { get; set; }
+
+    private Unit? unit;
+    private Development? development;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        unit = await Catalogue.GetUnitAsync(UnitId);
+        development = unit is null ? null : await Catalogue.GetDevelopmentAsync(unit.DevelopmentId);
+        if (unit is null || development is null)
+        {
+            Navigation.NotFound();
+        }
+    }
+}
