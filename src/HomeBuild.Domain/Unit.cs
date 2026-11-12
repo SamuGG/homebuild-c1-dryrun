@@ -38,7 +38,7 @@ public sealed class Unit
 
     public string PlotNumber { get; }
 
-    public Money Price { get; }
+    public Money Price { get; private set; }
 
     public UnitSpecification Specification { get; }
 
@@ -68,6 +68,19 @@ public sealed class Unit
         var reservation = new Reservation(ReservationId.New(), Id, buyerId, deposit, now, now + holdPeriod);
         Status = UnitStatus.Reserved;
         return new Reserved(reservation);
+    }
+
+    /// <summary>Sets a new list price, in the unit's currency. Reservations already made keep their deposit.</summary>
+    public void ChangePrice(Money price)
+    {
+        ArgumentNullException.ThrowIfNull(price);
+        if (price.Currency != Price.Currency)
+        {
+            throw new ArgumentException($"Price must stay in {Price.Currency}.", nameof(price));
+        }
+
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(price.Amount);
+        Price = price;
     }
 
     /// <summary>Makes a reserved unit available again, for example after its reservation is cancelled.</summary>

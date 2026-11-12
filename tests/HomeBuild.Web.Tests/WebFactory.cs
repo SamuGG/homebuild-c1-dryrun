@@ -38,12 +38,13 @@ internal sealed class WebFactory(FakeCatalogueApi api, FakeCognito? cognito = nu
         CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, BaseAddress = new Uri("https://localhost") });
 
     /// <summary>Signs a user in without Cognito: tokens in the server-side store, and the cookie the app would issue.</summary>
-    public async Task<string> SignInAsync(HttpClient browser, TokenSet tokens)
+    public async Task<string> SignInAsync(HttpClient browser, TokenSet tokens, params string[] groups)
     {
         var sessionId = Guid.NewGuid().ToString("N");
         await Services.GetRequiredService<TokenStore>().SetAsync(sessionId, tokens);
         var identity = new ClaimsIdentity(
-            [new Claim("sub", "sub-1"), new Claim("email", "buyer.tenant-a@example.com"), new Claim(TokenStore.SessionClaim, sessionId)],
+            [new Claim("sub", "sub-1"), new Claim("email", "buyer.tenant-a@example.com"), new Claim(TokenStore.SessionClaim, sessionId),
+                .. groups.Select(g => new Claim("cognito:groups", g))],
             "test", "email", "cognito:groups");
         var cookies = Services.GetRequiredService<IOptionsMonitor<CookieAuthenticationOptions>>().Get(CookieAuthenticationDefaults.AuthenticationScheme);
         var value = cookies.TicketDataFormat.Protect(new AuthenticationTicket(new ClaimsPrincipal(identity), CookieAuthenticationDefaults.AuthenticationScheme));

@@ -15,7 +15,7 @@ public sealed record UnitPage(IReadOnlyList<UnitSummary> Items, string? Next);
 
 public sealed record Price(decimal Amount, string Currency);
 
-public sealed record Unit(Guid Id, Guid DevelopmentId, string PlotNumber, Price Price, string Status);
+public sealed record Unit(Guid Id, Guid DevelopmentId, string PlotNumber, Price Price, string Status, string Description = "");
 
 /// <summary>Options for the public catalogue API: where it is and which builder's catalogue this site shows.</summary>
 public sealed class CatalogueApiOptions

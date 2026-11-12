@@ -28,11 +28,31 @@ internal sealed class FakeCatalogueApi : HttpMessageHandler
 
     public void ReleaseUnits() => unitsReleased.TrySetResult();
 
+    /// <summary>Answers a request before the defaults (null: fall through). Used for writes and error cases.</summary>
+    public Func<HttpRequestMessage, HttpResponseMessage?>? Respond { get; set; }
+
+    /// <summary>The body of each request with content, read when it was sent.</summary>
+    public List<string> Bodies { get; } = [];
+
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         lock (Requests)
         {
             Requests.Add(request);
+        }
+
+        if (request.Content is not null)
+        {
+            var body = await request.Content.ReadAsStringAsync(cancellationToken);
+            lock (Bodies)
+            {
+                Bodies.Add($"{request.Method} {request.RequestUri!.AbsolutePath} {body}");
+            }
+        }
+
+        if (Respond?.Invoke(request) is { } answer)
+        {
+            return answer;
         }
 
         var path = request.RequestUri!.AbsolutePath;
@@ -74,5 +94,13 @@ internal sealed class FakeCatalogueApi : HttpMessageHandler
         return new HttpResponseMessage(HttpStatusCode.NotFound);
     }
 
-    private static HttpResponseMessage Json<T>(T body) => new(HttpStatusCode.OK) { Content = JsonContent.Create(body) };
+    public static HttpResponseMessage Json<T>(T body, HttpStatusCode status = HttpStatusCode.OK) => new(status) { Content = JsonContent.Create(body) };
+
+    /// <summary>A ProblemDetails response, as the API sends it.</summary>
+    public static HttpResponseMessage Problem(HttpStatusCode status, string title, string? detail = null, Dictionary<string, string[]>? errors = null) =>
+        new(status)
+        {
+            Content = JsonContent.Create(new { type = "about:blank", title, status = (int)status, detail, errors },
+                mediaType: new System.Net.Http.Headers.MediaTypeHeaderValue("application/problem+json")),
+        };
 }

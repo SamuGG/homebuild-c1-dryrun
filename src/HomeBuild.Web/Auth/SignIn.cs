@@ -40,6 +40,7 @@ public static class SignIn
                 options.Cookie.SecurePolicy = CookieSecurePolicy.Always;  // HTTPS only (browsers treat localhost as secure)
                 options.Cookie.SameSite = SameSiteMode.Lax;               // not sent on cross-site POSTs
                 options.ExpireTimeSpan = TimeSpan.FromHours(8);
+                options.AccessDeniedPath = "/access-denied";
                 options.Events.OnValidatePrincipal = EndSessionWithoutTokensAsync;
             })
             .AddOpenIdConnect();

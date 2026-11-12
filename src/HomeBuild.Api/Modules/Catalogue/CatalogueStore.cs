@@ -12,6 +12,9 @@ internal interface ICatalogueStore
     Task<IReadOnlyList<Unit>> UnitsInAsync(DevelopmentId id, CancellationToken cancellationToken);
 
     Task<Unit?> FindUnitAsync(UnitId id, CancellationToken cancellationToken);
+
+    /// <summary>The unit's marketing description (a shadow property), or "" if there is none.</summary>
+    Task<string> DescriptionOfAsync(UnitId id, CancellationToken cancellationToken);
 }
 
 /// <summary>Read-only access to the catalogue. Scoped, like the DbContext it wraps; every read is untracked.</summary>
@@ -28,6 +31,9 @@ internal sealed class EfCatalogueStore(CatalogueDbContext db) : ICatalogueStore,
 
     public Task<Unit?> FindUnitAsync(UnitId id, CancellationToken cancellationToken) =>
         db.Units.AsNoTracking().SingleOrDefaultAsync(u => u.Id == id, cancellationToken);
+
+    public async Task<string> DescriptionOfAsync(UnitId id, CancellationToken cancellationToken) =>
+        await db.Units.Where(u => u.Id == id).Select(u => EF.Property<string>(u, CatalogueDbContext.UnitDescription)).SingleOrDefaultAsync(cancellationToken) ?? "";
 
     public async Task<string> DepositStrategyForAsync(DevelopmentId developmentId, CancellationToken cancellationToken = default) =>
         await db.Developments.Where(d => d.Id == developmentId).Select(d => d.DepositStrategy).SingleOrDefaultAsync(cancellationToken)
