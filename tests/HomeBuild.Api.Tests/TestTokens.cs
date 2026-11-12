@@ -16,6 +16,9 @@ public static class TestTokens
     public const string ClientId = "homebuild-test-client";
     public const string OtherClientId = "some-other-app-client";
 
+    /// <summary>The default test user's Cognito sub (a GUID, like Cognito's): a buyer in the demo tenant.</summary>
+    public static readonly Guid DefaultBuyer = Guid.Parse("0198a000-0000-7000-9000-00000000b001");
+
     public static readonly string SigningKeyBase64 = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
 
     public static string Access(string subject, params string[] groups) => Create(subject, groups);

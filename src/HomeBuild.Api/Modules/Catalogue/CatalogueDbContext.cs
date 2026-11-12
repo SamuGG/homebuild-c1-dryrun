@@ -14,15 +14,21 @@ internal sealed class CatalogueDbContext(DbContextOptions<CatalogueDbContext> op
 
     public ITenantContext Tenant => tenant;
 
+    // Every save runs in a transaction, even a single statement (EF skips it by default), so TenantCommandInterceptor
+    // sets app.tenant_id at TransactionStarted instead of prefixing the write batch, which breaks EF's row counts.
+    private void AlwaysUseTransaction() => Database.AutoTransactionBehavior = AutoTransactionBehavior.Always;
+
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
         ChangeTracker.StampTenant(tenant);
+        AlwaysUseTransaction();
         return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
     public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
         ChangeTracker.StampTenant(tenant);
+        AlwaysUseTransaction();
         return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
     }
 

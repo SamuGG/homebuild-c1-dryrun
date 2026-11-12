@@ -2,6 +2,7 @@ using HomeBuild.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using HomeBuild.Api.Http;
 using HomeBuild.Api.Modules.Sales.CancelReservation;
+using HomeBuild.Api.Modules.Sales.GetDeposit;
 using HomeBuild.Api.Modules.Sales.GetReservation;
 using HomeBuild.Api.Modules.Sales.ReserveUnit;
 
@@ -54,6 +55,7 @@ public static class SalesModule
         group.MapReserveUnit();
         group.MapGetReservation();
         group.MapCancelReservation();
+        group.MapGetDeposit();
         return endpoints;
     }
 }

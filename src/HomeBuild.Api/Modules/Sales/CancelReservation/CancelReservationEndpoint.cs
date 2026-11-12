@@ -1,5 +1,6 @@
 using HomeBuild.Api.Http;
 using HomeBuild.Domain;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,14 +11,25 @@ internal static class CancelReservationEndpoint
     public static void MapCancelReservation(this RouteGroupBuilder group) =>
         group.MapDelete("/reservations/{reservationId}", Handle)
             .WithName("CancelReservation")
-            .WithSummary("Cancel a reservation (idempotent)");
+            .WithSummary("Cancel a reservation (idempotent)")
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .RequireAuthorization(Policies.CanCancelReservations);
 
-    private static async Task<Results<NoContent, NotFound, Conflict<ProblemDetails>>> Handle(
-        ReservationId reservationId, IReservationStore reservations, TimeProvider time, HttpContext http, CancellationToken cancellationToken)
+    private static async Task<Results<NoContent, NotFound, Conflict<ProblemDetails>, ProblemHttpResult>> Handle(
+        ReservationId reservationId, IReservationStore reservations, IAuthorizationService authorization, TimeProvider time,
+        HttpContext http, CancellationToken cancellationToken)
     {
-        if (await reservations.FindAsync(reservationId, cancellationToken) is not { } reservation)
+        if (await reservations.FindAsync(reservationId, cancellationToken) is not { } reservation
+            || !(await authorization.AuthorizeAsync(http.User, reservation, ReservationOperations.Cancel)).Succeeded)
         {
-            return TypedResults.NotFound();
+            return TypedResults.NotFound(); // not theirs: as if it did not exist
+        }
+
+        var staff = http.User.IsInRole(Roles.SalesAgent) || http.User.IsInRole(Roles.Admin);
+        if (!staff && reservation.State is Confirmed)
+        {
+            return TypedResults.Problem(Problems.Business(http, "deposit-paid", "Deposit already paid",
+                StatusCodes.Status403Forbidden, "Once the deposit is paid, ask a sales agent to cancel."));
         }
 
         if (reservation.State is Cancelled)

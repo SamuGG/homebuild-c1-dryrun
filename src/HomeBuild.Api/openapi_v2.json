@@ -62,6 +62,55 @@
             }
           }
         }
+      },
+      "post": {
+        "tags": [
+          "Catalogue"
+        ],
+        "summary": "Create a development (admin)",
+        "operationId": "CreateDevelopment",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDevelopmentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedDevelopment"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v2/developments/{developmentId}": {
@@ -88,6 +137,61 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DevelopmentResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Catalogue"
+        ],
+        "summary": "Edit a development's name and town (admin)",
+        "operationId": "EditDevelopment",
+        "parameters": [
+          {
+            "name": "developmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditDevelopmentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -336,6 +440,16 @@
               }
             }
           },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Not Found"
           },
@@ -400,6 +514,16 @@
               }
             }
           },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Not Found"
           }
@@ -425,6 +549,16 @@
           "204": {
             "description": "No Content"
           },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Not Found"
           },
@@ -437,6 +571,50 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/v2/reservations/{reservationId}/deposit": {
+      "get": {
+        "tags": [
+          "Sales"
+        ],
+        "summary": "Read a reservation's deposit and payment (finance, admin, the owning buyer)",
+        "operationId": "GetDeposit",
+        "parameters": [
+          {
+            "name": "reservationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepositResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
           }
         }
       }
@@ -465,6 +643,87 @@
   },
   "components": {
     "schemas": {
+      "CreatedDevelopment": {
+        "required": [
+          "id",
+          "name",
+          "town"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "town": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateDevelopmentRequest": {
+        "required": [
+          "name",
+          "town",
+          "depositStrategy"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "town": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "depositStrategy": {
+            "pattern": "^(fixed|percentage)$",
+            "type": "string"
+          }
+        }
+      },
+      "DepositResponse": {
+        "required": [
+          "reservationId",
+          "amount",
+          "currency",
+          "paid",
+          "paidAt"
+        ],
+        "type": "object",
+        "properties": {
+          "reservationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "paid": {
+            "type": "boolean"
+          },
+          "paidAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
       "DevelopmentPage": {
         "required": [
           "items",
@@ -616,6 +875,25 @@
             "type": "string"
           },
           "town": {
+            "type": "string"
+          }
+        }
+      },
+      "EditDevelopmentRequest": {
+        "required": [
+          "name",
+          "town"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "town": {
+            "maxLength": 100,
+            "minLength": 1,
             "type": "string"
           }
         }
@@ -846,7 +1124,10 @@
         "type": "object",
         "properties": {
           "buyerId": {
-            "type": "string",
+            "type": [
+              "null",
+              "string"
+            ],
             "format": "uuid"
           },
           "deposit": {

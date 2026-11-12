@@ -24,7 +24,8 @@ public sealed class EndpointTests(PostgresFixture database) : IAsyncLifetime
         await _factory.DisposeAsync();
     }
 
-    internal static object Deposit(decimal amount) => new { buyerId = Guid.NewGuid(), deposit = amount, currency = "GBP" };
+    // No buyerId: the default test user is a buyer reserving for themselves (C4 Lab 4).
+    internal static object Deposit(decimal amount) => new { deposit = amount, currency = "GBP" };
 
     [Fact]
     public async Task Reserve_available_unit_returns_201_with_location()

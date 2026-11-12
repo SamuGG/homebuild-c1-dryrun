@@ -82,7 +82,7 @@ jobs:
           path: artifacts/
       - name: Issue a test token (dotnet user-jwts, a local test issuer; CI cannot sign in to Cognito)
         run: |
-          token=$(dotnet user-jwts create --project src/HomeBuild.Api --name ci-buyer \
+          token=$(dotnet user-jwts create --project src/HomeBuild.Api --name 11111111-1111-1111-1111-111111111111 \
             --claim token_use=access --claim client_id=homebuild-ci --claim cognito:groups=buyer --output token)
           key=$(dotnet user-jwts key --project src/HomeBuild.Api | sed -E "s/^Signing Key: '(.*)'$/\1/")
           echo "::add-mask::$token"
