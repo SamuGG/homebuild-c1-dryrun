@@ -8,6 +8,9 @@ internal static class SeedData
     /// <summary>The tenant that owns C2's fixed data set (both developments).</summary>
     public static readonly Guid DemoTenant = Guid.Parse("0198a000-0000-7000-8000-00000000000a");
 
+    /// <summary>The demo tenant's buyer, as a Cognito-style sub; Bruno's requests reserve for it.</summary>
+    public const string DemoBuyer = "11111111-1111-1111-1111-111111111111";
+
     public static readonly DevelopmentId Riverside = new(Guid.Parse("0198a000-0000-7000-8000-000000000001"));
     public static readonly DevelopmentId Hillcrest = new(Guid.Parse("0198a000-0000-7000-8000-000000000002"));
 

@@ -1,3 +1,4 @@
+using HomeBuild.Api.Modules.Accounts;
 using HomeBuild.Api.Modules.Catalogue;
 using HomeBuild.Api.Modules.Sales;
 using Microsoft.EntityFrameworkCore;
@@ -26,7 +27,12 @@ public static class HomeBuildDatabase
             await catalogue.Database.MigrateAsync(cancellationToken);
         }
 
-        await using var sales = SalesModule.CreateDbContext(connectionString);
-        await sales.Database.MigrateAsync(cancellationToken);
+        await using (var sales = SalesModule.CreateDbContext(connectionString))
+        {
+            await sales.Database.MigrateAsync(cancellationToken);
+        }
+
+        await using var accounts = AccountsModule.CreateDbContext(connectionString);
+        await accounts.Database.MigrateAsync(cancellationToken);
     }
 }

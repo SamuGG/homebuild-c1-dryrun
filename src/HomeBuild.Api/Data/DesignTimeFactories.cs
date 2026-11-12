@@ -1,3 +1,4 @@
+using HomeBuild.Api.Modules.Accounts;
 using HomeBuild.Api.Modules.Catalogue;
 using HomeBuild.Api.Modules.Sales;
 using Microsoft.EntityFrameworkCore.Design;
@@ -22,4 +23,9 @@ internal sealed class CatalogueDesignTimeFactory : IDesignTimeDbContextFactory<C
 internal sealed class SalesDesignTimeFactory : IDesignTimeDbContextFactory<SalesDbContext>
 {
     public SalesDbContext CreateDbContext(string[] args) => SalesModule.CreateDbContext(DesignTime.ConnectionString);
+}
+
+internal sealed class AccountsDesignTimeFactory : IDesignTimeDbContextFactory<AccountsDbContext>
+{
+    public AccountsDbContext CreateDbContext(string[] args) => AccountsModule.CreateDbContext(DesignTime.ConnectionString);
 }

@@ -18,8 +18,8 @@ public sealed class TenancyTests(PostgresFixture database)
         await using var factory = new ApiFactory(cs);
         using var demo = factory.CreateClient();
         using var other = factory.CreateClient();
-        other.DefaultRequestHeaders.Remove("X-Tenant-Id");
-        other.DefaultRequestHeaders.Add("X-Tenant-Id", TestTenants.Other.ToString());
+        // Since C4 Lab 5 the tenant comes from the user's membership, not the header.
+        other.DefaultRequestHeaders.Authorization = new("Bearer", TestTokens.Access(TestTokens.Users.OtherTenantBuyer.ToString(), "buyer"));
 
         Assert.Equal(HttpStatusCode.NotFound, (await demo.GetAsync($"/v1/units/{otherUnit}", Ct)).StatusCode);
         Assert.DoesNotContain(otherUnit.ToString(), await demo.GetStringAsync("/v1/units/search?q=other", Ct), StringComparison.Ordinal);

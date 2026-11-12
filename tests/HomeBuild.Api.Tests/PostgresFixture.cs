@@ -53,6 +53,13 @@ public sealed class PostgresFixture : IAsyncLifetime
     {
         var connectionString = await CreateEmptyDatabaseAsync();
         await HomeBuildDatabase.MigrateAsync(connectionString);
+        await using var accounts = HomeBuild.Api.Modules.Accounts.AccountsModule.CreateDbContext(connectionString);
+        foreach (var (subject, tenant, roles) in TestTokens.Users.Memberships())
+        {
+            accounts.TenantMemberships.Add(new HomeBuild.Api.Modules.Accounts.TenantMembership(subject.ToString(), tenant, roles));
+        }
+
+        await accounts.SaveChangesAsync();
         return connectionString;
     }
 

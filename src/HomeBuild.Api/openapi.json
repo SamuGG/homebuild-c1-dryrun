@@ -597,7 +597,7 @@
         "tags": [
           "Accounts"
         ],
-        "summary": "The caller's identity as the API sees it: subject, client and roles",
+        "summary": "The caller's identity as the API sees it: subject, client, roles and tenant",
         "operationId": "GetMe",
         "responses": {
           "200": {
@@ -943,7 +943,8 @@
         "required": [
           "subject",
           "clientId",
-          "roles"
+          "roles",
+          "tenantId"
         ],
         "type": "object",
         "properties": {
@@ -958,6 +959,13 @@
             "items": {
               "type": "string"
             }
+          },
+          "tenantId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },

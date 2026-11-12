@@ -11,8 +11,8 @@ namespace HomeBuild.Api.Tests;
 /// <summary>The brief's access table, one test case per row and caller.</summary>
 public sealed class AuthorizationTests(PostgresFixture database) : IAsyncLifetime
 {
-    private static readonly Guid Owner = Guid.Parse("0198a000-0000-7000-9000-00000000b0a1");
-    private static readonly Guid OtherBuyer = Guid.Parse("0198a000-0000-7000-9000-00000000b0b2");
+    private static readonly Guid Owner = TestTokens.Users.Owner;
+    private static readonly Guid OtherBuyer = TestTokens.Users.OtherBuyer;
     private const string Riverside = "0198a000-0000-7000-8000-000000000001";
 
     private ApiFactory _factory = null!;
@@ -146,8 +146,8 @@ public sealed class AuthorizationTests(PostgresFixture database) : IAsyncLifetim
         {
             "owner" => TestTokens.Access(Owner.ToString(), "buyer"),
             "other-buyer" => TestTokens.Access(OtherBuyer.ToString(), "buyer"),
-            "buyer" => TestTokens.Access(Guid.NewGuid().ToString(), "buyer"), // a buyer who is neither Owner nor OtherBuyer
-            _ => TestTokens.Access(Guid.NewGuid().ToString(), caller),
+            "buyer" => TestTokens.Access(TestTokens.Users.ThirdBuyer.ToString(), "buyer"), // neither Owner nor OtherBuyer
+            _ => TestTokens.Access(TestTokens.Users.Staff(caller).ToString(), caller),
         });
         if (body is not null)
         {
