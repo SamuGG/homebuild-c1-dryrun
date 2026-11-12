@@ -1,0 +1,15 @@
+meta {
+  name: SQL injection in search (drop table)
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/units/search?q=river'); DROP TABLE catalogue.units; --
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}

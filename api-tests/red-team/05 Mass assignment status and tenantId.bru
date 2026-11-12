@@ -1,0 +1,30 @@
+meta {
+  name: Mass assignment status and tenantId
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/units/{{riversidePlot3}}/reservations
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "deposit": 5000,
+    "currency": "GBP",
+    "status": "confirmed",
+    "state": "Confirmed|2026-01-01T00:00:00.0000000+00:00",
+    "tenantId": "0198a000-0000-7000-8000-00000000000b"
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.state: eq Held
+}
+
+script:post-response {
+  bru.setVar("massAssignedReservation", res.headers.location);
+}

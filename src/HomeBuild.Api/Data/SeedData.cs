@@ -11,6 +11,9 @@ internal static class SeedData
     /// <summary>The demo tenant's buyer, as a Cognito-style sub; Bruno's requests reserve for it.</summary>
     public const string DemoBuyer = "11111111-1111-1111-1111-111111111111";
 
+    /// <summary>A second buyer in the demo tenant: the red-team collection's BOLA victim.</summary>
+    public const string DemoBuyer2 = "22222222-2222-2222-2222-222222222222";
+
     public static readonly DevelopmentId Riverside = new(Guid.Parse("0198a000-0000-7000-8000-000000000001"));
     public static readonly DevelopmentId Hillcrest = new(Guid.Parse("0198a000-0000-7000-8000-000000000002"));
 

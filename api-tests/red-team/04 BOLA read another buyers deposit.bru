@@ -1,0 +1,15 @@
+meta {
+  name: BOLA read another buyers deposit
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}{{victimReservation}}/deposit
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 404
+}

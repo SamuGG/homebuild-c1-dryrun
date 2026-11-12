@@ -1,0 +1,27 @@
+meta {
+  name: Role escalation via forged group
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{baseUrl}}/developments
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{forgedAdminToken}}
+}
+
+body:json {
+  {
+    "name": "Escalated",
+    "town": "Nowhere",
+    "depositStrategy": "fixed"
+  }
+}
+
+assert {
+  res.status: eq 401
+}

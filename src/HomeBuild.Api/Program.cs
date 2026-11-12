@@ -4,6 +4,9 @@ using HomeBuild.Api.Modules.Catalogue;
 using HomeBuild.Api.Modules.Sales;
 
 var builder = WebApplication.CreateBuilder(args);
+// The API takes small JSON bodies only; Kestrel's default 30 MB limit let a 2 MB reservation body through
+// (red-team finding, C4 Lab 6). Larger bodies get 413 before any handler reads them.
+builder.WebHost.ConfigureKestrel(kestrel => kestrel.Limits.MaxRequestBodySize = 64 * 1024);
 if (builder.Environment.IsDevelopment())
 {
     builder.Logging.AddJsonConsole();

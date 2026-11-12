@@ -1,0 +1,16 @@
+meta {
+  name: Units table still there after injection
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}/developments/{{riverside}}/units
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body: isArray
+}

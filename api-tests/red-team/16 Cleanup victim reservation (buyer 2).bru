@@ -1,0 +1,19 @@
+meta {
+  name: Cleanup victim reservation (buyer 2)
+  type: http
+  seq: 16
+}
+
+delete {
+  url: {{host}}{{victimReservation}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{buyer2Token}}
+}
+
+assert {
+  res.status: eq 204
+}

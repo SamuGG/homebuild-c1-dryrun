@@ -1,0 +1,15 @@
+meta {
+  name: BOLA read another buyers reservation
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}{{victimReservation}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 404
+}

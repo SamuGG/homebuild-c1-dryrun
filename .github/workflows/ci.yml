@@ -80,15 +80,15 @@ jobs:
         with:
           name: migrations
           path: artifacts/
-      - name: Issue a test token (dotnet user-jwts, a local test issuer; CI cannot sign in to Cognito)
+      - name: Issue test tokens (dotnet user-jwts, a local test issuer; CI cannot sign in to Cognito)
         run: |
-          token=$(dotnet user-jwts create --project src/HomeBuild.Api --name 11111111-1111-1111-1111-111111111111 \
-            --claim token_use=access --claim client_id=homebuild-ci --claim cognito:groups=buyer --output token)
+          api-tests/tokens.sh homebuild-ci > tokens.env
           key=$(dotnet user-jwts key --project src/HomeBuild.Api | sed -E "s/^Signing Key: '(.*)'$/\1/")
-          echo "::add-mask::$token"
+          while IFS='=' read -r name value; do echo "::add-mask::$value"; done < tokens.env
           echo "::add-mask::$key"
-          echo "BRUNO_ACCESS_TOKEN=$token" >> "$GITHUB_ENV"
+          cat tokens.env >> "$GITHUB_ENV"
           echo "TEST_ISSUER_KEY=$key" >> "$GITHUB_ENV"
+          rm tokens.env
       - name: Start the API
         env:
           ASPNETCORE_ENVIRONMENT: CI
@@ -102,7 +102,10 @@ jobs:
           for i in $(seq 1 30); do curl -sf -o /dev/null http://localhost:5080/openapi/v1.json && exit 0; sleep 1; done
           cat api.log; exit 1
       - name: Bruno collection
-        run: npm run test:ci -- --env-var "accessToken=$BRUNO_ACCESS_TOKEN"
+        # The main collection and the red-team folder (every attack must fail).
+        run: >-
+          npm run test:ci -- --env-var "accessToken=$BRUNO_ACCESS_TOKEN" --env-var "buyer2Token=$BRUNO_BUYER2_TOKEN"
+          --env-var "idToken=$BRUNO_ID_TOKEN" --env-var "forgedAdminToken=$BRUNO_FORGED_ADMIN_TOKEN"
         working-directory: api-tests
       - name: Publish Bruno JUnit report
         if: always()

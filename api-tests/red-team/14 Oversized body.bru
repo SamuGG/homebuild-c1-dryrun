@@ -1,0 +1,27 @@
+meta {
+  name: Oversized body
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{baseUrl}}/units/{{riversidePlot3}}/reservations
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "deposit": 5000,
+    "currency": "GBP"
+  }
+}
+
+script:pre-request {
+  // About 2 MB of JSON: a reservation request is a few dozen bytes.
+  req.setBody({ deposit: 5000, currency: "GBP", padding: "x".repeat(2 * 1024 * 1024) });
+}
+
+assert {
+  res.status: eq 413
+}
