@@ -30,6 +30,7 @@ builder.Services.AddHomeBuildPolicies();
 builder.Services.AddTenancy();
 builder.Services.AddCatalogueModule();
 builder.Services.AddSalesModule();
+builder.Services.AddAccountsModule();
 var app = builder.Build();
 
 // Pipeline order, one reason per line:
@@ -45,7 +46,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 // 6. Rate limiter: after routing, so it can read each endpoint's policy; before the endpoint, so a rejected request costs nothing.
 app.UseRateLimiter();
-// 7. Tenant: every API call names its tenant (X-Tenant-Id until C4's token claim); after routing so the OpenAPI route is exempt.
+// 7. Tenant: from the tenant_id claim (claims transformation runs in UseAuthentication); after authorisation, so 401/403 come first.
 app.UseMiddleware<TenantMiddleware>();
 
 // The OpenAPI document is published only in Development and in CI, where Bruno and reviewers use it.
