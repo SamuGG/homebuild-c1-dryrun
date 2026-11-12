@@ -80,15 +80,29 @@ jobs:
         with:
           name: migrations
           path: artifacts/
+      - name: Issue a test token (dotnet user-jwts, a local test issuer; CI cannot sign in to Cognito)
+        run: |
+          token=$(dotnet user-jwts create --project src/HomeBuild.Api --name ci-buyer \
+            --claim token_use=access --claim client_id=homebuild-ci --claim cognito:groups=buyer --output token)
+          key=$(dotnet user-jwts key --project src/HomeBuild.Api | sed -E "s/^Signing Key: '(.*)'$/\1/")
+          echo "::add-mask::$token"
+          echo "::add-mask::$key"
+          echo "BRUNO_ACCESS_TOKEN=$token" >> "$GITHUB_ENV"
+          echo "TEST_ISSUER_KEY=$key" >> "$GITHUB_ENV"
       - name: Start the API
         env:
           ASPNETCORE_ENVIRONMENT: CI
+          # Trust the test issuer only in CI (dotnet user-jwts' issuer name, its key, and the CI client).
+          Authentication__Schemes__Bearer__ValidIssuer: dotnet-user-jwts
+          Authentication__Schemes__Bearer__SigningKeys__0__Issuer: dotnet-user-jwts
+          Authentication__Schemes__Bearer__SigningKeys__0__Value: ${{ env.TEST_ISSUER_KEY }}
+          Tokens__AllowedClientIds__0: homebuild-ci
         run: |
           dotnet run --no-build -c Release --no-launch-profile --project src/HomeBuild.Api --urls http://localhost:5080 > api.log 2>&1 &
           for i in $(seq 1 30); do curl -sf -o /dev/null http://localhost:5080/openapi/v1.json && exit 0; sleep 1; done
           cat api.log; exit 1
       - name: Bruno collection
-        run: npm run test:ci
+        run: npm run test:ci -- --env-var "accessToken=$BRUNO_ACCESS_TOKEN"
         working-directory: api-tests
       - name: Publish Bruno JUnit report
         if: always()

@@ -71,13 +71,22 @@ public sealed class ApiFactory(string connectionString) : WebApplicationFactory<
 {
     public string ConnectionString { get; } = PostgresFixture.AppConnectionString(connectionString);
 
-    protected override void ConfigureWebHost(IWebHostBuilder builder) =>
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
         builder.UseSetting("ConnectionStrings:" + HomeBuildDatabase.ConnectionStringName, ConnectionString);
+        foreach (var (key, value) in TestTokens.Settings())
+        {
+            builder.UseSetting(key, value);
+        }
+    }
 
     protected override void ConfigureClient(HttpClient client)
     {
         ArgumentNullException.ThrowIfNull(client);
         base.ConfigureClient(client);
         client.DefaultRequestHeaders.Add("X-Tenant-Id", TestTenants.Demo.ToString());
+        // Signed in by default, as a buyer: C2/C3 tests call endpoints that now require a user.
+        client.DefaultRequestHeaders.Authorization = new("Bearer", TestTokens.Access("default-test-buyer", "buyer"));
     }
 }

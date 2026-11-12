@@ -98,40 +98,6 @@
         }
       }
     },
-    "/v2/developments/{developmentId}/page": {
-      "get": {
-        "tags": [
-          "Catalogue"
-        ],
-        "summary": "The development page: every unit with its latest reservation and price history",
-        "operationId": "GetDevelopmentPage",
-        "parameters": [
-          {
-            "name": "developmentId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DevelopmentPageResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
-    },
     "/v2/developments/{developmentId}/units": {
       "get": {
         "tags": [
@@ -288,6 +254,40 @@
         }
       }
     },
+    "/v2/developments/{developmentId}/page": {
+      "get": {
+        "tags": [
+          "Catalogue"
+        ],
+        "summary": "The development page: every unit with its latest reservation and price history",
+        "operationId": "GetDevelopmentPage",
+        "parameters": [
+          {
+            "name": "developmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevelopmentPageResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
     "/v2/units/{unitId}/reservations": {
       "post": {
         "tags": [
@@ -434,6 +434,27 @@
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/me": {
+      "get": {
+        "tags": [
+          "Accounts"
+        ],
+        "summary": "The caller's identity as the API sees it: subject, client and roles",
+        "operationId": "GetMe",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
                 }
               }
             }
@@ -664,6 +685,28 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "MeResponse": {
+        "required": [
+          "subject",
+          "clientId",
+          "roles"
+        ],
+        "type": "object",
+        "properties": {
+          "subject": {
+            "type": "string"
+          },
+          "clientId": {
+            "type": "string"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -963,6 +1006,9 @@
     }
   },
   "tags": [
+    {
+      "name": "Accounts"
+    },
     {
       "name": "Catalogue"
     },

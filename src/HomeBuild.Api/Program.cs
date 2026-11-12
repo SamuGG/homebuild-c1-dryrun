@@ -1,4 +1,5 @@
 using HomeBuild.Api.Http;
+using HomeBuild.Api.Modules.Accounts;
 using HomeBuild.Api.Modules.Catalogue;
 using HomeBuild.Api.Modules.Sales;
 
@@ -24,6 +25,7 @@ builder.Services.AddProblemDetails(options =>
 builder.Services.AddExceptionHandler<LoggingExceptionHandler>();
 builder.Services.AddHomeBuildRateLimiting();
 
+builder.Services.AddHomeBuildAuthentication();
 builder.Services.AddTenancy();
 builder.Services.AddCatalogueModule();
 builder.Services.AddSalesModule();
@@ -36,19 +38,23 @@ app.UseExceptionHandler();
 app.UseStatusCodePages();
 // 3. Routing: picks the endpoint, so middleware after it (rate limiter in Lab 7, auth in C4) can read endpoint metadata.
 app.UseRouting();
-// 4. Rate limiter: after routing, so it can read each endpoint's policy; before the endpoint, so a rejected request costs nothing.
-//    C4 puts authentication and authorisation between routing and this, once limits are per user or tenant.
+// 4. Authentication: turns the bearer token into a user; after routing, before anything that decides by identity.
+app.UseAuthentication();
+// 5. Authorisation: checks the endpoint's policy (the fallback: signed in) and answers 401/403 before the handler runs.
+app.UseAuthorization();
+// 6. Rate limiter: after routing, so it can read each endpoint's policy; before the endpoint, so a rejected request costs nothing.
 app.UseRateLimiter();
-// 5. Tenant: every API call names its tenant (X-Tenant-Id until C4's token claim); after routing so the OpenAPI route is exempt.
+// 7. Tenant: every API call names its tenant (X-Tenant-Id until C4's token claim); after routing so the OpenAPI route is exempt.
 app.UseMiddleware<TenantMiddleware>();
 
 // The OpenAPI document is published only in Development and in CI, where Bruno and reviewers use it.
 if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("CI"))
 {
-    app.MapOpenApi();
+    app.MapOpenApi().AllowAnonymous();
 }
 
 app.MapCatalogueModule();
 app.MapSalesModule();
+app.MapAccountsModule();
 
 app.Run();
