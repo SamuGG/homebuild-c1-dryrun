@@ -26,7 +26,7 @@
                     <tr class="border-t border-brand-100">
                         <td class="p-3"><a class="text-brand-700 hover:underline" href="units/@unit.Id">Plot @unit.PlotNumber</a></td>
                         <td class="p-3">@Money.Format(unit.Price, unit.Currency)</td>
-                        <td class="p-3">@unit.Status</td>
+                        <td class="p-3"><span class="@StatusClass(unit.Status) rounded-card px-2 py-1">@unit.Status</span></td>
                     </tr>
                 }
             </tbody>
@@ -37,6 +37,9 @@
 @code {
     [Parameter]
     public Guid DevelopmentId { get; set; }
+
+    // Complete class names only: Tailwind finds classes by scanning source text, so "bg-" + colour would be missing.
+    private static string StatusClass(string status) => status == "Available" ? "bg-accent-500" : "bg-brand-100";
 
     private Development? development;
     private IReadOnlyList<UnitSummary> units = [];
