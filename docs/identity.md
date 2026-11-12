@@ -8,7 +8,9 @@ a 14-character password policy, a group per role (`admin`, `sales-agent`, `site-
 
 Test users: `scripts/cognito-users.sh <user-pool-id> <password-file>` creates one user per role per tenant
 (`<role>.tenant-a@example.com`, `<role>.tenant-b@example.com`) with no invitation email and a generated
-password written only to the password file, which must stay outside the repository.
+password written only to the password file, which must stay outside the repository. With a third argument
+(a database in the local compose PostgreSQL) it also writes each user's tenant membership: `tenant-a` users
+belong to the demo tenant that owns C2's fixed data, `tenant-b` users to the second tenant.
 
 ## Removal policy
 
