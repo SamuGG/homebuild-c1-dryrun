@@ -35,7 +35,10 @@ public static class ConfigurationSources
     {
         ArgumentNullException.ThrowIfNull(builder);
         var inAws = builder.Environment.IsStaging() || builder.Environment.IsProduction();
-        if (builder.Configuration.GetValue("Ssm:Enabled", inAws))
+        // Build-time OpenAPI generation (Microsoft.Extensions.ApiDescription.Server) starts the app as Production
+        // through GetDocument.Insider; it needs endpoints, not secrets, and has no AWS credentials in CI.
+        var generatingOpenApi = System.Reflection.Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider";
+        if (!generatingOpenApi && builder.Configuration.GetValue("Ssm:Enabled", inAws))
         {
             builder.Configuration.AddSystemsManager(SsmPath(builder.Environment.EnvironmentName));
         }
