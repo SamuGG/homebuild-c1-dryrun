@@ -26,6 +26,7 @@ builder.Services.AddExceptionHandler<LoggingExceptionHandler>();
 builder.Services.AddHomeBuildRateLimiting();
 
 builder.Services.AddHomeBuildAuthentication();
+builder.Services.AddHomeBuildPolicies();
 builder.Services.AddTenancy();
 builder.Services.AddCatalogueModule();
 builder.Services.AddSalesModule();

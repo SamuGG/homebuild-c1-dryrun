@@ -18,8 +18,9 @@ public closed record class ReservationState
 
     public TransitionResult Cancel(DateTimeOffset now) => this switch
     {
-        Held => new Transitioned(new Cancelled(now)),
-        Expired or Confirmed or Cancelled => new InvalidTransition(this, "Only a held reservation can be cancelled."),
+        // A confirmed reservation can still be cancelled (by staff, C4 Lab 4; the deposit is then refunded by Finance).
+        Held or Confirmed => new Transitioned(new Cancelled(now)),
+        Expired or Cancelled => new InvalidTransition(this, "Only a held or confirmed reservation can be cancelled."),
     };
 }
 

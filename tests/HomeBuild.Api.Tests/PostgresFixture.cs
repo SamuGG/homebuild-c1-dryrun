@@ -11,7 +11,11 @@ namespace HomeBuild.Api.Tests;
 /// <summary>One PostgreSQL 18 container for the test run; every test gets its own freshly migrated database.</summary>
 public sealed class PostgresFixture : IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:18").Build();
+    // Every test has its own database and connection pools, and tests run in parallel: the default
+    // max_connections (100) ran out at about 110 tests ("53300: sorry, too many clients already").
+    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:18")
+        .WithCommand("-c", "max_connections=500")
+        .Build();
 
     // Throwaway password for the test container's application role.
     private const string AppPassword = "app-test";
@@ -87,6 +91,6 @@ public sealed class ApiFactory(string connectionString) : WebApplicationFactory<
         base.ConfigureClient(client);
         client.DefaultRequestHeaders.Add("X-Tenant-Id", TestTenants.Demo.ToString());
         // Signed in by default, as a buyer: C2/C3 tests call endpoints that now require a user.
-        client.DefaultRequestHeaders.Authorization = new("Bearer", TestTokens.Access("default-test-buyer", "buyer"));
+        client.DefaultRequestHeaders.Authorization = new("Bearer", TestTokens.Access(TestTokens.DefaultBuyer.ToString(), "buyer"));
     }
 }
