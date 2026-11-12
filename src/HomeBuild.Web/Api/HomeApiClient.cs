@@ -71,6 +71,24 @@ public sealed class HomeApiClient(HttpClient http)
         return await response.Content.ReadFromJsonAsync<Reservation>(cancellationToken);
     }
 
+    /// <summary>The API's pre-signed POST for a floor plan, passed through unchanged (the browser posts it to S3).</summary>
+    public async Task<ApiResult<System.Text.Json.JsonElement>> StartFloorPlanUploadAsync(Guid unitId, CancellationToken cancellationToken = default)
+    {
+        using var response = await http.PostAsync(new Uri($"units/{unitId}/floor-plan/uploads", UriKind.Relative), null, cancellationToken);
+        return response.IsSuccessStatusCode
+            ? new(await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>(cancellationToken), null)
+            : new(default, await ApiProblem.ReadAsync(response, cancellationToken));
+    }
+
+    /// <summary>Asks the API to check an uploaded floor plan and move it into place: its final key, or the problem.</summary>
+    public async Task<ApiResult<string>> CompleteFloorPlanUploadAsync(Guid unitId, string key, CancellationToken cancellationToken = default)
+    {
+        using var response = await http.PostAsJsonAsync($"units/{unitId}/floor-plan", new { key }, cancellationToken);
+        return response.IsSuccessStatusCode
+            ? new((await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>(cancellationToken)).GetProperty("key").GetString(), null)
+            : new(null, await ApiProblem.ReadAsync(response, cancellationToken));
+    }
+
     /// <summary>Edits a unit's price and description (admin).</summary>
     public async Task<ApiResult<bool>> EditUnitAsync(Guid unitId, decimal price, string description, CancellationToken cancellationToken = default)
     {

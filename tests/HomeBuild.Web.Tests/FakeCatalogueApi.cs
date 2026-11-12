@@ -83,6 +83,12 @@ internal sealed class FakeCatalogueApi : HttpMessageHandler
             ]));
         }
 
+        if (path == $"/v2/units/{PlotOne}/floor-plan/uploads" && request.Method == HttpMethod.Post)
+        {
+            return Json(new { url = "https://bucket.s3.eu-west-2.amazonaws.com/", fields = new Dictionary<string, string> { ["key"] = "incoming/t/u/f.pdf", ["Content-Type"] = "application/pdf" },
+                key = "incoming/t/u/f.pdf", maxBytes = 10485760, contentType = "application/pdf", expiresAt = DateTimeOffset.UtcNow.AddMinutes(5) });
+        }
+
         if (path == "/v2/me/progress")
         {
             return Json(new HomeBuild.Web.Api.MyProgress(
