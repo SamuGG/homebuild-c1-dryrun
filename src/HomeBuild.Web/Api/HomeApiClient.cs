@@ -4,6 +4,22 @@ namespace HomeBuild.Web.Api;
 
 public sealed record CurrentUser(string Subject, string ClientId, IReadOnlyList<string> Roles, Guid? TenantId);
 
+public sealed record Board(Guid DevelopmentId, string DevelopmentName, IReadOnlyList<string> Milestones, IReadOnlyList<BoardRow> Rows);
+
+public sealed record BoardRow(Guid UnitId, string PlotNumber, IReadOnlyList<BoardCell> Cells)
+{
+    /// <summary>The first milestone not yet done, or null when the unit is finished.</summary>
+    public string? CurrentStage => Cells.FirstOrDefault(c => c.Status != "Done")?.Milestone;
+}
+
+public sealed record BoardCell(string Milestone, string Status, DateOnly? CompletedOn, string Subcontractor, string SiteNotes, int OpenDefects);
+
+public sealed record BuyerProgress(string Stage, int StepsDone, int StepsTotal, string? NextStep);
+
+public sealed record BuyerHome(Guid ReservationId, Guid UnitId, string PlotNumber, string DevelopmentName, string ReservationState, DateTimeOffset ReservationExpiresAt, BuyerProgress Progress);
+
+public sealed record MyProgress(IReadOnlyList<BuyerHome> Homes);
+
 public sealed record Reservation(Guid Id, Guid UnitId, Guid BuyerId, decimal Deposit, string Currency, string State, DateTimeOffset ExpiresAt);
 
 /// <summary>Typed client for the API's signed-in endpoints. <c>AccessTokenHandler</c> adds the user's token.</summary>
@@ -11,6 +27,23 @@ public sealed class HomeApiClient(HttpClient http)
 {
     public async Task<CurrentUser> GetMeAsync(CancellationToken cancellationToken = default) =>
         await http.GetFromJsonAsync<CurrentUser>("me", cancellationToken) ?? throw new InvalidOperationException("The API returned no user.");
+
+    /// <summary>The staff build board (site managers and admins), or null if the development is unknown.</summary>
+    public async Task<Board?> GetBoardAsync(Guid developmentId, CancellationToken cancellationToken = default)
+    {
+        using var response = await http.GetAsync(new Uri($"developments/{developmentId}/board", UriKind.Relative), cancellationToken);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<Board>(cancellationToken);
+    }
+
+    /// <summary>The signed-in buyer's homes and simplified progress (the buyer DTO; no internal fields).</summary>
+    public async Task<MyProgress> GetMyProgressAsync(CancellationToken cancellationToken = default) =>
+        await http.GetFromJsonAsync<MyProgress>("me/progress", cancellationToken) ?? new MyProgress([]);
 
     /// <summary>Reserves a unit for the signed-in buyer: the new reservation's ID, or the API's problem (400, 409, 422).</summary>
     public async Task<ApiResult<Guid>> ReserveAsync(Guid unitId, decimal deposit, string currency, CancellationToken cancellationToken = default)

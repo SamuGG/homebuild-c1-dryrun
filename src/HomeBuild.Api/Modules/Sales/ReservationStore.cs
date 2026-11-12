@@ -52,6 +52,11 @@ internal sealed class EfReservationStore(SalesDbContext db) : IReservationStore,
     public async Task<IReadOnlyList<Reservation>> ForBuyerAsync(BuyerId buyerId, CancellationToken cancellationToken) =>
         await HotQueries.ForBuyer(db, buyerId).ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<BuyerReservation>> ReservationsOfAsync(BuyerId buyerId, CancellationToken cancellationToken = default) =>
+        [.. (await ForBuyerAsync(buyerId, cancellationToken))
+            .OrderByDescending(r => r.CreatedAt)
+            .Select(r => new BuyerReservation(r.Id, r.UnitId, r.State.GetType().Name, r.ExpiresAt))];
+
     public void Add(Reservation reservation) => db.Reservations.Add(reservation);
 
     public Task SaveChangesAsync(CancellationToken cancellationToken) => db.SaveChangesAsync(cancellationToken);

@@ -73,6 +73,25 @@ internal sealed class FakeCatalogueApi : HttpMessageHandler
             return Json(new UnitPage([new(PlotOne, "P1", 260_000m, "GBP", "Available")], null));
         }
 
+        if (path == $"/v2/developments/{Riverside}/board")
+        {
+            return Json(new HomeBuild.Web.Api.Board(Riverside, "Riverside", ["Foundations", "Frame", "Roof"],
+            [
+                new(PlotOne, "P1", [Cell("Foundations", "Done"), Cell("Frame", "InProgress"), Cell("Roof", "NotStarted")]),
+                new(PlotTwo, "P2", [Cell("Foundations", "Done"), Cell("Frame", "Done"), Cell("Roof", "InProgress")]),
+                new(Guid.Parse("0198a000-0000-7000-8001-000000000003"), "P3", [Cell("Foundations", "Done"), Cell("Frame", "Done"), Cell("Roof", "Done")]),
+            ]));
+        }
+
+        if (path == "/v2/me/progress")
+        {
+            return Json(new HomeBuild.Web.Api.MyProgress(
+            [
+                new(Guid.Parse("0198a000-0000-7000-a000-000000000001"), PlotOne, "P1", "Riverside", "Pending", DateTimeOffset.UtcNow.AddDays(7),
+                    new HomeBuild.Web.Api.BuyerProgress("Frame", 1, 3, "Roof")),
+            ]));
+        }
+
         if (path == "/v2/me")
         {
             // Like the API: no bearer token, no user.
@@ -93,6 +112,9 @@ internal sealed class FakeCatalogueApi : HttpMessageHandler
 
         return new HttpResponseMessage(HttpStatusCode.NotFound);
     }
+
+    private static HomeBuild.Web.Api.BoardCell Cell(string milestone, string status) =>
+        new(milestone, status, status == "Done" ? new DateOnly(2026, 7, 1) : null, "Ouse Timber Frames", status == "InProgress" ? "Awaiting inspection sign-off" : "", status == "InProgress" ? 2 : 0);
 
     public static HttpResponseMessage Json<T>(T body, HttpStatusCode status = HttpStatusCode.OK) => new(status) { Content = JsonContent.Create(body) };
 

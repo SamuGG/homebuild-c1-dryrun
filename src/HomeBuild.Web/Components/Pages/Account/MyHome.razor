@@ -2,24 +2,48 @@
 @attribute [Authorize]
 @inject HomeApiClient Api
 
-@* Static SSR behind sign-in: the authorization middleware challenges before this renders, so a signed-out
-   visitor is sent to Cognito. The API call carries the user's token, attached on the server. *@
+@* Static SSR behind sign-in: no circuit. The buyer DTO (GET /v2/me/progress) has only the buyer's own homes and a
+   simplified progress; staff-only fields never reach this server, let alone the browser. *@
 <PageTitle>My home · HomeBuild</PageTitle>
 
 <h1 class="mb-6 text-3xl font-bold">My home</h1>
 
 @if (me is not null)
 {
-    <Card Title="Your account">
-        <dl data-testid="me" class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2">
-            <dt class="font-semibold">Signed in as</dt>
-            <dd>@user?.Identity?.Name</dd>
-            <dt class="font-semibold">Roles</dt>
-            <dd>@string.Join(", ", me.Roles)</dd>
-            <dt class="font-semibold">Builder</dt>
-            <dd>@(me.TenantId?.ToString() ?? "none")</dd>
-        </dl>
-    </Card>
+    <p class="mb-6">Signed in as <strong>@user?.Identity?.Name</strong> · @string.Join(", ", me.Roles)</p>
+}
+
+@if (progress is not null)
+{
+    <h2 class="mb-3 text-xl font-semibold">Your homes</h2>
+    @if (progress.Homes.Count == 0)
+    {
+        <p data-testid="no-homes">You have no reservations yet. <a class="@Styles.Link" href="developments">Browse the developments</a>.</p>
+    }
+    else
+    {
+        <ul class="grid gap-4" data-testid="homes">
+            @foreach (var home in progress.Homes)
+            {
+                <li>
+                    <Card Title="@($"Plot {home.PlotNumber}, {home.DevelopmentName}")">
+                        <p><Badge Text="@home.ReservationState" Variant="BadgeVariant.Success" /></p>
+                        <p class="mt-3">
+                            <label for="progress-@home.ReservationId" class="font-semibold">Build progress: @home.Progress.Stage</label>
+                            <progress id="progress-@home.ReservationId" class="block w-full max-w-md" value="@home.Progress.StepsDone" max="@home.Progress.StepsTotal">
+                                @home.Progress.StepsDone of @home.Progress.StepsTotal steps
+                            </progress>
+                            <span class="text-sm">@home.Progress.StepsDone of @home.Progress.StepsTotal steps done@(home.Progress.NextStep is { } next ? $"; next: {next}" : "")</span>
+                        </p>
+                        <p class="mt-3"><a class="@Styles.Link" href="my-home/reservations/@home.ReservationId">Reservation details</a></p>
+                    </Card>
+                </li>
+            }
+        </ul>
+    }
+
+    <h2 class="mb-3 mt-8 text-xl font-semibold">Documents</h2>
+    <p data-testid="documents">Your contract, warranty and floor plans will appear here.</p>
 }
 
 @code {
@@ -28,10 +52,12 @@
 
     private System.Security.Claims.ClaimsPrincipal? user;
     private CurrentUser? me;
+    private MyProgress? progress;
 
     protected override async Task OnInitializedAsync()
     {
         user = AuthenticationState is null ? null : (await AuthenticationState).User;
         me = await Api.GetMeAsync();
+        progress = user!.IsInRole("buyer") ? await Api.GetMyProgressAsync() : new MyProgress([]);
     }
 }
