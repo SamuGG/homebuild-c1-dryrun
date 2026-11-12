@@ -1,0 +1,43 @@
+@page "/my-home/reservations/{ReservationId:guid}"
+@attribute [Authorize]
+@inject HomeApiClient Api
+@inject CatalogueClient Catalogue
+@inject NavigationManager Navigation
+
+@if (reservation is not null)
+{
+    <PageTitle>Your reservation · HomeBuild</PageTitle>
+    <p class="mb-2"><a class="@Styles.Link" href="my-home">My home</a></p>
+    <h1 class="mb-6 text-3xl font-bold">Your reservation</h1>
+    <Card Title="@(unit is null ? "Your home" : $"Plot {unit.PlotNumber}")" data-testid="reservation">
+        <dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2">
+            <dt class="font-semibold">Status</dt>
+            <dd><Badge Text="@reservation.State" Variant="BadgeVariant.Success" /></dd>
+            <dt class="font-semibold">Deposit</dt>
+            <dd><PriceTag Amount="reservation.Deposit" Currency="@reservation.Currency" /></dd>
+            <dt class="font-semibold">Held until</dt>
+            <dd><time datetime="@reservation.ExpiresAt.ToString("O")">@reservation.ExpiresAt.ToString("d MMMM yyyy, HH:mm", System.Globalization.CultureInfo.GetCultureInfo("en-GB")) UTC</time></dd>
+        </dl>
+        <p class="mt-4"><a class="@Styles.Link" href="units/@reservation.UnitId">See the home</a></p>
+    </Card>
+}
+
+@code {
+    [Parameter]
+    public Guid ReservationId { get; set; }
+
+    private Reservation? reservation;
+    private Unit? unit;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        reservation = await Api.GetReservationAsync(ReservationId);
+        if (reservation is null)
+        {
+            Navigation.NotFound();
+            return;
+        }
+
+        unit = await Catalogue.GetUnitAsync(reservation.UnitId);
+    }
+}

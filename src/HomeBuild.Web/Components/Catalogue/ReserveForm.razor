@@ -1,0 +1,68 @@
+@using System.ComponentModel.DataAnnotations
+@inject HomeApiClient Api
+@inject NavigationManager Navigation
+
+@* Static SSR form with enhanced form handling: Blazor posts it with fetch and patches the page, so no full reload.
+   DataAnnotations give fast feedback; the API stays the authority, and its ProblemDetails show on the same fields. *@
+<Card Title="Reserve this home" HeadingLevel="2" class="mt-6">
+    <EditForm Model="Form" FormName="reserve" OnValidSubmit="ReserveAsync" Enhance class="grid max-w-md gap-4" data-testid="reserve-form">
+        <DataAnnotationsValidator />
+        <ProblemDetailsValidator @ref="problems" />
+        <ValidationSummary class="text-danger-600" role="alert" />
+
+        <div>
+            <label for="deposit" class="block font-semibold">Deposit (£)</label>
+            <InputNumber id="deposit" @bind-Value="Form!.Deposit" class="@InputClass" aria-describedby="deposit-help" />
+            <p id="deposit-help" class="text-sm">The minimum depends on the development.</p>
+            <ValidationMessage For="() => Form!.Deposit" />
+        </div>
+
+        <div class="flex items-center gap-2">
+            <InputCheckbox id="terms" @bind-Value="Form!.AcceptTerms" class="@Styles.FocusRing" />
+            <label for="terms">I accept the reservation terms</label>
+        </div>
+        <ValidationMessage For="() => Form!.AcceptTerms" />
+
+        <div><Button Type="submit">Reserve</Button></div>
+    </EditForm>
+</Card>
+
+@code {
+    private const string InputClass = "mt-1 block w-full rounded-card border border-brand-700 bg-white p-2 " + Styles.FocusRing;
+    private ProblemDetailsValidator? problems;
+
+    [Parameter, EditorRequired]
+    public Guid UnitId { get; set; }
+
+    [Parameter]
+    public string Currency { get; set; } = "GBP";
+
+    [SupplyParameterFromForm(FormName = "reserve")]
+    private ReservationModel? Form { get; set; }
+
+    protected override void OnInitialized() => Form ??= new();
+
+    private async Task ReserveAsync()
+    {
+        var result = await Api.ReserveAsync(UnitId, Form!.Deposit!.Value, Currency);
+        if (result.Succeeded)
+        {
+            // Post-redirect-get: the browser lands on a GET, so refreshing does not post again.
+            Navigation.NavigateTo($"my-home/reservations/{result.Value}");
+            return;
+        }
+
+        // 400: field errors. 422: the deposit is outside the allowed range. 409: the unit is no longer available.
+        problems!.Show(result.Problem!, result.Problem!.Status == StatusCodes.Status422UnprocessableEntity ? nameof(ReservationModel.Deposit) : null);
+    }
+
+    public sealed class ReservationModel
+    {
+        [Required(ErrorMessage = "Enter a deposit.")]
+        [Range(1, 100_000_000, ErrorMessage = "The deposit must be between £1 and £100,000,000.")]
+        public decimal? Deposit { get; set; }
+
+        [Range(typeof(bool), "true", "true", ErrorMessage = "Accept the reservation terms to reserve.")]
+        public bool AcceptTerms { get; set; }
+    }
+}

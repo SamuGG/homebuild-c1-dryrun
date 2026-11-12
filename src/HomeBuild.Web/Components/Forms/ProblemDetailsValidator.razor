@@ -1,0 +1,42 @@
+@* Shows an API's ProblemDetails in a form: each "errors" entry next to the field of the same name (case-insensitive,
+   since the API's names may be PascalCase or camelCase), anything else in the ValidationSummary. Field names must
+   match the model's property names; one that does not match goes to the summary rather than vanishing. *@
+@code {
+    private ValidationMessageStore? messages;
+
+    [CascadingParameter]
+    private EditContext? EditContext { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (EditContext is null)
+        {
+            throw new InvalidOperationException($"{nameof(ProblemDetailsValidator)} must be inside an EditForm.");
+        }
+
+        messages = new ValidationMessageStore(EditContext);
+        // A new edit clears the API's verdict for that field.
+        EditContext.OnFieldChanged += (_, e) => messages.Clear(e.FieldIdentifier);
+        EditContext.OnValidationRequested += (_, _) => messages.Clear();
+    }
+
+    /// <summary>Shows the problem. <paramref name="fieldForDetail"/> puts a title/detail-only problem (409, 422) on that field.</summary>
+    public void Show(Api.ApiProblem problem, string? fieldForDetail = null)
+    {
+        var model = EditContext!.Model;
+        var properties = model.GetType().GetProperties().Select(p => p.Name).ToList();
+        foreach (var (key, errors) in problem.Errors ?? new Dictionary<string, string[]>())
+        {
+            var name = properties.FirstOrDefault(p => string.Equals(p, key.Split('.')[^1], StringComparison.OrdinalIgnoreCase));
+            messages!.Add(name is null ? new FieldIdentifier(model, string.Empty) : EditContext.Field(name), errors);
+        }
+
+        if (problem.Errors is not { Count: > 0 })
+        {
+            var text = problem.Detail is { Length: > 0 } detail ? $"{problem.Title}: {detail}" : problem.Title ?? "Something went wrong.";
+            messages!.Add(fieldForDetail is null ? new FieldIdentifier(model, string.Empty) : EditContext.Field(fieldForDetail), text);
+        }
+
+        EditContext.NotifyValidationStateChanged();
+    }
+}

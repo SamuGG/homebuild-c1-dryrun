@@ -9,6 +9,24 @@
     <p class="mb-2"><a class="@Styles.Link" href="developments/@development.Id">@development.Name</a></p>
     <h1 class="mb-6 text-3xl font-bold">Plot @unit.PlotNumber</h1>
     <UnitFacts Unit="unit" Development="development" />
+
+    <AuthorizeView Roles="buyer">
+        <Authorized>
+            @if (unit.Status == "Available")
+            {
+                <ReserveForm UnitId="unit.Id" Currency="@unit.Price.Currency" />
+            }
+        </Authorized>
+        <NotAuthorized>
+            @if (context.User.Identity?.IsAuthenticated != true && unit.Status == "Available")
+            {
+                <p class="mt-6"><a class="@Styles.Link" data-enhance-nav="false" href="@($"account/login?returnUrl={Uri.EscapeDataString($"/units/{unit.Id}")}")">Sign in to reserve this home</a></p>
+            }
+        </NotAuthorized>
+    </AuthorizeView>
+    <AuthorizeView Roles="admin">
+        <p class="mt-6"><a class="@Styles.Link" href="staff/units/@unit.Id/edit">Edit this unit</a></p>
+    </AuthorizeView>
 }
 
 @code {

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using HomeBuild.Api.Http;
 using HomeBuild.Api.Modules.Catalogue.CreateDevelopment;
 using HomeBuild.Api.Modules.Catalogue.EditDevelopment;
+using HomeBuild.Api.Modules.Catalogue.EditUnit;
 using HomeBuild.Api.Modules.Catalogue.GetDevelopment;
 using HomeBuild.Api.Modules.Catalogue.GetDevelopmentPage;
 using HomeBuild.Api.Modules.Catalogue.GetUnit;
@@ -60,6 +61,7 @@ public static class CatalogueModule
         signedIn.MapGetDevelopmentPage();
         signedIn.MapCreateDevelopment();
         signedIn.MapEditDevelopment();
+        signedIn.MapEditUnit();
         return endpoints;
     }
 }

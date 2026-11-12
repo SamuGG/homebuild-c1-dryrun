@@ -1,0 +1,94 @@
+@page "/staff/units/{UnitId:guid}/edit"
+@attribute [Authorize(Roles = "admin")]
+@using System.ComponentModel.DataAnnotations
+@inject CatalogueClient Catalogue
+@inject HomeApiClient Api
+@inject NavigationManager Navigation
+
+@if (unit is not null)
+{
+    <PageTitle>Edit plot @unit.PlotNumber · HomeBuild</PageTitle>
+    <p class="mb-2"><a class="@Styles.Link" href="units/@unit.Id">Back to the unit</a></p>
+    <h1 class="mb-6 text-3xl font-bold">Edit plot @unit.PlotNumber</h1>
+
+    @if (Saved)
+    {
+        <p role="status" class="mb-4 rounded-card bg-brand-100 p-3" data-testid="saved">Saved.</p>
+    }
+
+    <EditForm Model="Form" FormName="edit-unit" OnValidSubmit="SaveAsync" Enhance class="grid max-w-md gap-4" data-testid="edit-unit-form">
+        <DataAnnotationsValidator />
+        <ProblemDetailsValidator @ref="problems" />
+        <ValidationSummary class="text-danger-600" role="alert" />
+
+        <div>
+            <label for="price" class="block font-semibold">Price (£)</label>
+            <InputNumber id="price" @bind-Value="Form!.Price" class="@InputClass" />
+            <ValidationMessage For="() => Form!.Price" />
+        </div>
+
+        <div>
+            <label for="description" class="block font-semibold">Description</label>
+            <InputTextArea id="description" @bind-Value="Form!.Description" rows="4" class="@InputClass" />
+            <ValidationMessage For="() => Form!.Description" />
+        </div>
+
+        <div>
+            <span class="block font-semibold">Status</span>
+            <Badge Text="@unit.Status" Variant="Badge.ForUnitStatus(unit.Status)" />
+            <p class="text-sm">Status follows the unit's reservations, so it is not edited here.</p>
+        </div>
+
+        <div><Button Type="submit">Save</Button></div>
+    </EditForm>
+}
+
+@code {
+    private const string InputClass = "mt-1 block w-full rounded-card border border-brand-700 bg-white p-2 " + Styles.FocusRing;
+    private ProblemDetailsValidator? problems;
+    private Unit? unit;
+
+    [Parameter]
+    public Guid UnitId { get; set; }
+
+    [SupplyParameterFromQuery]
+    public bool Saved { get; set; }
+
+    [SupplyParameterFromForm(FormName = "edit-unit")]
+    private UnitModel? Form { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        unit = await Catalogue.GetUnitAsync(UnitId);
+        if (unit is null)
+        {
+            Navigation.NotFound();
+            return;
+        }
+
+        // On GET the form starts from the unit; on POST it holds what was submitted.
+        Form ??= new() { Price = unit.Price.Amount, Description = unit.Description };
+    }
+
+    private async Task SaveAsync()
+    {
+        var result = await Api.EditUnitAsync(UnitId, Form!.Price!.Value, Form.Description ?? "");
+        if (result.Succeeded)
+        {
+            Navigation.NavigateTo($"staff/units/{UnitId}/edit?saved=true");
+            return;
+        }
+
+        problems!.Show(result.Problem!);
+    }
+
+    public sealed class UnitModel
+    {
+        [Required(ErrorMessage = "Enter a price.")]
+        [Range(1, 100_000_000, ErrorMessage = "The price must be between £1 and £100,000,000.")]
+        public decimal? Price { get; set; }
+
+        [StringLength(2000, ErrorMessage = "The description can be at most 2,000 characters.")]
+        public string? Description { get; set; }
+    }
+}

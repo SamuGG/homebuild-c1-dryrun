@@ -9,7 +9,7 @@ namespace HomeBuild.Api.Modules.Catalogue.GetUnit;
 internal sealed record UnitResponse(Guid Id, Guid DevelopmentId, string PlotNumber, decimal Price, string Currency, string Status);
 
 /// <summary>v2 shape: price as an object.</summary>
-internal sealed record UnitResponseV2(Guid Id, Guid DevelopmentId, string PlotNumber, PriceResponse Price, string Status);
+internal sealed record UnitResponseV2(Guid Id, Guid DevelopmentId, string PlotNumber, PriceResponse Price, string Status, string Description);
 
 internal sealed record PriceResponse(decimal Amount, string Currency);
 
@@ -39,7 +39,8 @@ internal static class GetUnitEndpoint
     private static async Task<Results<Ok<UnitResponseV2>, NotFound>> HandleV2(
         UnitId unitId, ICatalogueStore store, IUnitAvailability availability, CancellationToken cancellationToken) =>
         await FindAsync(unitId, store, availability, cancellationToken) is var (u, status) && u is not null
-            ? TypedResults.Ok(new UnitResponseV2(u.Id.Value, u.DevelopmentId.Value, u.PlotNumber, new PriceResponse(u.Price.Amount, u.Price.Currency), status.ToString()))
+            ? TypedResults.Ok(new UnitResponseV2(u.Id.Value, u.DevelopmentId.Value, u.PlotNumber, new PriceResponse(u.Price.Amount, u.Price.Currency), status.ToString(),
+                await store.DescriptionOfAsync(unitId, cancellationToken)))
             : TypedResults.NotFound();
 
     private static async Task<(Unit? Unit, UnitStatus Status)> FindAsync(

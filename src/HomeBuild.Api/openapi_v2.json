@@ -356,6 +356,61 @@
             "description": "Not Found"
           }
         }
+      },
+      "put": {
+        "tags": [
+          "Catalogue"
+        ],
+        "summary": "Edit a unit's price and description (admin, v2)",
+        "operationId": "EditUnitV2",
+        "parameters": [
+          {
+            "name": "unitId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditUnitRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
       }
     },
     "/v2/developments/{developmentId}/page": {
@@ -898,6 +953,30 @@
           }
         }
       },
+      "EditUnitRequest": {
+        "required": [
+          "price",
+          "description"
+        ],
+        "type": "object",
+        "properties": {
+          "price": {
+            "maximum": 100000000,
+            "minimum": 1,
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "description": {
+            "maxLength": 2000,
+            "minLength": 0,
+            "type": "string"
+          }
+        }
+      },
       "HttpValidationProblemDetails": {
         "type": "object",
         "properties": {
@@ -1181,7 +1260,8 @@
           "developmentId",
           "plotNumber",
           "price",
-          "status"
+          "status",
+          "description"
         ],
         "type": "object",
         "properties": {
@@ -1200,6 +1280,9 @@
             "$ref": "#/components/schemas/PriceResponse"
           },
           "status": {
+            "type": "string"
+          },
+          "description": {
             "type": "string"
           }
         }

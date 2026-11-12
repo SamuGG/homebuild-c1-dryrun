@@ -8,6 +8,7 @@ public sealed class EndpointTests(PostgresFixture database) : IAsyncLifetime
 {
     internal const string RiversidePlot1 = "0198a000-0000-7000-8001-000000000001";
     internal const string RiversidePlot2 = "0198a000-0000-7000-8001-000000000002";
+    internal const string RiversidePlot3 = "0198a000-0000-7000-8001-000000000003";
 
     private ApiFactory _factory = null!;
     private HttpClient _client = null!;
