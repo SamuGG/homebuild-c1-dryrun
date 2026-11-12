@@ -1,0 +1,30 @@
+meta {
+  name: Setup victim reservation (buyer 2)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/units/{{riversidePlot2}}/reservations
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{buyer2Token}}
+}
+
+body:json {
+  {
+    "deposit": 5000,
+    "currency": "GBP"
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+script:post-response {
+  bru.setVar("victimReservation", res.headers.location);
+}

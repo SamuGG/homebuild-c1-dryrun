@@ -40,6 +40,7 @@ internal sealed class AccountsDbContext(DbContextOptions<AccountsDbContext> opti
 
         // The demo buyer that the Bruno collection reserves for (C2's fixed data belongs to the demo tenant).
         context.TenantMemberships.Add(new TenantMembership(SeedData.DemoBuyer, SeedData.DemoTenant, ["buyer"]));
+        context.TenantMemberships.Add(new TenantMembership(SeedData.DemoBuyer2, SeedData.DemoTenant, ["buyer"]));
         await context.SaveChangesAsync(cancellationToken);
     }
 }

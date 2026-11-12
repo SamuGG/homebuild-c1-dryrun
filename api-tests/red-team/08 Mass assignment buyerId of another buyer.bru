@@ -1,0 +1,23 @@
+meta {
+  name: Mass assignment buyerId of another buyer
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/units/{{riversidePlot3}}/reservations
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "buyerId": "22222222-2222-2222-2222-222222222222",
+    "deposit": 5000,
+    "currency": "GBP"
+  }
+}
+
+assert {
+  res.status: eq 403
+}
