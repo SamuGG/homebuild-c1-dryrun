@@ -41,6 +41,16 @@
 
         <div><Button Type="submit">Save</Button></div>
     </EditForm>
+
+    <h2 class="mb-3 mt-8 text-xl font-semibold">Floor plan</h2>
+    @* Uploaded by the browser straight to S3 (wwwroot/js/floor-plan-upload.js); this server never sees the file. *@
+    <floor-plan-upload class="grid max-w-md gap-3" data-ticket="staff/units/@UnitId/floor-plan/ticket" data-complete="staff/units/@UnitId/floor-plan/complete">
+        <AntiforgeryToken />
+        <label for="floor-plan" class="block font-semibold">PDF, up to 10 MB</label>
+        <input id="floor-plan" type="file" accept="application/pdf" class="@Styles.FocusRing" />
+        <div><Button Variant="ButtonVariant.Secondary">Upload floor plan</Button></div>
+        <p role="status" aria-live="polite" data-testid="floor-plan-status"></p>
+    </floor-plan-upload>
 }
 
 @code {

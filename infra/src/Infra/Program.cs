@@ -20,4 +20,7 @@ var identity = new IdentityStack(app, "HomeBuild-Identity", new StackProps { Env
     domainPrefix: app.Node.TryGetContext("domainPrefix") as string ?? "homebuild-dryrun-dev");
 Tags.Of(identity).Add("lab", "c4-lab2");
 
+var storage = new StorageStack(app, "HomeBuild-Storage", new StackProps { Env = env }, webOrigins: ["http://localhost:5266"]);
+Tags.Of(storage).Add("lab", "c5-lab7");
+
 app.Synth();

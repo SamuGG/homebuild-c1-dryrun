@@ -4,6 +4,8 @@ using HomeBuild.Api.Http;
 using HomeBuild.Api.Modules.Catalogue.CreateDevelopment;
 using HomeBuild.Api.Modules.Catalogue.EditDevelopment;
 using HomeBuild.Api.Modules.Catalogue.EditUnit;
+using HomeBuild.Api.Modules.Catalogue.StartFloorPlanUpload;
+using HomeBuild.Api.Modules.Catalogue.CompleteFloorPlanUpload;
 using HomeBuild.Api.Modules.Catalogue.GetDevelopment;
 using HomeBuild.Api.Modules.Catalogue.GetDevelopmentPage;
 using HomeBuild.Api.Modules.Catalogue.GetUnit;
@@ -30,6 +32,9 @@ public static class CatalogueModule
         // Singleton: the cursor protector is stateless; Data Protection keeps its own key ring.
         services.AddDataProtection();
         services.AddSingleton<UnitsCursor>();
+        // Singleton: one S3 client (and its assumed-role credentials, refreshed by the SDK) for the app's lifetime.
+        services.AddOptions<StorageOptions>().BindConfiguration(StorageOptions.Section);
+        services.AddSingleton<FloorPlanStorage>();
         return services;
     }
 
@@ -62,6 +67,8 @@ public static class CatalogueModule
         signedIn.MapCreateDevelopment();
         signedIn.MapEditDevelopment();
         signedIn.MapEditUnit();
+        signedIn.MapStartFloorPlanUpload();
+        signedIn.MapCompleteFloorPlanUpload();
         return endpoints;
     }
 }
