@@ -2,6 +2,17 @@
   "version": 2,
   "dependencies": {
     "net11.0": {
+      "Amazon.Extensions.Configuration.SystemsManager": {
+        "type": "Direct",
+        "requested": "[7.1.1, )",
+        "resolved": "7.1.1",
+        "contentHash": "y1VtK5R/9MX0tZtQxAZUYCJIGobMz2GriIeABklz2s2gd2rD7CizO07rrDSVrY7dKnHKH70lSnUkecn8VV0jTg==",
+        "dependencies": {
+          "AWSSDK.AppConfigData": "4.0.2.18",
+          "AWSSDK.Extensions.NETCore.Setup": "4.0.3.25",
+          "AWSSDK.SimpleSystemsManagement": "4.0.7.3"
+        }
+      },
       "Asp.Versioning.Http": {
         "type": "Direct",
         "requested": "[10.2.3, )",
@@ -112,6 +123,35 @@
         "contentHash": "fMzUraYZOAobKQn2PffrgPsULbCWFeWroYRYndPasxPsiQl1+i8x5qYRuMYZAbzDrBnymPUMBxT2gZG2PwbkcQ==",
         "dependencies": {
           "Asp.Versioning.Http": "10.2.1"
+        }
+      },
+      "AWSSDK.AppConfigData": {
+        "type": "Transitive",
+        "resolved": "4.0.2.18",
+        "contentHash": "56JewFq6mYnic8WLC/u4Ny7p4q+LnE4mqlSFetuDTjic4LLTbOQJkygj5WnydwREhb7eClh/Txne7SDy41p1jA==",
+        "dependencies": {
+          "AWSSDK.Core": "[4.0.3.17, 5.0.0)"
+        }
+      },
+      "AWSSDK.Core": {
+        "type": "Transitive",
+        "resolved": "4.0.3.17",
+        "contentHash": "Ab24kVquQ8kvuQKNe5MK/SvaXR4uoxPkAlTPALDEImaHcwsBg+UWfRVcNzLEx4dRR2y1mDFFh+zZ9TVMXGY6Jg=="
+      },
+      "AWSSDK.Extensions.NETCore.Setup": {
+        "type": "Transitive",
+        "resolved": "4.0.3.25",
+        "contentHash": "VIuOwVg1SQsBcIsJk0scmV8iyYRy4zV06JuJl4WEFBHHjluMOLI9U1IVoTzhL6DYE0oZHy/8/WePFzgdCC6kmQ==",
+        "dependencies": {
+          "AWSSDK.Core": "4.0.3.17"
+        }
+      },
+      "AWSSDK.SimpleSystemsManagement": {
+        "type": "Transitive",
+        "resolved": "4.0.7.3",
+        "contentHash": "wEaAauWCBQc/sPdNYgwDC+WPwgRuDHYWRzOEOdo4UktTi84hI31LqMuDLasEI/UVy/N9gJOS5v8XGqx1wUJCzw==",
+        "dependencies": {
+          "AWSSDK.Core": "[4.0.3.17, 5.0.0)"
         }
       },
       "Humanizer.Core": {
