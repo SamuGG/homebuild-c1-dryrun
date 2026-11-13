@@ -12,6 +12,8 @@ internal sealed class ReservationIdConverter() : ValueConverter<ReservationId, G
 
 internal sealed class BuyerIdConverter() : ValueConverter<BuyerId, Guid>(id => id.Value, value => new BuyerId(value));
 
+internal sealed class DiaryEntryIdConverter() : ValueConverter<DiaryEntryId, Guid>(id => id.Value, value => new DiaryEntryId(value));
+
 /// <summary>Stores the closed <see cref="ReservationState"/> hierarchy as "Kind|timestamp" in one text column.</summary>
 internal sealed class ReservationStateConverter() : ValueConverter<ReservationState, string>(
     state => ToText(state),
@@ -48,5 +50,6 @@ internal static class ModelConventions
         builder.Properties<DevelopmentId>().HaveConversion<DevelopmentIdConverter>();
         builder.Properties<ReservationId>().HaveConversion<ReservationIdConverter>();
         builder.Properties<BuyerId>().HaveConversion<BuyerIdConverter>();
+        builder.Properties<DiaryEntryId>().HaveConversion<DiaryEntryIdConverter>();
     }
 }

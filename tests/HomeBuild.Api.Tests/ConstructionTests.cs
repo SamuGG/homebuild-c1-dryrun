@@ -51,7 +51,7 @@ public sealed class ConstructionTests(PostgresFixture database) : IAsyncLifetime
         var home = Assert.Single(JsonElement.Parse(body).GetProperty("homes").EnumerateArray());
         Assert.Equal("P1", home.GetProperty("plotNumber").GetString());
         Assert.Equal("Riverside", home.GetProperty("developmentName").GetString());
-        Assert.Equal(7, home.GetProperty("progress").GetProperty("stepsTotal").GetInt32());
+        Assert.Equal(8, home.GetProperty("progress").GetProperty("stepsTotal").GetInt32());
         // Structure: only the buyer fields, at every level.
         var names = PropertyNames(JsonElement.Parse(body)).ToHashSet();
         Assert.Subset(BuyerFields, names);
@@ -84,7 +84,7 @@ public sealed class ConstructionTests(PostgresFixture database) : IAsyncLifetime
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("Riverside", board.GetProperty("developmentName").GetString());
-        Assert.Equal(7, board.GetProperty("milestones").GetArrayLength());
+        Assert.Equal(8, board.GetProperty("milestones").GetArrayLength());
         var rows = board.GetProperty("rows").EnumerateArray().ToList();
         Assert.Equal(["P1", "P2", "P3"], rows.Select(r => r.GetProperty("plotNumber").GetString()));
         var cell = rows[0].GetProperty("cells")[0];

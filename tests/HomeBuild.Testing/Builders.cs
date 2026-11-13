@@ -21,6 +21,10 @@ public static class Builders
 
     public static PolicyBuilder APolicy() => new();
 
+    public static BuildProgressBuilder ABuildProgress() => new();
+
+    public static DiaryEntryBuilder ADiaryEntry() => new();
+
     /// <summary>An amount in <see cref="DefaultCurrency"/>.</summary>
     public static Money Amount(decimal value) => new(value, DefaultCurrency);
 }
@@ -185,4 +189,74 @@ public sealed class PolicyBuilder
     }
 
     public ReservationPolicy Build() => new(hold, minimumDeposit);
+}
+
+public sealed class BuildProgressBuilder
+{
+    /// <summary>The day the builder's builds start; milestone N is planned 21 × (N + 1) days later.</summary>
+    public static readonly DateOnly StartOn = new(2026, 6, 1);
+
+    private UnitId unitId = UnitId.New();
+    private DevelopmentId developmentId = DevelopmentId.New();
+    private int completed;
+
+    public BuildProgressBuilder ForUnit(UnitId value)
+    {
+        unitId = value;
+        return this;
+    }
+
+    public BuildProgressBuilder InDevelopment(DevelopmentId value)
+    {
+        developmentId = value;
+        return this;
+    }
+
+    /// <summary>The first <paramref name="count"/> milestones are completed, each on its planned date.</summary>
+    public BuildProgressBuilder CompletedThrough(int count)
+    {
+        completed = count;
+        return this;
+    }
+
+    public BuildProgress Build()
+    {
+        var progress = BuildProgress.Start(unitId, developmentId, StartOn);
+        foreach (var milestone in BuildProgress.Order.Take(completed))
+        {
+            if (progress.Complete(milestone, "site-manager", progress[milestone].PlannedOn).Value is not MilestoneDone)
+            {
+                throw new InvalidOperationException($"The builder could not complete {milestone}.");
+            }
+        }
+
+        return progress;
+    }
+}
+
+public sealed class DiaryEntryBuilder
+{
+    private UnitId unitId = UnitId.New();
+    private DateOnly writtenOn = BuildProgressBuilder.StartOn;
+    private string text = "Site tidy; scaffold inspected.";
+
+    public DiaryEntryBuilder ForUnit(UnitId value)
+    {
+        unitId = value;
+        return this;
+    }
+
+    public DiaryEntryBuilder WrittenOn(DateOnly value)
+    {
+        writtenOn = value;
+        return this;
+    }
+
+    public DiaryEntryBuilder Saying(string value)
+    {
+        text = value;
+        return this;
+    }
+
+    public DiaryEntry Build() => new(DiaryEntryId.New(), unitId, writtenOn, text);
 }

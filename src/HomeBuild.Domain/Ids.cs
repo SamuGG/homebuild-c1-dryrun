@@ -11,3 +11,6 @@ public readonly partial record struct ReservationId;
 
 [StronglyTypedId]
 public readonly partial record struct BuyerId;
+
+[StronglyTypedId]
+public readonly partial record struct DiaryEntryId;

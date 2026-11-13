@@ -58,7 +58,7 @@ jobs:
       - run: dotnet tool restore
       - name: Build migration bundles and idempotent scripts
         run: |
-          for context in Catalogue Sales Accounts; do
+          for context in Catalogue Sales Accounts Construction; do
             name=$(echo "$context" | tr '[:upper:]' '[:lower:]')
             dotnet ef migrations bundle --project src/HomeBuild.Api --context ${context}DbContext --configuration Release \
               --self-contained --target-runtime linux-x64 --output artifacts/migrate-$name --force
@@ -68,7 +68,7 @@ jobs:
       - name: Apply each bundle twice to the empty CI database
         run: |
           for run in 1 2; do
-            for name in catalogue sales accounts; do
+            for name in catalogue sales accounts construction; do
               echo "::group::run $run: migrate-$name"
               ./artifacts/migrate-$name --connection "$MIGRATIONS_CONNECTION"
               echo "::endgroup::"

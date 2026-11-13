@@ -53,7 +53,7 @@ public sealed class PostgresFixture : IAsyncLifetime
             """
             SELECT string_agg(format('%I.%I', schemaname, tablename), ', ' ORDER BY schemaname, tablename)
             FROM pg_tables
-            WHERE schemaname IN ('catalogue', 'sales', 'accounts') AND tablename <> '__ef_migrations_history'
+            WHERE schemaname IN ('catalogue', 'sales', 'accounts', 'construction') AND tablename <> '__ef_migrations_history'
             """, tables);
         _truncate = $"TRUNCATE {await list.ExecuteScalarAsync()} RESTART IDENTITY CASCADE";
         await SeedAsync(_shared);
