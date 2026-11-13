@@ -24,7 +24,8 @@ internal static class TenantModel
     /// <summary>Stamps new rows with the current tenant; a write with no tenant is a programming error.</summary>
     public static void StampTenant(this ChangeTracker changeTracker, ITenantContext tenant)
     {
-        foreach (var entry in changeTracker.Entries().Where(e => e.State == EntityState.Added))
+        // Owned types (C7's milestones, stored in their owner's row) have no tenant of their own.
+        foreach (var entry in changeTracker.Entries().Where(e => e.State == EntityState.Added && !e.Metadata.IsOwned()))
         {
             var property = entry.Property(TenantId);
             if ((Guid)property.CurrentValue! != Guid.Empty)

@@ -8,15 +8,17 @@ public class BuilderTests
     [Fact]
     public void Builders_cover_every_aggregate()
     {
-        // An aggregate here is a domain class with an identity: a public Id property of a strongly typed ID.
+        // An aggregate here is a domain class with an identity: a public Id property of a strongly typed ID. BuildProgress
+        // (C7) is the exception: one per unit, its identity is the unit's ID, so it has no Id property and is named here.
         var aggregates = typeof(Unit).Assembly.GetExportedTypes()
             .Where(t => t.IsClass && t.GetProperty("Id")?.PropertyType.Name.EndsWith("Id", StringComparison.Ordinal) == true)
             .Select(t => t.Name)
+            .Append(nameof(BuildProgress))
             .Order(StringComparer.Ordinal)
             .ToList();
         var builders = typeof(Builders).Assembly.GetExportedTypes().Select(t => t.Name).ToHashSet();
 
-        Assert.Equal(["Reservation", "Unit"], aggregates);
+        Assert.Equal(["BuildProgress", "DiaryEntry", "Reservation", "Unit"], aggregates);
         Assert.All(aggregates, a => Assert.True(builders.Contains(a + "Builder"), $"No {a}Builder in HomeBuild.Testing."));
     }
 

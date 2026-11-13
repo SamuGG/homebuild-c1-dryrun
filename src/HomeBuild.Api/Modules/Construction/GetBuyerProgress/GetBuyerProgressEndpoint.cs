@@ -1,6 +1,7 @@
 using HomeBuild.Api.Http;
 using HomeBuild.Api.Modules.Catalogue;
 using HomeBuild.Api.Modules.Sales;
+using HomeBuild.Domain;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace HomeBuild.Api.Modules.Construction.GetBuyerProgress;
@@ -28,7 +29,7 @@ internal static class GetBuyerProgressEndpoint
             .RequireAuthorization(Policies.CanReadOwnProgress);
 
     private static async Task<Ok<BuyerProgressResponse>> Handle(
-        HttpContext http, IUnitAvailability sales, ICatalogueQueries catalogue, MilestoneReadModel milestones, CancellationToken cancellationToken)
+        HttpContext http, IUnitAvailability sales, ICatalogueQueries catalogue, BuildProgressReader builds, CancellationToken cancellationToken)
     {
         if (http.User.CallerBuyerId() is not { } buyer)
         {
@@ -37,16 +38,18 @@ internal static class GetBuyerProgressEndpoint
 
         var reservations = await sales.ReservationsOfAsync(buyer, cancellationToken);
         var plots = await catalogue.PlotsAsync([.. reservations.Select(r => r.UnitId).Distinct()], cancellationToken);
+        var progressByUnit = await builds.ForAsync([.. plots.Values.Select(p => (p.UnitId, p.DevelopmentId))], cancellationToken);
         var homes = reservations
             .Where(r => plots.ContainsKey(r.UnitId))
             .Select(r =>
             {
-                var steps = milestones.For(r.UnitId);
-                var done = steps.Count(s => s.Status == MilestoneStatus.Done);
-                var current = steps.FirstOrDefault(s => s.Status != MilestoneStatus.Done);
+                var steps = progressByUnit[r.UnitId].Milestones;
+                var done = steps.Count(s => s.Status == MilestoneStatus.Completed);
+                var current = steps.FirstOrDefault(s => s.Status != MilestoneStatus.Completed);
+                var next = steps.SkipWhile(s => s.Status == MilestoneStatus.Completed).Skip(1).FirstOrDefault();
                 var progress = new BuyerProgress(
-                    current is null ? "Ready to move in" : current.Milestone, done, steps.Count,
-                    steps.SkipWhile(s => s.Status == MilestoneStatus.Done).Skip(1).FirstOrDefault()?.Milestone);
+                    current is null ? "Ready to move in" : BuildProgressReader.DisplayName(current.Milestone), done, steps.Count,
+                    next is null ? null : BuildProgressReader.DisplayName(next.Milestone));
                 var plot = plots[r.UnitId];
                 return new BuyerHome(r.ReservationId.Value, r.UnitId.Value, plot.PlotNumber, plot.DevelopmentName, r.State, r.ExpiresAt, progress);
             })

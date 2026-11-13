@@ -23,7 +23,7 @@ internal static class GetBoardEndpoint
             .RequireAuthorization(Policies.CanViewBuildBoard);
 
     private static async Task<Results<Ok<BoardResponse>, NotFound>> Handle(
-        DevelopmentId developmentId, ICatalogueQueries catalogue, MilestoneReadModel milestones, CancellationToken cancellationToken)
+        DevelopmentId developmentId, ICatalogueQueries catalogue, BuildProgressReader builds, CancellationToken cancellationToken)
     {
         if (await catalogue.PlotsInAsync(developmentId, cancellationToken) is not { } plots)
         {
@@ -31,8 +31,9 @@ internal static class GetBoardEndpoint
         }
 
         var name = plots.Count > 0 ? plots[0].DevelopmentName : "";
-        var rows = plots.Select(p => new BoardRow(p.UnitId.Value, p.PlotNumber, [.. milestones.For(p.UnitId)
-            .Select(m => new BoardCell(m.Milestone, m.Status.ToString(), m.CompletedOn, m.Subcontractor, m.SiteNotes, m.OpenDefects))])).ToList();
-        return TypedResults.Ok(new BoardResponse(developmentId.Value, name, MilestoneReadModel.Milestones, rows));
+        var progress = await builds.ForAsync([.. plots.Select(p => (p.UnitId, p.DevelopmentId))], cancellationToken);
+        var rows = plots.Select(p => new BoardRow(p.UnitId.Value, p.PlotNumber, [.. progress[p.UnitId].Milestones
+            .Select(m => new BoardCell(BuildProgressReader.DisplayName(m.Milestone), BuildProgressReader.BoardStatus(m.Status), m.CompletedOn, m.Subcontractor, m.SiteNotes, m.OpenDefects))])).ToList();
+        return TypedResults.Ok(new BoardResponse(developmentId.Value, name, [.. BuildProgress.Order.Select(BuildProgressReader.DisplayName)], rows));
     }
 }
