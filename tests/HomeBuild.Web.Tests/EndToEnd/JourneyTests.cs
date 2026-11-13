@@ -113,16 +113,23 @@ public sealed class Journeys : IAsyncLifetime, ICollectionFixture<Journeys>
 
     public IBrowser Browser { get; private set; } = null!;
 
+    // Launched only when the journeys run: CI skips them and has no Playwright browser installed.
     public async ValueTask InitializeAsync()
     {
-        playwright = await Playwright.CreateAsync();
-        Browser = await playwright.Chromium.LaunchAsync();
+        if (RealSignInTests.Enabled)
+        {
+            playwright = await Playwright.CreateAsync();
+            Browser = await playwright.Chromium.LaunchAsync();
+        }
     }
 
     public async ValueTask DisposeAsync()
     {
-        await Browser.DisposeAsync();
-        playwright?.Dispose();
+        if (playwright is not null)
+        {
+            await Browser.DisposeAsync();
+            playwright.Dispose();
+        }
     }
 }
 
