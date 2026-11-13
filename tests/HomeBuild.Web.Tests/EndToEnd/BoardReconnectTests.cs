@@ -19,8 +19,7 @@ public sealed class BoardReconnectTests
         var path = $"/staff/developments/{Riverside}/board";
         await using var session = await RealSignInTests.SignedInPageAsync("site-manager.tenant-a@example.com", path);
         var page = session.Page;
-        await page.WaitForFunctionAsync("() => window.Blazor && document.querySelector('#stage')");
-        await page.WaitForTimeoutAsync(1500); // the circuit starts after the prerendered HTML
+        await Assertions.Expect(page.GetByTestId("board-root")).ToHaveAttributeAsync("data-interactive", "true"); // circuit up
 
         // Input in the island: a stage filter and a half-typed plot search.
         await page.Locator("#plot-search").FillAsync("P");

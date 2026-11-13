@@ -80,7 +80,7 @@ public sealed partial class RealSignInTests
     }
 
     // dryrun/test-users.local: email, tenant, sub, password (tab-separated), outside the repository.
-    private static string Password(string email)
+    internal static string Password(string email)
     {
         var path = Environment.GetEnvironmentVariable("HOMEBUILD_TEST_USERS")
             ?? throw new InvalidOperationException("Set HOMEBUILD_TEST_USERS to the test users' password file.");
