@@ -19,7 +19,7 @@ Each layer is here because of the bugs it catches cheaply.
 | Contract | `contracts/openapi.json` (v1) and `contracts/openapi_v2.json`, written by the build and diffed in CI with `git diff --exit-code -- contracts/` | Accidental API changes: a renamed or removed field, a changed status code or type | Under a second | Every PR | 10 s | 0.1 s |
 | Boundary | `tests/HomeBuild.Architecture.Tests` (project references, from the assemblies and the project files) and `ModuleTests` in the integration project (modules inside `HomeBuild.Api`, by reflection) | Architecture erosion: a project depending in the wrong direction (Payments core → adapters, web → database or AWS), a module reaching into another's internals, an endpoint outside a module | Milliseconds | Every PR | 10 s | 10 tests: under a second |
 | API acceptance | Bruno collection in CI against the running API and web app (main collection, red team, web smoke) | Deployed behaviour over HTTP: status codes, headers, attack attempts failing, pages served | Seconds once the app is running | Every PR | 60 s | About 3 s in CI |
-| End-to-end | Playwright (`tests/HomeBuild.Web.Tests/EndToEnd`), against the real stack and Cognito | Whole journeys a user takes in a real browser: sign-in, reservation, the staff board, keyboard access, CORS to S3 | Minutes, a browser, Cognito, flakiness risk | Locally, opt-in (`HOMEBUILD_COGNITO_TESTS=1`); C6 Lab 5 decides CI | 5 min | 4 journeys: about 15 s (C5) |
+| End-to-end | Playwright (`tests/HomeBuild.Web.Tests/EndToEnd`), against the local stack and the real Cognito pool | Whole journeys a user takes in a real browser: catalogue to unit, a buyer reserving and finding it in My Home, staff filtering the board; keyboard access on each page; sign-in, sign-out, reconnect, CORS to S3 | Seconds per journey, but a running stack, a browser and Cognito; the most to maintain | Locally, opt-in (`HOMEBUILD_COGNITO_TESTS=1`); not in CI, which cannot sign in to Cognito | 5 min | 4 journey tests: 3.0–3.1 s per run, 20 runs in a row green |
 
 **Whole PR pipeline budget: 8 minutes.** The last CI run on `main` took 231 s: restore 18 s, build 17 s, tests 35 s, migration bundles 61 s.
 
@@ -85,3 +85,20 @@ To re-run a break: change the line, run the layer's tests, and record what faile
 - **Internal by default.** Only the module's contracts are public: the `TakeDepositPayment` command, the `DepositPaid` and `DepositPaymentFailed` events, and the `IPaymentGateway` and `IPaymentRecords` ports. Rules stay `internal`, and `InternalsVisibleTo` names only `HomeBuild.Payments.Tests`.
 - **References are tested.** `ReferenceTests` compares each production assembly's `GetReferencedAssemblies()` with its allowed list. It also reads each project file, because the assembly lists only references the compiled code uses: a new, still-unused project reference passes the first test and fails the second.
 - **Limit: Catalogue, Sales, Accounts and Construction still share one assembly** (`HomeBuild.Api`). Between them `internal` does not apply, and the compiler does not stop Sales from using a Catalogue internal type. `ModuleTests` (C2's reflection test) catches such a use only when it appears in a signature, not inside a method body. Splitting those modules into projects is the next step if the boundary needs the compiler.
+
+## End-to-end journeys
+
+- **Three journeys** (`JourneyTests`): a visitor opens a unit from the catalogue; a buyer reserves and sees the reservation in My Home; a site manager filters the milestone board. A fourth test closes the component gallery's dialog with Escape (the only dialog; it needs an interactive page).
+- **Sign-in from stored state.** `SignedInState` signs each test user in through the managed login once and saves the browser storage state to the temp folder (`homebuild-e2e-state`, never in the repository). Journeys start from that state with `StorageStatePath`; a state that no longer works is made again. The tokens live in the web app's memory (C5 Lab 4), so a restart of the web app means one fresh sign-in per user.
+- **Keyboard checks** (`Keyboard.CheckTabOrderAsync`): on each journey's main page, every visible focusable element is reached by Tab and shows a visible focus outline.
+- **No fixed waits.** Assertions use Playwright's auto-waiting `Expect(…)`. Interactive islands expose `data-interactive="true"` once their circuit runs, and tests wait for it before typing: text typed into the prerendered page is lost. In the Lab 5 Break, typing with no wait failed every time with the CPU throttled 20×, while the auto-waiting version passed.
+- **Data and limits.** The buyer journey frees its unit (Riverside P2) in the local database before reserving. The API allows 10 reservations a minute per client, so repeated runs must stay under that: 20 runs back to back hit `429` on runs 10 and 11.
+- **Memory.** On a 16 GB machine, run the journeys with only PostgreSQL, the API and the web app running.
+
+## Flaky tests
+
+A flaky test is fixed, never retried. The one planted in C6 Lab 5 (`ReservationHoldTests`) failed in about half the runs, for two reasons:
+- **Test order:** the second test read a reservation the first left in a static field. Seeds 2, 4 and 6 failed every time; 1, 3 and 5 passed.
+- **Time:** it compared the wall clock twice, a few milliseconds apart, at the hold boundary.
+
+Fixed by giving each test its own data on the builders' fixed clock and testing the boundary exactly: 100 runs in a row passed, each in a new random order.

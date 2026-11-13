@@ -7,8 +7,20 @@ namespace HomeBuild.Web.Tests.Ui;
 
 public sealed class MilestoneBoardTests : UiTestContext
 {
-    public MilestoneBoardTests() =>
+    public MilestoneBoardTests()
+    {
         Services.AddSingleton(new HomeApiClient(new HttpClient(new FakeCatalogueApi(), disposeHandler: true) { BaseAddress = new Uri("http://api/v2/") }));
+        // The board reads RendererInfo for its data-interactive marker; here it renders as the interactive island it is.
+        Renderer.SetRendererInfo(new Microsoft.AspNetCore.Components.RendererInfo("Server", isInteractive: true));
+    }
+
+    [Fact]
+    public void Board_marks_itself_interactive_only_when_it_is()
+    {
+        var cut = Render<MilestoneBoard>(p => p.Add(b => b.DevelopmentId, FakeCatalogueApi.Riverside));
+
+        Assert.Equal("true", cut.Find("[data-testid=board-root]").GetAttribute("data-interactive"));
+    }
 
     [Fact]
     public void Board_shows_units_as_rows_and_milestones_as_columns_with_site_detail()

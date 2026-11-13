@@ -4,6 +4,9 @@
    circuit. Board data and the filter inputs are [PersistentState]: the board loads once across prerender and the
    circuit start, and if the circuit is lost and resumed the inputs come back. While the connection is down the
    template's ReconnectModal shows "Rejoining the server…". *@
+@* data-interactive: "false" in the prerendered HTML, "true" once the circuit runs this component. Tests (and anything
+   else) wait for it before typing: input typed into the prerendered page never reaches the component. *@
+<div data-testid="board-root" data-interactive="@(RendererInfo.IsInteractive ? "true" : "false")">
 @if (Data is null)
 {
     <p role="status">Loading the board…</p>
@@ -67,6 +70,7 @@ else
         </DataTable>
     </div>
 }
+</div>
 
 @code {
     private const string Finished = "Finished";
