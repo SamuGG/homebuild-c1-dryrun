@@ -1,11 +1,12 @@
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 
 namespace HomeBuild.Api.Tests;
 
 /// <summary>C5 Lab 5: the staff unit edit form's endpoint, PUT /v2/units/{id}.</summary>
+[Collection(IntegrationDatabase.Name)]
+[AsStaff("admin")]
 public sealed class EditUnitTests(PostgresFixture database) : IAsyncLifetime
 {
     private ApiFactory _factory = null!;
@@ -16,8 +17,7 @@ public sealed class EditUnitTests(PostgresFixture database) : IAsyncLifetime
     public async ValueTask InitializeAsync()
     {
         _factory = await database.CreateApiAsync();
-        _admin = _factory.CreateClient();
-        _admin.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", TestTokens.Access(TestTokens.Users.Staff("admin").ToString(), "admin"));
+        _admin = _factory.CreateClient(); // signed in as admin by [AsStaff("admin")]
     }
 
     public async ValueTask DisposeAsync()

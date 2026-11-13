@@ -6,6 +6,7 @@ using System.Text.Json;
 namespace HomeBuild.Api.Tests;
 
 /// <summary>C5 Lab 6: the staff build board and the buyer's progress come from different endpoints and DTOs.</summary>
+[Collection(IntegrationDatabase.Name)]
 public sealed class ConstructionTests(PostgresFixture database) : IAsyncLifetime
 {
     private const string Riverside = "0198a000-0000-7000-8000-000000000001";

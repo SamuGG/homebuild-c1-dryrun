@@ -1,21 +1,36 @@
 using HomeBuild.Api.Data;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Npgsql;
 using Testcontainers.PostgreSql;
 
-[assembly: AssemblyFixture(typeof(HomeBuild.Api.Tests.PostgresFixture))]
-
 namespace HomeBuild.Api.Tests;
 
-/// <summary>One PostgreSQL 18 container for the test run; every test gets its own freshly migrated database.</summary>
+/// <summary>
+/// The integration tests that use the database: one collection, so they share one <see cref="PostgresFixture"/> and
+/// run one at a time (each test truncates the shared database before it starts).
+/// </summary>
+[CollectionDefinition(Name)]
+public sealed class IntegrationDatabase : ICollectionFixture<PostgresFixture>
+{
+    public const string Name = "Database";
+}
+
+/// <summary>
+/// One PostgreSQL 18 container and one database for the test run (C6 Lab 3). Migrations run once, with the same
+/// module-by-module logic as the migration bundles (<see cref="HomeBuildDatabase.MigrateAsync"/>). Before each test the
+/// data is reset by truncating every module table and re-running the seed, not by recreating the database.
+/// </summary>
 public sealed class PostgresFixture : IAsyncLifetime
 {
-    // Every test has its own database and connection pools, and tests run in parallel: the default
-    // max_connections (100) ran out at about 110 tests ("53300: sorry, too many clients already").
+    // Migration tests still create their own databases, and each ApiFactory has its own connection pool.
     private readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:18")
         .WithCommand("-c", "max_connections=500")
         .Build();
+
+    private string _shared = null!;
+    private string _truncate = null!;
 
     // Throwaway password for the test container's application role.
     private const string AppPassword = "app-test";
@@ -28,7 +43,24 @@ public sealed class PostgresFixture : IAsyncLifetime
         await connection.OpenAsync();
         await using var create = new NpgsqlCommand($"CREATE ROLE homebuild_app LOGIN PASSWORD '{AppPassword}'", connection);
         await create.ExecuteNonQueryAsync();
+
+        // The shared database, migrated once.
+        _shared = await CreateEmptyDatabaseAsync();
+        await HomeBuildDatabase.MigrateAsync(_shared);
+        await using var tables = new NpgsqlConnection(_shared);
+        await tables.OpenAsync();
+        await using var list = new NpgsqlCommand(
+            """
+            SELECT string_agg(format('%I.%I', schemaname, tablename), ', ' ORDER BY schemaname, tablename)
+            FROM pg_tables
+            WHERE schemaname IN ('catalogue', 'sales', 'accounts') AND tablename <> '__ef_migrations_history'
+            """, tables);
+        _truncate = $"TRUNCATE {await list.ExecuteScalarAsync()} RESTART IDENTITY CASCADE";
+        await SeedAsync(_shared);
     }
+
+    /// <summary>The tables the reset truncates (for the log and for tests of the fixture itself).</summary>
+    public string TruncateStatement => _truncate;
 
     public ValueTask DisposeAsync() => _container.DisposeAsync();
 
@@ -48,10 +80,29 @@ public sealed class PostgresFixture : IAsyncLifetime
         return new NpgsqlConnectionStringBuilder(AdminConnectionString) { Database = name }.ToString();
     }
 
-    /// <summary>Creates a database with every module's migrations and seed data applied.</summary>
+    /// <summary>
+    /// The shared database, reset for the calling test: every module table truncated, then the fixed seed data and
+    /// the test users' memberships written again. Tests in the <see cref="IntegrationDatabase"/> run one at a time.
+    /// </summary>
     public async Task<string> CreateDatabaseAsync()
     {
-        var connectionString = await CreateEmptyDatabaseAsync();
+        await using (var connection = new NpgsqlConnection(_shared))
+        {
+            await connection.OpenAsync();
+            await using var truncate = new NpgsqlCommand(_truncate, connection);
+            await truncate.ExecuteNonQueryAsync();
+        }
+
+        await SeedAsync(_shared);
+        return _shared;
+    }
+
+    public async Task<ApiFactory> CreateApiAsync() => new(await CreateDatabaseAsync());
+
+    // The modules' seeding runs inside MigrateAsync (EF Core's UseSeeding) and only fills empty tables, so after a
+    // truncation it restores the fixed data; with nothing pending, MigrateAsync migrates nothing.
+    private static async Task SeedAsync(string connectionString)
+    {
         await HomeBuildDatabase.MigrateAsync(connectionString);
         await using var accounts = HomeBuild.Api.Modules.Accounts.AccountsModule.CreateDbContext(connectionString);
         foreach (var (subject, tenant, roles) in TestTokens.Users.Memberships())
@@ -60,10 +111,7 @@ public sealed class PostgresFixture : IAsyncLifetime
         }
 
         await accounts.SaveChangesAsync();
-        return connectionString;
     }
-
-    public async Task<ApiFactory> CreateApiAsync() => new(await CreateDatabaseAsync());
 
     /// <summary>The connection string the application uses: the non-owner role that row-level security applies to.</summary>
     public static string AppConnectionString(string ownerConnectionString) =>
@@ -91,6 +139,8 @@ public sealed class ApiFactory(string connectionString) : WebApplicationFactory<
         {
             builder.UseSetting(key, value);
         }
+
+        builder.ConfigureTestServices(services => services.AddFakeAuthentication());
     }
 
     protected override void ConfigureClient(HttpClient client)
@@ -98,7 +148,15 @@ public sealed class ApiFactory(string connectionString) : WebApplicationFactory<
         ArgumentNullException.ThrowIfNull(client);
         base.ConfigureClient(client);
         client.DefaultRequestHeaders.Add("X-Tenant-Id", TestTenants.Demo.ToString());
-        // Signed in by default, as a buyer: C2/C3 tests call endpoints that now require a user.
-        client.DefaultRequestHeaders.Authorization = new("Bearer", TestTokens.Access(TestTokens.DefaultBuyer.ToString(), "buyer"));
+        // The user the test asked for with [AsBuyer]/[AsStaff] (fake authentication, no token); otherwise signed in
+        // as the default buyer with a real token from the C4 test issuer, so JWT validation stays covered.
+        if (FakeAuthentication.Requested() is { } user)
+        {
+            client.DefaultRequestHeaders.Add(FakeAuthentication.Header, FakeAuthentication.HeaderValue(user));
+        }
+        else
+        {
+            client.DefaultRequestHeaders.Authorization = new("Bearer", TestTokens.Access(TestTokens.DefaultBuyer.ToString(), "buyer"));
+        }
     }
 }

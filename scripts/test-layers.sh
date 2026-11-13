@@ -6,6 +6,9 @@
 set -uo pipefail
 
 config=${CONFIGURATION:-Release}
+# The integration tests run in a shuffled order from this seed (tests/HomeBuild.Api.Tests/RandomTestOrder.cs):
+# a new one each run, printed below, so a failure that depends on order can be replayed.
+export HOMEBUILD_TEST_SEED=${HOMEBUILD_TEST_SEED:-$(python3 -c 'import random; print(random.randrange(1, 2**31))')}
 summary=${GITHUB_STEP_SUMMARY:-/dev/stdout}
 now() { python3 -c 'import time; print(time.time())'; }
 
@@ -43,7 +46,7 @@ for layer in "${layers[@]}"; do
 done
 
 table() {
-  echo "### Test layers ($config)"
+  echo "### Test layers ($config, order seed $HOMEBUILD_TEST_SEED)"
   echo
   echo "| Layer | Tests | Time | Budget | Result |"
   echo "| --- | --- | --- | --- | --- |"

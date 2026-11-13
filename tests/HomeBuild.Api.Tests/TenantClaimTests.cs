@@ -10,6 +10,7 @@ using Npgsql;
 
 namespace HomeBuild.Api.Tests;
 
+[Collection(IntegrationDatabase.Name)]
 public sealed class TenantClaimTests(PostgresFixture database) : IAsyncLifetime
 {
     private ApiFactory _factory = null!;

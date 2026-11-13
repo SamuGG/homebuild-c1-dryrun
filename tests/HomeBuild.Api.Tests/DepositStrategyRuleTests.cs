@@ -8,6 +8,7 @@ using static HomeBuild.Testing.Builders;
 namespace HomeBuild.Api.Tests;
 
 /// <summary>The minimum deposit per strategy, and the deposit currency rule at the API (docs/testing.md).</summary>
+[Collection(IntegrationDatabase.Name)]
 public sealed class DepositStrategyRuleTests(PostgresFixture database)
 {
     public static TheoryData<string, decimal, decimal> Minimums => new()
