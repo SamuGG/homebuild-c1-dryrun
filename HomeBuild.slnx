@@ -3,6 +3,8 @@
     <Project Path="src/HomeBuild.Api/HomeBuild.Api.csproj" />
     <Project Path="src/HomeBuild.Domain/HomeBuild.Domain.csproj" />
     <Project Path="src/HomeBuild.Generators/HomeBuild.Generators.csproj" />
+    <Project Path="src/HomeBuild.Payments.Core/HomeBuild.Payments.Core.csproj" />
+    <Project Path="src/HomeBuild.Payments.Infrastructure/HomeBuild.Payments.Infrastructure.csproj" />
     <Project Path="src/HomeBuild.Web/HomeBuild.Web.csproj" />
   </Folder>
   <Folder Name="/infra/">
@@ -13,7 +15,9 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/HomeBuild.Api.Tests/HomeBuild.Api.Tests.csproj" />
+    <Project Path="tests/HomeBuild.Architecture.Tests/HomeBuild.Architecture.Tests.csproj" />
     <Project Path="tests/HomeBuild.Domain.Tests/HomeBuild.Domain.Tests.csproj" />
+    <Project Path="tests/HomeBuild.Payments.Tests/HomeBuild.Payments.Tests.csproj" />
     <Project Path="tests/HomeBuild.Testing/HomeBuild.Testing.csproj" />
     <Project Path="tests/HomeBuild.Web.Tests/HomeBuild.Web.Tests.csproj" />
   </Folder>

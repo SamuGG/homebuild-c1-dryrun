@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The Payments module's own tests: the only project its InternalsVisibleTo names. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>HomeBuild.Payments.Tests</RootNamespace>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3.mtp-v2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\HomeBuild.Payments.Core\HomeBuild.Payments.Core.csproj" />
+    <ProjectReference Include="..\HomeBuild.Testing\HomeBuild.Testing.csproj" />
+  </ItemGroup>
+
+</Project>
