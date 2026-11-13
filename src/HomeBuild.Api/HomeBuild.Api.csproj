@@ -2,7 +2,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\HomeBuild.Domain\HomeBuild.Domain.csproj" />
-    <ProjectReference Include="..\HomeBuild.Payments.Infrastructure\HomeBuild.Payments.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>
