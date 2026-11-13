@@ -1,3 +1,5 @@
+using static HomeBuild.Api.Tests.CatalogueBuilders;
+using static HomeBuild.Testing.Builders;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -105,17 +107,17 @@ public sealed class TenantClaimTests(PostgresFixture database) : IAsyncLifetime
     private async Task<(Guid Development, Guid Unit)> AddTenantBUnitAsync()
     {
         var development = DevelopmentId.New();
-        var unit = new Unit(UnitId.New(), development, "B1", new Money(199_000m, "GBP"));
+        var unit = AUnit().InDevelopment(development).WithPlot("B1").Build();
         await using (var catalogue = CatalogueModule.CreateDbContext(_factory.ConnectionString, TestTenants.Other))
         {
-            catalogue.Developments.Add(new Development(development, "Tenant B development", "Hull", "fixed"));
+            catalogue.Developments.Add(ADevelopment().WithId(development).Named("Tenant B development").Build());
             catalogue.Units.Add(unit);
             await catalogue.SaveChangesAsync(Ct);
         }
 
         await using (var sales = HomeBuild.Api.Modules.Sales.SalesModule.CreateDbContext(_factory.ConnectionString, TestTenants.Other))
         {
-            sales.Units.Add(new Unit(unit.Id, development, "B1", new Money(199_000m, "GBP")));
+            sales.Units.Add(AUnit().WithId(unit.Id).InDevelopment(development).WithPlot("B1").Build());
             await sales.SaveChangesAsync(Ct);
         }
 

@@ -1,3 +1,4 @@
+using static HomeBuild.Testing.Builders;
 using System.Net;
 using System.Text.Json;
 using HomeBuild.Api.Modules.Catalogue;
@@ -84,7 +85,7 @@ public sealed class PagingAndSearchTests(PostgresFixture database)
         await using var db = CatalogueModule.CreateDbContext(cs, TestTenants.Demo);
         foreach (var price in prices)
         {
-            db.Units.Add(new Unit(UnitId.New(), RiversideId, "N" + Guid.NewGuid().ToString("N")[..6], new Money(price, "GBP")));
+            db.Units.Add(AUnit().InDevelopment(RiversideId).WithPlot("N" + Guid.NewGuid().ToString("N")[..6]).PricedAt(new Money(price, "GBP")).Build());
         }
 
         await db.SaveChangesAsync(Ct);

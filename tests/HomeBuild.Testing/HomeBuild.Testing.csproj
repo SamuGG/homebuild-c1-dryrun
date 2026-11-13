@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Test data builders shared by the test projects (C6 Lab 1). Not a test project itself. -->
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\HomeBuild.Domain\HomeBuild.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

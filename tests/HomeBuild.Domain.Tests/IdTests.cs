@@ -1,3 +1,4 @@
+using static HomeBuild.Testing.Builders;
 namespace HomeBuild.Domain.Tests;
 
 public class IdTests
@@ -36,5 +37,5 @@ public class IdTests
     [Fact]
     public void Unit_rejects_default_id() =>
         Assert.Throws<ArgumentException>(() =>
-            new Unit(default, DevelopmentId.New(), "P-01", new Money(1m, "GBP")));
+            AUnit().WithId(default).Build());
 }

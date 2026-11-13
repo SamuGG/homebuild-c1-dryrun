@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\HomeBuild.Testing\HomeBuild.Testing.csproj" />
     <ProjectReference Include="..\..\src\HomeBuild.Domain\HomeBuild.Domain.csproj" />
   </ItemGroup>
 

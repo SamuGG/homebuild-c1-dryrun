@@ -1,3 +1,5 @@
+using static HomeBuild.Api.Tests.CatalogueBuilders;
+using static HomeBuild.Testing.Builders;
 using System.Net;
 using HomeBuild.Api.Modules.Catalogue;
 using HomeBuild.Domain;
@@ -70,9 +72,9 @@ public sealed class TenancyTests(PostgresFixture database)
     private static async Task<UnitId> AddOtherTenantUnitAsync(string ownerCs)
     {
         var development = DevelopmentId.New();
-        var unit = new Unit(UnitId.New(), development, "B1", new Money(199_000m, "GBP"));
+        var unit = AUnit().InDevelopment(development).WithPlot("B1").Build();
         await using var db = CatalogueModule.CreateDbContext(ownerCs, TestTenants.Other);
-        db.Developments.Add(new Development(development, "Other tenant", "Hull", "fixed"));
+        db.Developments.Add(ADevelopment().WithId(development).Named("Other tenant").Build());
         var entry = db.Units.Add(unit);
         entry.Property(CatalogueDbContext.UnitName).CurrentValue = "Other tenant plot";
         await db.SaveChangesAsync(Ct);

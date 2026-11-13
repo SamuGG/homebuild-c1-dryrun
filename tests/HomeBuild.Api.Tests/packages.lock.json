@@ -416,6 +416,12 @@
       "homebuild.domain": {
         "type": "Project"
       },
+      "homebuild.testing": {
+        "type": "Project",
+        "dependencies": {
+          "HomeBuild.Domain": "[1.0.0, )"
+        }
+      },
       "Asp.Versioning.Http": {
         "type": "CentralTransitive",
         "requested": "[10.2.3, )",
