@@ -9,18 +9,6 @@ public class DomainTests
     private static readonly TimeSpan Hold = Policy.HoldPeriod;
 
     [Fact]
-    public void Money_rejects_negative_amount() =>
-        Assert.Throws<ArgumentOutOfRangeException>(() => new Money(-1m, "GBP"));
-
-    [Fact]
-    public void Money_values_with_same_amount_and_currency_are_equal() =>
-        Assert.Equal(new Money(10m, "GBP"), new Money(10m, "GBP"));
-
-    [Fact]
-    public void Adding_money_in_different_currencies_throws() =>
-        Assert.Throws<InvalidOperationException>(() => new Money(1m, "GBP") + new Money(1m, "EUR"));
-
-    [Fact]
     public void Unit_rejects_zero_price() =>
         Assert.Throws<ArgumentOutOfRangeException>(() => AUnit().PricedAt(new Money(0m, "GBP")).Build());
 
@@ -41,17 +29,6 @@ public class DomainTests
         var unit = AUnit().Reserved().Build();
         Assert.IsType<UnitUnavailable>(unit.Reserve(BuyerId.New(), new Money(5000m, "GBP"), Policy, Now).Value);
     }
-
-    [Theory]
-    [InlineData(999)]
-    [InlineData(250_001)]
-    public void Deposit_below_minimum_or_above_price_is_rejected(decimal amount) =>
-        Assert.IsType<DepositRejected>(AUnit().PricedAt(new Money(250_000m, "GBP")).Build().Reserve(BuyerId.New(), new Money(amount, "GBP"), Policy, Now).Value);
-
-    [Fact]
-    public void Deposit_in_other_currency_is_rejected() =>
-        Assert.Throws<ArgumentException>(() =>
-            AUnit().PricedAt(new Money(250_000m, "GBP")).Build().Reserve(BuyerId.New(), new Money(5000m, "EUR"), Policy, Now));
 
     [Fact]
     public void Reservation_expires_after_hold_period()

@@ -63,6 +63,14 @@ internal static class ReserveUnitEndpoint
             return TypedResults.NotFound();
         }
 
+        // The domain refuses a deposit in another currency by throwing; answer it as the rule it is, not as a 500.
+        if (request.Currency != unit.Price.Currency)
+        {
+            return TypedResults.UnprocessableEntity(Problems.Business(
+                http, "deposit-currency", "Deposit currency rejected", StatusCodes.Status422UnprocessableEntity,
+                $"The deposit must be in {unit.Price.Currency}, the unit's currency."));
+        }
+
         var strategy = await catalogue.DepositStrategyForAsync(unit.DevelopmentId, cancellationToken);
         var unitPolicy = deposits.PolicyFor(unit, strategy, policy);
         // Saving can still lose the race: another buyer's write turns Reserved into UnitUnavailable.
