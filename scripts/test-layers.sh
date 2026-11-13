@@ -28,7 +28,8 @@ for layer in "${layers[@]}"; do
   seconds=$(python3 -c "print(f'{$(now) - $start:.1f}')")
   echo "$output"
   echo "::endgroup::"
-  tests=$(echo "$output" | awk '/^  total:/ {print $2}' | tail -1)
+  # Strip colour codes: in CI the runner's lines start with one.
+  tests=$(echo "$output" | sed -E 's/\x1b\[[0-9;]*m//g' | awk '/^ *total:/ {print $2}' | tail -1)
   if [ $code -ne 0 ]; then
     verdict="❌ failed"
     status=1
@@ -41,11 +42,16 @@ for layer in "${layers[@]}"; do
   rows+=("| $name | ${tests:--} | ${seconds} s | ${budget} s | $verdict |")
 done
 
-{
+table() {
   echo "### Test layers ($config)"
   echo
   echo "| Layer | Tests | Time | Budget | Result |"
   echo "| --- | --- | --- | --- | --- |"
   printf '%s\n' "${rows[@]}"
-} >> "$summary"
+}
+table >> "$summary"
+# Also in the log, which anyone who can see the run can read.
+if [ "$summary" != /dev/stdout ]; then
+  table
+fi
 exit $status
