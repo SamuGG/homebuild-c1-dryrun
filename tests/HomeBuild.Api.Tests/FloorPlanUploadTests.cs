@@ -13,6 +13,7 @@ namespace HomeBuild.Api.Tests;
 /// bucket and are opt-in: HOMEBUILD_AWS_TESTS=1 with AWS credentials and Storage:BucketName / Storage:UploadRoleArn
 /// (user-secrets or Storage__* environment variables). The tenant check needs no AWS and always runs.
 /// </summary>
+[Collection(IntegrationDatabase.Name)]
 public sealed class FloorPlanUploadTests(PostgresFixture database) : IAsyncLifetime
 {
     private static readonly bool AwsEnabled = Environment.GetEnvironmentVariable("HOMEBUILD_AWS_TESTS") == "1";

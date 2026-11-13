@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace HomeBuild.Api.Tests;
 
+[Collection(IntegrationDatabase.Name)]
 public sealed class EndpointTests(PostgresFixture database) : IAsyncLifetime
 {
     internal const string RiversidePlot1 = "0198a000-0000-7000-8001-000000000001";

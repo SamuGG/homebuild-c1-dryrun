@@ -4,6 +4,7 @@ using System.Text.Json;
 
 namespace HomeBuild.Api.Tests;
 
+[Collection(IntegrationDatabase.Name)]
 public sealed class TokenValidationTests(PostgresFixture database) : IAsyncLifetime
 {
     private const string AnyReservation = "/v1/reservations/0198a000-0000-7000-8000-0000000000ff";

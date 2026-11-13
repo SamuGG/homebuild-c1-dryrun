@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace HomeBuild.Api.Tests;
 
+[Collection(IntegrationDatabase.Name)]
 public sealed class ErrorTests(PostgresFixture database) : IAsyncLifetime
 {
     private const string Plot1 = EndpointTests.RiversidePlot1;

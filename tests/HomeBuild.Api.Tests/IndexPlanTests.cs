@@ -6,6 +6,7 @@ using Npgsql;
 
 namespace HomeBuild.Api.Tests;
 
+[Collection(IntegrationDatabase.Name)]
 public sealed partial class IndexPlanTests(PostgresFixture database)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

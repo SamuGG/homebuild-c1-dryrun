@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace HomeBuild.Api.Tests;
 
 /// <summary>The brief's access table, one test case per row and caller.</summary>
+[Collection(IntegrationDatabase.Name)]
 public sealed class AuthorizationTests(PostgresFixture database) : IAsyncLifetime
 {
     private static readonly Guid Owner = TestTokens.Users.Owner;

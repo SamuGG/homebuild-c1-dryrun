@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace HomeBuild.Api.Tests;
 
+[Collection(IntegrationDatabase.Name)]
 public sealed class RateLimitTests(PostgresFixture database) : IAsyncLifetime
 {
     private ApiFactory _factory = null!;

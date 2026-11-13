@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace HomeBuild.Api.Tests;
 
+[Collection(IntegrationDatabase.Name)]
 public sealed class QueryPerformanceTests(PostgresFixture database)
 {
     private const string Riverside = "0198a000-0000-7000-8000-000000000001";

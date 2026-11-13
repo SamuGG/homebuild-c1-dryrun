@@ -6,6 +6,7 @@ using static HomeBuild.Testing.Builders;
 namespace HomeBuild.Api.Tests;
 
 /// <summary>The API's aggregate (Development) has a builder whose default saves, with a unit, as is.</summary>
+[Collection(IntegrationDatabase.Name)]
 public sealed class CatalogueBuilderTests(PostgresFixture database)
 {
     [Fact]

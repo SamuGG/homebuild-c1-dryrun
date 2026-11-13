@@ -11,6 +11,7 @@ using Npgsql;
 
 namespace HomeBuild.Api.Tests;
 
+[Collection(IntegrationDatabase.Name)]
 public sealed class ConcurrencyTests(PostgresFixture database)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

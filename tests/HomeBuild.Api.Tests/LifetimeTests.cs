@@ -8,6 +8,7 @@ using Microsoft.Extensions.Options;
 
 namespace HomeBuild.Api.Tests;
 
+[Collection(IntegrationDatabase.Name)]
 public sealed class LifetimeTests(PostgresFixture database)
 {
     private const string HillcrestPlot1 = "0198a000-0000-7000-8002-000000000001";
