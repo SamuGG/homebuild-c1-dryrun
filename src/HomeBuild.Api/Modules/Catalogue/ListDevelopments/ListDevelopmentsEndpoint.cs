@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace HomeBuild.Api.Modules.Catalogue.ListDevelopments;
 
-internal sealed record DevelopmentSummary(Guid Id, string Name, string Location);
+internal sealed record DevelopmentSummary(Guid Id, string Name, string Town);
 
 internal sealed record DevelopmentPage(IReadOnlyList<DevelopmentSummary> Items, int Page, int Size, int Total);
 
