@@ -117,6 +117,12 @@
       },
       "homebuild.domain": {
         "type": "Project"
+      },
+      "homebuild.testing": {
+        "type": "Project",
+        "dependencies": {
+          "HomeBuild.Domain": "[1.0.0, )"
+        }
       }
     }
   }

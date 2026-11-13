@@ -28,6 +28,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\HomeBuild.Testing\HomeBuild.Testing.csproj" />
     <ProjectReference Include="..\..\src\HomeBuild.Api\HomeBuild.Api.csproj" />
   </ItemGroup>
 

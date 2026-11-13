@@ -1,3 +1,5 @@
+using static HomeBuild.Api.Tests.CatalogueBuilders;
+using static HomeBuild.Testing.Builders;
 using HomeBuild.Api.Modules.Catalogue;
 using HomeBuild.Api.Modules.Sales;
 using HomeBuild.Domain;
@@ -16,11 +18,11 @@ public sealed class MappingTests(PostgresFixture database)
     {
         var cs = await database.CreateDatabaseAsync();
         var developmentId = DevelopmentId.New();
-        var unit = new Unit(UnitId.New(), developmentId, "P42", new Money(412_500.50m, "GBP"),
-            new UnitSpecification(3, 2, true, ["oak floors", "quartz worktops"]));
+        var unit = AUnit().InDevelopment(developmentId).WithPlot("P42").PricedAt(new Money(412_500.50m, "GBP"))
+            .WithSpecification(new UnitSpecification(3, 2, true, ["oak floors", "quartz worktops"])).Build();
         await using (var db = CatalogueModule.CreateDbContext(cs, TestTenants.Demo))
         {
-            db.Developments.Add(new Development(developmentId, "Round Trip", "York", "fixed"));
+            db.Developments.Add(ADevelopment().WithId(developmentId).Build());
             db.Units.Add(unit);
             await db.SaveChangesAsync(Ct);
         }
@@ -42,7 +44,7 @@ public sealed class MappingTests(PostgresFixture database)
     {
         var cs = await database.CreateDatabaseAsync();
         var unitId = new UnitId(Guid.Parse(EndpointTests.RiversidePlot1));
-        var policy = new ReservationPolicy(TimeSpan.FromDays(7), new Money(1000m, "GBP"));
+        var policy = APolicy().Build();
         Reservation reservation;
         await using (var db = SalesModule.CreateDbContext(cs, TestTenants.Demo))
         {

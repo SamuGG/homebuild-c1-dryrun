@@ -1,3 +1,4 @@
+using static HomeBuild.Testing.Builders;
 using System.Net;
 using System.Net.Http.Json;
 using HomeBuild.Api.Modules.Sales;
@@ -52,14 +53,14 @@ public sealed class ConcurrencyTests(PostgresFixture database)
         {
             var unit = await db.Units.SingleAsync(u => u.Id == unitId, Ct);
             var first = Assert.IsType<Reserved>(unit.Reserve(BuyerId.New(), new Money(5000m, "GBP"),
-                new ReservationPolicy(TimeSpan.FromDays(7), new Money(1000m, "GBP")), now).Value);
+                APolicy().Build(), now).Value);
             db.Reservations.Add(first.Reservation);
             await db.SaveChangesAsync(Ct);
         }
 
         // A second write path that never touches the unit, so its version check cannot help.
         await using var other = SalesModule.CreateDbContext(cs, TestTenants.Demo);
-        other.Reservations.Add(new Reservation(ReservationId.New(), unitId, BuyerId.New(), new Money(5000m, "GBP"), now, now.AddDays(7)));
+        other.Reservations.Add(AReservation().ForUnit(unitId).CreatedAt(now).Build());
 
         var ex = await Assert.ThrowsAsync<DbUpdateException>(() => other.SaveChangesAsync(Ct));
         var postgres = Assert.IsType<PostgresException>(ex.InnerException);
