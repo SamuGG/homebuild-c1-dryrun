@@ -394,6 +394,20 @@
       "homebuild.domain": {
         "type": "Project"
       },
+      "homebuild.payments.core": {
+        "type": "Project",
+        "dependencies": {
+          "HomeBuild.Domain": "[1.0.0, )"
+        }
+      },
+      "homebuild.payments.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "HomeBuild.Payments.Core": "[1.0.0, )",
+          "Microsoft.EntityFrameworkCore": "[10.0.15, )",
+          "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.1, )"
+        }
+      },
       "Microsoft.CodeAnalysis.CSharp": {
         "type": "CentralTransitive",
         "requested": "[5.9.0, )",
