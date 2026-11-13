@@ -14,7 +14,7 @@ layers=(
   "Unit (domain rules)|10|dotnet test --no-build -c $config --project tests/HomeBuild.Domain.Tests"
   "Web components and in-memory host (fake API)|20|dotnet test --no-build -c $config --project tests/HomeBuild.Web.Tests"
   "Integration (real PostgreSQL, includes boundary tests)|90|dotnet test --no-build -c $config --project tests/HomeBuild.Api.Tests"
-  "Contract (OpenAPI documents unchanged)|10|git add -N src/HomeBuild.Api/openapi*.json && git diff --exit-code -- src/HomeBuild.Api/openapi*.json"
+  "Contract (contracts/ unchanged after the build)|10|git add -N contracts && git diff --exit-code -- contracts/"
 )
 
 rows=()

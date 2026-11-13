@@ -29,7 +29,8 @@
   <PropertyGroup>
     <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
     <!-- Build-time OpenAPI document, committed as a snapshot reviewers can diff. -->
-    <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)</OpenApiDocumentsDirectory>
+    <!-- The API contract, committed and diffed in CI (C6 Lab 2): any change is a reviewed diff in the PR. -->
+    <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)/../../contracts</OpenApiDocumentsDirectory>
     <OpenApiGenerateDocumentsOptions>--file-name openapi</OpenApiGenerateDocumentsOptions>
     <!-- Asp.Versioning 10.2 analyzers ask for Asp.Versioning.OpenApi (AddApiVersioning().AddOpenApi(),
          MapOpenApi().WithDocumentPerVersion()). That package needs Microsoft.OpenApi < 3.0 and cannot restore
