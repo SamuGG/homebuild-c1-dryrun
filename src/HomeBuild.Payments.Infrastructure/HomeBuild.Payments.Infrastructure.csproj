@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Payments' adapters (C6 Lab 4): EF Core here; Stripe arrives in C8. The dependency points one way: this project
+       references the core, the core never references this. -->
+  <ItemGroup>
+    <ProjectReference Include="..\HomeBuild.Payments.Core\HomeBuild.Payments.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="HomeBuild.Payments.Tests" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Boundary tests (C6 Lab 4): which projects may reference which. Replaces C2's namespace test for projects. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>HomeBuild.Architecture.Tests</RootNamespace>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3.mtp-v2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\HomeBuild.Domain\HomeBuild.Domain.csproj" />
+    <ProjectReference Include="..\..\src\HomeBuild.Payments.Core\HomeBuild.Payments.Core.csproj" />
+    <ProjectReference Include="..\..\src\HomeBuild.Payments.Infrastructure\HomeBuild.Payments.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\HomeBuild.Api\HomeBuild.Api.csproj" />
+    <ProjectReference Include="..\..\src\HomeBuild.Web\HomeBuild.Web.csproj" />
+  </ItemGroup>
+
+</Project>

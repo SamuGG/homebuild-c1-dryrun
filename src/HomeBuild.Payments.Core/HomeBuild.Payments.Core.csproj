@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Payments' core (C6 Lab 4): rules and contracts only. It references HomeBuild.Domain and the base library,
+       never an adapter: adapters (Stripe, EF Core) live in HomeBuild.Payments.Infrastructure, which references this. -->
+  <ItemGroup>
+    <ProjectReference Include="..\HomeBuild.Domain\HomeBuild.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Internals are visible to the module's own test project and nothing else. -->
+    <InternalsVisibleTo Include="HomeBuild.Payments.Tests" />
+  </ItemGroup>
+
+</Project>
