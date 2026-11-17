@@ -58,7 +58,7 @@ public sealed class StorageStack : Stack
         {
             RoleName = "homebuild-api-uploads",
             AssumedBy = new AccountRootPrincipal(),
-            Description = "HomeBuild API: sign floor-plan uploads under incoming/ and move checked files to floor-plans/",
+            Description = "HomeBuild API: sign floor-plan uploads under incoming/, move checked files to floor-plans/, sign diary photo uploads under diary/",
             MaxSessionDuration = Duration.Hours(1),
         });
         UploadRole.AddToPolicy(new PolicyStatement(new PolicyStatementProps
@@ -72,6 +72,13 @@ public sealed class StorageStack : Stack
             Sid = "WriteMovedFloorPlans",
             Actions = ["s3:PutObject"],
             Resources = [bucket.ArnForObjects("floor-plans/*")],
+        }));
+        UploadRole.AddToPolicy(new PolicyStatement(new PolicyStatementProps
+        {
+            // C7 Lab 4: site diary photos are posted straight to diary/{tenant}/{unit}/{guid}.jpg (no move step).
+            Sid = "SignDiaryPhotoUploads",
+            Actions = ["s3:PutObject"],
+            Resources = [bucket.ArnForObjects("diary/*")],
         }));
 
         // autoDeleteObjects' provider role and Lambda are raw CfnResources, which Tags.Of does not reach, so the teardown

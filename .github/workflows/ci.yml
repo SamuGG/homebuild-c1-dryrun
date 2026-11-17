@@ -120,7 +120,8 @@ jobs:
         run: |
           start=$SECONDS
           npm run test:ci -- --env-var "accessToken=$BRUNO_ACCESS_TOKEN" --env-var "buyer2Token=$BRUNO_BUYER2_TOKEN" \
-            --env-var "idToken=$BRUNO_ID_TOKEN" --env-var "forgedAdminToken=$BRUNO_FORGED_ADMIN_TOKEN"
+            --env-var "idToken=$BRUNO_ID_TOKEN" --env-var "forgedAdminToken=$BRUNO_FORGED_ADMIN_TOKEN" \
+            --env-var "hillcrestSiteManagerToken=$BRUNO_HILLCREST_SITE_MANAGER_TOKEN"
           printf '%s\n' "| Layer | Time | Budget |" "| --- | --- | --- |" \
             "| API acceptance (Bruno, running API and web app) | $((SECONDS - start)) s | 60 s |" >> "$GITHUB_STEP_SUMMARY"
         working-directory: api-tests

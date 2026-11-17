@@ -23,6 +23,92 @@ namespace HomeBuild.Api.Modules.Construction.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("HomeBuild.Api.Modules.Construction.MilestoneAudit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("action");
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("at");
+
+                    b.Property<string>("By")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("by");
+
+                    b.Property<DateOnly?>("From")
+                        .HasColumnType("date")
+                        .HasColumnName("from");
+
+                    b.Property<string>("Milestone")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("milestone");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("reason");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateOnly>("To")
+                        .HasColumnType("date")
+                        .HasColumnName("to");
+
+                    b.Property<Guid>("UnitId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("unit_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_milestone_audit");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_milestone_audit_tenant_id");
+
+                    b.HasIndex("UnitId", "At")
+                        .HasDatabaseName("ix_milestone_audit_unit_id_at");
+
+                    b.ToTable("milestone_audit", "construction");
+                });
+
+            modelBuilder.Entity("HomeBuild.Api.Modules.Construction.SiteAssignment", b =>
+                {
+                    b.Property<string>("SiteManager")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("site_manager");
+
+                    b.Property<Guid>("DevelopmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("development_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("SiteManager", "DevelopmentId")
+                        .HasName("pk_site_assignments");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_site_assignments_tenant_id");
+
+                    b.ToTable("site_assignments", "construction");
+                });
+
             modelBuilder.Entity("HomeBuild.Domain.BuildProgress", b =>
                 {
                     b.Property<Guid>("UnitId")
@@ -61,6 +147,11 @@ namespace HomeBuild.Api.Modules.Construction.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.PrimitiveCollection<string[]>("PhotoKeys")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("photo_keys");
+
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid")
                         .HasColumnName("tenant_id");
@@ -74,6 +165,18 @@ namespace HomeBuild.Api.Modules.Construction.Migrations
                     b.Property<Guid>("UnitId")
                         .HasColumnType("uuid")
                         .HasColumnName("unit_id");
+
+                    b.Property<string>("Weather")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("weather");
+
+                    b.Property<string>("WrittenBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("written_by");
 
                     b.Property<DateOnly>("WrittenOn")
                         .HasColumnType("date")

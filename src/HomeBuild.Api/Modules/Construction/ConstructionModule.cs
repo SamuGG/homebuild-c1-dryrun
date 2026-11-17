@@ -2,6 +2,7 @@ using HomeBuild.Api.Data;
 using HomeBuild.Api.Http;
 using HomeBuild.Api.Modules.Construction.GetBoard;
 using HomeBuild.Api.Modules.Construction.GetBuyerProgress;
+using HomeBuild.Api.Modules.Construction.SiteActions;
 using Microsoft.EntityFrameworkCore;
 
 namespace HomeBuild.Api.Modules.Construction;
@@ -18,6 +19,10 @@ public static class ConstructionModule
             .AddInterceptors(new TenantCommandInterceptor(sp.GetRequiredService<ITenantContext>())));
         // Scoped: wraps the scoped DbContext.
         services.AddScoped<BuildProgressReader>();
+        // Scoped: reads the scoped DbContext to check a site manager's assignment.
+        services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, SiteAssignmentHandler>();
+        // Singleton: the S3 client is thread-safe and created once.
+        services.AddSingleton<DiaryPhotoStorage>();
         return services;
     }
 
@@ -39,6 +44,7 @@ public static class ConstructionModule
         var group = endpoints.MapVersionedGroup().WithTags(Name);
         group.MapGetBoard();
         group.MapGetBuyerProgress();
+        group.MapSiteActions();
         return endpoints;
     }
 }

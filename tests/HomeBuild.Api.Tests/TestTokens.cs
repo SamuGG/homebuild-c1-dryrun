@@ -27,6 +27,8 @@ public static class TestTokens
         public static readonly Guid ThirdBuyer = Guid.Parse("0198a000-0000-7000-9000-00000000b0c3");
         /// <summary>A buyer whose membership is in <see cref="TestTenants.Other"/>.</summary>
         public static readonly Guid OtherTenantBuyer = Guid.Parse("0198a000-0000-7000-9000-00000000bb01");
+        /// <summary>A site manager assigned to Hillcrest only (<see cref="Staff"/>("site-manager") is assigned to Riverside).</summary>
+        public static readonly Guid HillcrestSiteManager = Guid.Parse("0198a000-0000-7000-9000-00000000c006");
         /// <summary>A signed-in user with no membership at all.</summary>
         public static readonly Guid NoMembership = Guid.Parse("0198a000-0000-7000-9000-00000000dead");
 
@@ -48,6 +50,7 @@ public static class TestTokens
             yield return (OtherBuyer, TestTenants.Demo, ["buyer"]);
             yield return (ThirdBuyer, TestTenants.Demo, ["buyer"]);
             yield return (OtherTenantBuyer, TestTenants.Other, ["buyer"]);
+            yield return (HillcrestSiteManager, TestTenants.Demo, ["site-manager"]);
             foreach (var role in new[] { "admin", "sales-agent", "site-manager", "finance", "aftercare" })
             {
                 yield return (Staff(role), TestTenants.Demo, [role]);
