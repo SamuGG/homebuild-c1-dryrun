@@ -1,6 +1,7 @@
 using HomeBuild.Api.Data;
 using HomeBuild.Api.Http;
 using HomeBuild.Api.Modules.Catalogue;
+using HomeBuild.Api.Modules.Payments.ListOverdue;
 using HomeBuild.Domain;
 using HomeBuild.Payments;
 using Microsoft.EntityFrameworkCore;
@@ -24,12 +25,18 @@ public static class PaymentsModule
         services.AddScoped<IUnitTerms, CatalogueUnitTerms>();
         // Scoped: a handler of Construction's MilestoneCompleted (C7 Lab 5), resolved by the dispatcher in the request's scope.
         services.AddScoped<IHandleDomainEvent<MilestoneCompleted>, RecordStagePaymentDue>();
+        services.AddScoped<ListOverdueStagePayments>();
         // MarkPaid is not registered yet: it needs an IPaymentGateway, and the Stripe adapter arrives in C8 (the host's DI
         // validation refuses a use case whose port has no adapter). Its tests use the fake gateway.
         return services;
     }
 
-    public static IEndpointRouteBuilder MapPaymentsModule(this IEndpointRouteBuilder endpoints) => endpoints;
+    public static IEndpointRouteBuilder MapPaymentsModule(this IEndpointRouteBuilder endpoints)
+    {
+        var group = endpoints.MapVersionedGroup().WithTags(Name);
+        group.MapListOverdueStagePayments();
+        return endpoints;
+    }
 
     internal static DbContextOptionsBuilder Configure(DbContextOptionsBuilder options, string connectionString) =>
         options.UseHomeBuildDatabase(connectionString, PaymentsDbContext.Schema);
@@ -73,6 +80,10 @@ internal sealed class EfStagePaymentStore(PaymentsDbContext db) : IPaymentStore
     public Task MarkPaidAsync(UnitId unitId, Milestone milestone, string providerReference, DateTimeOffset paidAt, CancellationToken cancellationToken) =>
         db.StagePayments.Where(p => p.UnitId == unitId && p.Milestone == milestone && p.PaidAt == null)
             .ExecuteUpdateAsync(set => set.SetProperty(p => p.PaidAt, paidAt).SetProperty(p => p.ProviderReference, providerReference), cancellationToken);
+
+    public async Task<IReadOnlyList<DueStagePayment>> UnpaidDueOnOrBeforeAsync(DateOnly dueOnOrBefore, CancellationToken cancellationToken) =>
+        [.. (await db.StagePayments.AsNoTracking().Where(p => p.PaidAt == null && p.DueFrom <= dueOnOrBefore).OrderBy(p => p.DueFrom).ToListAsync(cancellationToken))
+            .Select(row => new DueStagePayment(row.UnitId, row.Milestone, new Money(row.Amount, row.Currency), row.DueFrom))];
 
     public async Task<bool> AddAsync(DueStagePayment payment, CancellationToken cancellationToken)
     {

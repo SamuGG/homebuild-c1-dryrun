@@ -30,6 +30,9 @@ internal sealed class FakePaymentStore : IPaymentStore
     public Task<bool> AddAsync(DueStagePayment payment, CancellationToken cancellationToken) =>
         Task.FromResult(Stored.TryAdd((payment.UnitId, payment.Milestone), new StoredStagePayment(payment, null, null)));
 
+    public Task<IReadOnlyList<DueStagePayment>> UnpaidDueOnOrBeforeAsync(DateOnly dueOnOrBefore, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<DueStagePayment>>([.. Stored.Values.Where(s => s.PaidAt is null && s.Due.DueFrom <= dueOnOrBefore).Select(s => s.Due).OrderBy(d => d.DueFrom)]);
+
     public Task MarkPaidAsync(UnitId unitId, Milestone milestone, string providerReference, DateTimeOffset paidAt, CancellationToken cancellationToken)
     {
         Stored[(unitId, milestone)] = Stored[(unitId, milestone)] with { PaidAt = paidAt, ProviderReference = providerReference };

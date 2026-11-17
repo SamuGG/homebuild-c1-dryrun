@@ -28,6 +28,31 @@ public interface IPaymentStore
     Task<bool> AddAsync(DueStagePayment payment, CancellationToken cancellationToken);
 
     Task MarkPaidAsync(UnitId unitId, Milestone milestone, string providerReference, DateTimeOffset paidAt, CancellationToken cancellationToken);
+
+    /// <summary>Unpaid stage payments that became due on or before <paramref name="dueOnOrBefore"/>, oldest first.</summary>
+    Task<IReadOnlyList<DueStagePayment>> UnpaidDueOnOrBeforeAsync(DateOnly dueOnOrBefore, CancellationToken cancellationToken);
+}
+
+/// <summary>An unpaid stage payment past its payment terms.</summary>
+public sealed record OverdueStagePayment(UnitId UnitId, Milestone Milestone, Money Amount, DateOnly DueFrom, int DaysOverdue);
+
+/// <summary>The buyer's payment terms: a stage payment is overdue once this many days have passed since it fell due.</summary>
+internal static class StagePaymentTerms
+{
+    public const int DaysToPay = 14;
+
+    public static DateOnly OverdueIfDueOnOrBefore(DateOnly today) => today.AddDays(-DaysToPay - 1);
+
+    public static int DaysOverdue(DateOnly dueFrom, DateOnly today) => today.DayNumber - dueFrom.DayNumber - DaysToPay;
+}
+
+/// <summary>Use case: the stage payments that are overdue today, most overdue first.</summary>
+public sealed class ListOverdueStagePayments(IPaymentStore store)
+{
+    public async Task<IReadOnlyList<OverdueStagePayment>> HandleAsync(DateOnly today, CancellationToken cancellationToken) =>
+        [.. (await store.UnpaidDueOnOrBeforeAsync(StagePaymentTerms.OverdueIfDueOnOrBefore(today), cancellationToken))
+            .Select(p => new OverdueStagePayment(p.UnitId, p.Milestone, p.Amount, p.DueFrom, StagePaymentTerms.DaysOverdue(p.DueFrom, today)))
+            .OrderByDescending(p => p.DaysOverdue)];
 }
 
 /// <summary>Command: pay a due stage payment with a payment method the provider tokenised in the browser.</summary>

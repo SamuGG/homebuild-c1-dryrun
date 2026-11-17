@@ -1226,6 +1226,40 @@
           }
         }
       }
+    },
+    "/v2/stage-payments/overdue": {
+      "get": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "Stage payments unpaid more than 14 days after they fell due, most overdue first (finance, v2)",
+        "operationId": "ListOverdueStagePaymentsV2",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OverdueStagePaymentResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1962,6 +1996,49 @@
           }
         }
       },
+      "OverdueStagePaymentResponse": {
+        "required": [
+          "unitId",
+          "milestone",
+          "amount",
+          "currency",
+          "dueFrom",
+          "daysOverdue"
+        ],
+        "type": "object",
+        "properties": {
+          "unitId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "milestone": {
+            "type": "string"
+          },
+          "amount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "dueFrom": {
+            "type": "string",
+            "format": "date"
+          },
+          "daysOverdue": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "PricePoint": {
         "required": [
           "amount",
@@ -2351,6 +2428,9 @@
     },
     {
       "name": "Construction"
+    },
+    {
+      "name": "Payments"
     },
     {
       "name": "Sales"
