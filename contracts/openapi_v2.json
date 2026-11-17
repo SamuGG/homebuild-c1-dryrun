@@ -848,6 +848,13 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "show",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -857,6 +864,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/BoardResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }

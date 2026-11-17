@@ -19,18 +19,36 @@ internal static class GetBoardEndpoint
             .MapToApiVersion(ApiVersions.V2)
             .WithName("GetBuildBoardV2")
             .WithSummary("A development's build milestones per unit, with internal fields (site staff, v2)")
+            .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .RequireAuthorization(Policies.CanViewBuildBoard);
 
-    private static async Task<Results<Ok<BoardResponse>, NotFound>> Handle(
-        DevelopmentId developmentId, ICatalogueQueries catalogue, BuildProgressReader builds, CancellationToken cancellationToken)
+    /// <param name="show">Optional filter: <c>behind-schedule</c> or <c>ready-for-handover</c> (C7 Lab 3's specifications).</param>
+    private static async Task<Results<Ok<BoardResponse>, NotFound, ValidationProblem>> Handle(
+        DevelopmentId developmentId, string? show, ICatalogueQueries catalogue, BuildProgressReader builds, TimeProvider time,
+        CancellationToken cancellationToken)
     {
+        var filter = show is null ? null : BuildProgressReader.Filter(show, DateOnly.FromDateTime(time.GetUtcNow().UtcDateTime));
+        if (show is not null && filter is null)
+        {
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["show"] = ["Use behind-schedule or ready-for-handover."],
+            });
+        }
+
         if (await catalogue.PlotsInAsync(developmentId, cancellationToken) is not { } plots)
         {
             return TypedResults.NotFound();
         }
 
         var name = plots.Count > 0 ? plots[0].DevelopmentName : "";
+        if (filter is not null)
+        {
+            var matching = await builds.MatchingAsync(filter, [.. plots.Select(p => p.UnitId)], cancellationToken);
+            plots = [.. plots.Where(p => matching.Contains(p.UnitId))];
+        }
+
         var progress = await builds.ForAsync([.. plots.Select(p => (p.UnitId, p.DevelopmentId))], cancellationToken);
         var rows = plots.Select(p => new BoardRow(p.UnitId.Value, p.PlotNumber, [.. progress[p.UnitId].Milestones
             .Select(m => new BoardCell(BuildProgressReader.DisplayName(m.Milestone), BuildProgressReader.BoardStatus(m.Status), m.CompletedOn, m.Subcontractor, m.SiteNotes, m.OpenDefects))])).ToList();
