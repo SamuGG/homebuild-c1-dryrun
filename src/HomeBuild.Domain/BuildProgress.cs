@@ -18,6 +18,7 @@ public enum MilestoneStatus
     NotStarted,
     InProgress,
     Completed,
+    Skipped,
 }
 
 /// <summary>
@@ -55,14 +56,36 @@ public sealed class MilestoneProgress
 
     public int OpenDefects { get; private set; }
 
-    internal void Start() => Status = MilestoneStatus.InProgress;
-
-    internal void Complete(string siteManager, DateOnly on)
+    /// <summary>The milestone's state object, rebuilt from the stored fields.</summary>
+    public MilestoneState State => Status switch
     {
-        Status = MilestoneStatus.Completed;
-        CompletedOn = on;
-        CompletedBy = siteManager;
+        MilestoneStatus.NotStarted => new NotStarted(),
+        MilestoneStatus.InProgress => new InProgress(),
+        MilestoneStatus.Completed => new Completed(CompletedOn!.Value, CompletedBy!),
+        MilestoneStatus.Skipped => new Skipped(),
+        _ => throw new InvalidOperationException($"Unknown milestone status {Status}."),
+    };
+
+    /// <summary>Applies a transition: a refused one changes nothing and is returned as it is.</summary>
+    internal MilestoneTransition Apply(MilestoneTransition transition)
+    {
+        if (transition.Value is MilestoneMoved moved)
+        {
+            // Exhaustive over the closed hierarchy: a new state fails to compile until it is stored.
+            (Status, CompletedOn, CompletedBy) = moved.To switch
+            {
+                NotStarted => (MilestoneStatus.NotStarted, (DateOnly?)null, (string?)null),
+                InProgress => (MilestoneStatus.InProgress, null, null),
+                Completed c => (MilestoneStatus.Completed, c.On, c.SiteManager),
+                Skipped => (MilestoneStatus.Skipped, null, null),
+            };
+        }
+
+        return transition;
     }
+
+    /// <summary>Completed or skipped: nothing more to do, and the next milestone may follow.</summary>
+    internal bool IsDone => State is Completed or Skipped;
 
     internal void Note(string siteNotes, int openDefects)
     {
@@ -106,39 +129,53 @@ public sealed class BuildProgress
                 milestone, startOn.AddDays(21 * ((int)milestone + 1)), subcontractor?.Invoke(milestone) ?? ""));
         }
 
-        progress._milestones[0].Start();
+        progress._milestones[0].Apply(progress._milestones[0].State.Start());
         return progress;
     }
 
     public MilestoneProgress this[Milestone milestone] => _milestones[(int)milestone];
 
-    /// <summary>Completes a milestone, or says which rule stops it. Business rules never throw.</summary>
+    /// <summary>
+    /// Completes a milestone, or says which rule stops it. Business rules never throw. The aggregate checks the rules
+    /// between milestones (order, dates, practical completion last); the milestone's state decides whether it can complete.
+    /// </summary>
     public CompleteResult Complete(Milestone milestone, string siteManager, DateOnly on)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(siteManager);
         var target = this[milestone];
         var previous = milestone == Order[0] ? null : this[milestone - 1];
-        switch (target.Status)
+        if (target.State is Completed done)
         {
-            case MilestoneStatus.Completed:
-                return new AlreadyCompleted(milestone, target.CompletedOn!.Value);
-            case MilestoneStatus.NotStarted when milestone == Milestone.PracticalCompletion:
-                return new EarlierMilestonesOpen(milestone, [.. _milestones.Where(m => m.Milestone < milestone && m.Status != MilestoneStatus.Completed).Select(m => m.Milestone)]);
-            case MilestoneStatus.NotStarted:
-                return new OutOfOrder(milestone, previous!.Milestone);
-            case MilestoneStatus.InProgress when previous is { CompletedOn: { } previousOn } && on < previousOn:
-                return new CompletedBeforePrevious(milestone, on, previous.Milestone, previousOn);
-            case MilestoneStatus.InProgress:
-                target.Complete(siteManager, on);
-                if (milestone != Order[^1])
-                {
-                    this[milestone + 1].Start();
-                }
-
-                return new MilestoneDone(milestone, on);
-            default:
-                throw new InvalidOperationException($"Unknown milestone status {target.Status}.");
+            return new AlreadyCompleted(milestone, done.On);
         }
+
+        if (milestone == Milestone.PracticalCompletion && _milestones.Where(m => m.Milestone < milestone && !m.IsDone).Select(m => m.Milestone).ToList() is { Count: > 0 } open)
+        {
+            return new EarlierMilestonesOpen(milestone, open);
+        }
+
+        if (previous is { IsDone: false })
+        {
+            return new OutOfOrder(milestone, previous.Milestone);
+        }
+
+        if (previous?.State is Completed { On: var previousOn } && on < previousOn)
+        {
+            return new CompletedBeforePrevious(milestone, on, previous.Milestone, previousOn);
+        }
+
+        if (target.Apply(target.State.Complete(on, siteManager)).Value is TransitionRefused refused)
+        {
+            return new MilestoneNotCompletable(milestone, refused.Reason);
+        }
+
+        if (milestone != Order[^1])
+        {
+            var next = this[milestone + 1];
+            next.Apply(next.State.Start());
+        }
+
+        return new MilestoneDone(milestone, on);
     }
 
     /// <summary>Records the site team's notes on a milestone (staff-only fields; no rule depends on them).</summary>
@@ -155,7 +192,10 @@ public sealed record CompletedBeforePrevious(Milestone Milestone, DateOnly On, M
 
 public sealed record EarlierMilestonesOpen(Milestone Milestone, IReadOnlyList<Milestone> Open);
 
-public union CompleteResult(MilestoneDone, AlreadyCompleted, OutOfOrder, CompletedBeforePrevious, EarlierMilestonesOpen);
+/// <summary>The milestone's own state refused (for example, it was skipped).</summary>
+public sealed record MilestoneNotCompletable(Milestone Milestone, string Reason);
+
+public union CompleteResult(MilestoneDone, AlreadyCompleted, OutOfOrder, CompletedBeforePrevious, EarlierMilestonesOpen, MilestoneNotCompletable);
 
 /// <summary>
 /// A site diary entry: its own aggregate, referencing the unit by ID. No milestone rule needs it in the same

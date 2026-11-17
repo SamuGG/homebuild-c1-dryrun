@@ -44,9 +44,9 @@ internal static class GetBuyerProgressEndpoint
             .Select(r =>
             {
                 var steps = progressByUnit[r.UnitId].Milestones;
-                var done = steps.Count(s => s.Status == MilestoneStatus.Completed);
-                var current = steps.FirstOrDefault(s => s.Status != MilestoneStatus.Completed);
-                var next = steps.SkipWhile(s => s.Status == MilestoneStatus.Completed).Skip(1).FirstOrDefault();
+                var done = steps.Count(s => s.Status is MilestoneStatus.Completed or MilestoneStatus.Skipped);
+                var current = steps.FirstOrDefault(s => s.Status is not (MilestoneStatus.Completed or MilestoneStatus.Skipped));
+                var next = steps.SkipWhile(s => s.Status is MilestoneStatus.Completed or MilestoneStatus.Skipped).Skip(1).FirstOrDefault();
                 var progress = new BuyerProgress(
                     current is null ? "Ready to move in" : BuildProgressReader.DisplayName(current.Milestone), done, steps.Count,
                     next is null ? null : BuildProgressReader.DisplayName(next.Milestone));
