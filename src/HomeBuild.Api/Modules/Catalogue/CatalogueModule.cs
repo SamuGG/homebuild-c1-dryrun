@@ -1,6 +1,7 @@
 using HomeBuild.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using HomeBuild.Api.Http;
+using HomeBuild.Api.Modules.Catalogue.ListPriceChanges;
 using HomeBuild.Api.Modules.Catalogue.CreateDevelopment;
 using HomeBuild.Api.Modules.Catalogue.EditDevelopment;
 using HomeBuild.Api.Modules.Catalogue.EditUnit;
@@ -60,6 +61,7 @@ public static class CatalogueModule
         group.MapListUnits();
         group.MapSearchUnits();
         group.MapGetUnit();
+        group.MapListPriceChanges();
 
         // The development page shows Sales data (latest reservations), so it needs a signed-in user.
         var signedIn = endpoints.MapVersionedGroup().WithTags(Name).AddEndpointFilter<RejectDefaultUnitIdFilter>();

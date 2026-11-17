@@ -23,11 +23,22 @@ internal static class EditUnitEndpoint
             .RequireAuthorization(Policies.CanManageCatalogue);
 
     private static async Task<Results<NoContent, NotFound>> Handle(
-        UnitId unitId, EditUnitRequest request, CatalogueDbContext db, CancellationToken cancellationToken)
+        UnitId unitId, EditUnitRequest request, CatalogueDbContext db, TimeProvider time, CancellationToken cancellationToken)
     {
         if (await db.Units.SingleOrDefaultAsync(u => u.Id == unitId, cancellationToken) is not { } unit)
         {
             return TypedResults.NotFound();
+        }
+
+        if (request.Price != unit.Price.Amount)
+        {
+            // C7 Lab 6: keep the price history C3 created. The first change also records the price it replaces.
+            if (!await db.UnitPrices.AnyAsync(p => p.UnitId == unitId, cancellationToken))
+            {
+                db.UnitPrices.Add(new UnitPrice(Guid.CreateVersion7(), unit.Id, unit.DevelopmentId, unit.Price.Amount, unit.Price.Currency, DateTimeOffset.UnixEpoch));
+            }
+
+            db.UnitPrices.Add(new UnitPrice(Guid.CreateVersion7(), unit.Id, unit.DevelopmentId, request.Price, unit.Price.Currency, time.GetUtcNow()));
         }
 
         unit.ChangePrice(new Money(request.Price, unit.Price.Currency));
