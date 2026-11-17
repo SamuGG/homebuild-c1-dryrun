@@ -19,7 +19,8 @@ public sealed class ReferenceTests
         new(typeof(HomeBuild.Payments.DepositPayments).Assembly, ["HomeBuild.Domain"], []),
         new(typeof(HomeBuild.Payments.Infrastructure.PaymentsInfrastructure).Assembly,
             ["HomeBuild.Domain", "HomeBuild.Payments.Core"], ["Microsoft.EntityFrameworkCore", "Microsoft.Extensions.", "Npgsql"]),
-        new(typeof(HomeBuild.Api.Modules.Catalogue.CatalogueModule).Assembly, ["HomeBuild.Domain"], ["*"]),
+        // C7 Lab 5: the API hosts Payments' core (use cases, ports) and owns its adapters; never Payments.Infrastructure.
+        new(typeof(HomeBuild.Api.Modules.Catalogue.CatalogueModule).Assembly, ["HomeBuild.Domain", "HomeBuild.Payments.Core"], ["*"]),
         new(typeof(HomeBuild.Web.Components.App).Assembly, [], ["Microsoft.AspNetCore", "Microsoft.Extensions.", "Microsoft.IdentityModel.", "Microsoft.JSInterop"]),
     ];
 

@@ -120,5 +120,8 @@ public sealed class ErrorTests(PostgresFixture database) : IAsyncLifetime
 
         public Task<IReadOnlyDictionary<UnitId, PlotSummary>> PlotsAsync(IReadOnlyCollection<UnitId> unitIds, CancellationToken cancellationToken = default) =>
             throw new InvalidOperationException(Secret);
+
+        public Task<UnitListPrice?> PriceOfAsync(UnitId unitId, CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException(Secret);
     }
 }

@@ -4,6 +4,9 @@ using HomeBuild.Api.Http;
 using HomeBuild.Api.Modules.Accounts;
 using HomeBuild.Api.Modules.Catalogue;
 using HomeBuild.Api.Modules.Sales;
+using HomeBuild.Api.Modules.Payments;
+using HomeBuild.Api.Modules.Extras;
+using HomeBuild.Api.Modules.Notifications;
 
 var builder = WebApplication.CreateBuilder(args);
 // The API takes small JSON bodies only; Kestrel's default 30 MB limit let a 2 MB reservation body through
@@ -39,6 +42,9 @@ builder.Services.AddCatalogueModule();
 builder.Services.AddSalesModule();
 builder.Services.AddAccountsModule();
 builder.Services.AddConstructionModule();
+builder.Services.AddPaymentsModule();
+builder.Services.AddExtrasModule();
+builder.Services.AddNotificationsModule();
 var app = builder.Build();
 
 // Pipeline order, one reason per line:
@@ -67,5 +73,8 @@ app.MapCatalogueModule();
 app.MapSalesModule();
 app.MapAccountsModule();
 app.MapConstructionModule();
+app.MapPaymentsModule();
+app.MapExtrasModule();
+app.MapNotificationsModule();
 
 app.Run();

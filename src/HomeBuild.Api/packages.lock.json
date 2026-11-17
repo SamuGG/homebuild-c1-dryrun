@@ -394,6 +394,12 @@
       "homebuild.domain": {
         "type": "Project"
       },
+      "homebuild.payments.core": {
+        "type": "Project",
+        "dependencies": {
+          "HomeBuild.Domain": "[1.0.0, )"
+        }
+      },
       "Microsoft.CodeAnalysis.CSharp": {
         "type": "CentralTransitive",
         "requested": "[5.9.0, )",

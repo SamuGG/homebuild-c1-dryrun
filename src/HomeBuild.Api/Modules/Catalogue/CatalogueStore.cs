@@ -53,6 +53,11 @@ internal sealed class EfCatalogueStore(CatalogueDbContext db) : ICatalogueStore,
                select new PlotSummary(u.Id, u.PlotNumber, d.Id, d.Name))
             .ToDictionaryAsync(p => p.UnitId, cancellationToken);
 
+    public async Task<UnitListPrice?> PriceOfAsync(UnitId unitId, CancellationToken cancellationToken = default) =>
+        await db.Units.AsNoTracking().Where(u => u.Id == unitId).SingleOrDefaultAsync(cancellationToken) is { } unit
+            ? new UnitListPrice(unit.Id, unit.DevelopmentId, unit.Price)
+            : null;
+
     public async Task<string> DepositStrategyForAsync(DevelopmentId developmentId, CancellationToken cancellationToken = default) =>
         await db.Developments.Where(d => d.Id == developmentId).Select(d => d.DepositStrategy).SingleOrDefaultAsync(cancellationToken)
         ?? "fixed";

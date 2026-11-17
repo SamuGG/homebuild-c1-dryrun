@@ -103,9 +103,10 @@ public sealed class MilestoneProgress
 /// referenced by ID. Diary entries and photos are evidence that no milestone rule reads, so they live in their own
 /// aggregate (<see cref="DiaryEntry"/>) and point at the unit.
 /// </summary>
-public sealed class BuildProgress
+public sealed class BuildProgress : IHasDomainEvents
 {
     private readonly List<MilestoneProgress> _milestones = [];
+    private readonly List<IDomainEvent> _events = [];
 
     private BuildProgress(UnitId unitId, DevelopmentId developmentId)
     {
@@ -120,6 +121,11 @@ public sealed class BuildProgress
     public DevelopmentId DevelopmentId { get; private set; }
 
     public IReadOnlyList<MilestoneProgress> Milestones => _milestones;
+
+    /// <summary>Events recorded since the aggregate was loaded or last saved (C7 Lab 5).</summary>
+    public IReadOnlyList<IDomainEvent> DomainEvents => _events;
+
+    public void ClearDomainEvents() => _events.Clear();
 
     /// <summary>Starts a unit's build: every milestone planned 21 days after the previous one, the first in progress.</summary>
     public static BuildProgress Start(UnitId unitId, DevelopmentId developmentId, DateOnly startOn, Func<Milestone, string>? subcontractor = null)
@@ -177,6 +183,7 @@ public sealed class BuildProgress
             next.Apply(next.State.Start());
         }
 
+        _events.Add(new MilestoneCompleted(UnitId, milestone, on));
         return new MilestoneDone(milestone, on);
     }
 

@@ -75,6 +75,7 @@ internal sealed class ConstructionDbContext(DbContextOptions<ConstructionDbConte
             // The aggregate is one row, so xmin versions the whole aggregate: two concurrent changes to any of its
             // milestones conflict (optimistic concurrency, as for Sales' units).
             progress.Property<uint>("Version").IsRowVersion();
+            progress.Ignore(p => p.DomainEvents); // dispatched after commit, never stored (C9's outbox will store them)
         });
 
         modelBuilder.Entity<DiaryEntry>(entry =>

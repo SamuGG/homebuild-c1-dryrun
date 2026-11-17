@@ -440,7 +440,7 @@
           "Asp.Versioning.Mvc.ApiExplorer": "[10.2.1, )",
           "EFCore.NamingConventions": "[10.0.1, )",
           "HomeBuild.Domain": "[1.0.0, )",
-          "HomeBuild.Payments.Infrastructure": "[1.0.0, )",
+          "HomeBuild.Payments.Core": "[1.0.0, )",
           "Microsoft.AspNetCore.Authentication.JwtBearer": "[11.0.0, )",
           "Microsoft.AspNetCore.OpenApi": "[11.0.0, )",
           "Microsoft.EntityFrameworkCore": "[10.0.15, )",
