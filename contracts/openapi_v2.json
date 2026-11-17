@@ -413,6 +413,43 @@
         }
       }
     },
+    "/v2/developments/{developmentId}/price-changes": {
+      "get": {
+        "tags": [
+          "Catalogue"
+        ],
+        "summary": "A development's units whose price has changed, latest change first (v2)",
+        "operationId": "ListPriceChangesV2",
+        "parameters": [
+          {
+            "name": "developmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PriceChange"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
     "/v2/developments/{developmentId}/page": {
       "get": {
         "tags": [
@@ -1226,6 +1263,40 @@
           }
         }
       }
+    },
+    "/v2/stage-payments/overdue": {
+      "get": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "Stage payments unpaid more than 14 days after they fell due, most overdue first (finance, v2)",
+        "operationId": "ListOverdueStagePaymentsV2",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OverdueStagePaymentResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1962,6 +2033,92 @@
           }
         }
       },
+      "OverdueStagePaymentResponse": {
+        "required": [
+          "unitId",
+          "milestone",
+          "amount",
+          "currency",
+          "dueFrom",
+          "daysOverdue"
+        ],
+        "type": "object",
+        "properties": {
+          "unitId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "milestone": {
+            "type": "string"
+          },
+          "amount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "dueFrom": {
+            "type": "string",
+            "format": "date"
+          },
+          "daysOverdue": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "PriceChange": {
+        "required": [
+          "unitId",
+          "plotNumber",
+          "previousPrice",
+          "currentPrice",
+          "currency",
+          "changedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "unitId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "plotNumber": {
+            "type": "string"
+          },
+          "previousPrice": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "currentPrice": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "changedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "PricePoint": {
         "required": [
           "amount",
@@ -2351,6 +2508,9 @@
     },
     {
       "name": "Construction"
+    },
+    {
+      "name": "Payments"
     },
     {
       "name": "Sales"
