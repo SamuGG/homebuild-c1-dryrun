@@ -51,6 +51,11 @@ API ↔ Cognito (4: keys fetched over HTTPS), API ↔ PostgreSQL (5: the API is 
 | E1 | API | Elevation of privilege: a forged group claim | Groups only from a validly signed token | red-team `13` → 401 |
 | E2 | API | Elevation of privilege: a staff action by a buyer (create a development, cancel after deposit) | Named role policies; ownership + state rule on cancel | `Access_table_is_enforced` (40 rows) |
 | E3 | API | Elevation of privilege: anonymous access to Sales data | Fallback policy requires an authenticated user | red-team `15` → 401; `Catalogue_reads_are_anonymous` |
+| E4 | API: site actions (C7) | Elevation of privilege: a site manager completes milestones or writes the diary of a development they are not assigned to | Role policy `CanWorkOnSite`, then `SiteAssignmentHandler` (resource-based, on the unit's development) | `Each_site_manager_acts_only_on_their_own_development`, `Role_and_action_table_is_enforced`; red-team `17`, `18` → 403 |
+| E5 | API: site actions (C7) | Elevation of privilege: a buyer or other staff completes or corrects a milestone | Role policies: completion and diary for site managers, correction for admins | `Role_and_action_table_is_enforced` (32 rows); red-team `19`, `21` → 403 |
+| T5 | API: site actions (C7) | Tampering: a forged assignment (`developmentId` of the attacker's own development in the body) | The development comes from the unit's `BuildProgress`; request bodies carry no development | `Development_in_the_body_is_ignored`; red-team `20` → 403 |
+| T6 | API: site diary (C7) | Tampering: a diary entry pointing at another unit's or tenant's S3 object | Photo keys must match `diary/{tenant}/{unit}/{guid}.jpg` for the caller's tenant and the unit | `Diary_entry_rejects_photo_keys_outside_its_own_diary_prefix` |
+| R2 | API: milestones (C7) | Repudiation: staff deny completing or correcting a milestone that money depends on | `construction.milestone_audit`: who, when, from, to and reason, in the same transaction; corrections need a reason | `Correction_requires_reason_and_is_audited` |
 
 ## Findings from the red team (productive failure)
 

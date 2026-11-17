@@ -87,6 +87,8 @@ public sealed class MilestoneProgress
     /// <summary>Completed or skipped: nothing more to do, and the next milestone may follow.</summary>
     internal bool IsDone => State is Completed or Skipped;
 
+    internal void Correct(DateOnly completedOn) => CompletedOn = completedOn;
+
     internal void Note(string siteNotes, int openDefects)
     {
         SiteNotes = siteNotes;
@@ -178,6 +180,34 @@ public sealed class BuildProgress
         return new MilestoneDone(milestone, on);
     }
 
+    /// <summary>
+    /// An admin's correction of a completed milestone's date. It needs a reason, and the corrected date must still sit
+    /// between the previous and the next completed milestones. The caller records who corrected it and why (audit).
+    /// </summary>
+    public CorrectResult CorrectCompletion(Milestone milestone, DateOnly completedOn, string reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            return new ReasonRequired(milestone);
+        }
+
+        var target = this[milestone];
+        if (target.State is not Completed completed)
+        {
+            return new NotCompleted(milestone, MilestoneState.Describe(target.State));
+        }
+
+        var previous = milestone == Order[0] ? null : this[milestone - 1];
+        var next = milestone == Order[^1] ? null : this[milestone + 1];
+        if ((previous?.State is Completed p && completedOn < p.On) || (next?.State is Completed n && completedOn > n.On))
+        {
+            return new CorrectionBreaksOrder(milestone, completedOn);
+        }
+
+        target.Correct(completedOn);
+        return new CompletionCorrected(milestone, completed.On, completedOn, completed.SiteManager);
+    }
+
     /// <summary>Records the site team's notes on a milestone (staff-only fields; no rule depends on them).</summary>
     public void Note(Milestone milestone, string siteNotes, int openDefects) => this[milestone].Note(siteNotes, openDefects);
 }
@@ -195,19 +225,58 @@ public sealed record EarlierMilestonesOpen(Milestone Milestone, IReadOnlyList<Mi
 /// <summary>The milestone's own state refused (for example, it was skipped).</summary>
 public sealed record MilestoneNotCompletable(Milestone Milestone, string Reason);
 
+public sealed record CompletionCorrected(Milestone Milestone, DateOnly From, DateOnly To, string CompletedBy);
+
+public sealed record ReasonRequired(Milestone Milestone);
+
+public sealed record NotCompleted(Milestone Milestone, string State);
+
+public sealed record CorrectionBreaksOrder(Milestone Milestone, DateOnly CompletedOn);
+
+public union CorrectResult(CompletionCorrected, ReasonRequired, NotCompleted, CorrectionBreaksOrder);
+
 public union CompleteResult(MilestoneDone, AlreadyCompleted, OutOfOrder, CompletedBeforePrevious, EarlierMilestonesOpen, MilestoneNotCompletable);
 
 /// <summary>
 /// A site diary entry: its own aggregate, referencing the unit by ID. No milestone rule needs it in the same
-/// transaction, so adding one never loads or locks the unit's milestones (C7 Lab 1; Lab 4 adds weather and photos).
+/// transaction, so adding one never loads or locks the unit's milestones (C7 Lab 1). Lab 4 adds the weather, the
+/// author and photos (S3 keys under diary/, uploaded straight from the browser as in C5).
 /// </summary>
-public sealed class DiaryEntry(DiaryEntryId id, UnitId unitId, DateOnly writtenOn, string text)
+public sealed class DiaryEntry
 {
-    public DiaryEntryId Id { get; private set; } = id;
+    public DiaryEntry(DiaryEntryId id, UnitId unitId, DateOnly writtenOn, string text, string weather = "", string writtenBy = "", IReadOnlyList<string>? photoKeys = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(text);
+        Id = id;
+        UnitId = unitId;
+        WrittenOn = writtenOn;
+        Text = text;
+        Weather = weather;
+        WrittenBy = writtenBy;
+        PhotoKeys = [.. photoKeys ?? []];
+    }
 
-    public UnitId UnitId { get; private set; } = unitId;
+    // For EF Core.
+    private DiaryEntry()
+    {
+        Text = "";
+        Weather = "";
+        WrittenBy = "";
+        PhotoKeys = [];
+    }
 
-    public DateOnly WrittenOn { get; private set; } = writtenOn;
+    public DiaryEntryId Id { get; private set; }
 
-    public string Text { get; private set; } = text;
+    public UnitId UnitId { get; private set; }
+
+    public DateOnly WrittenOn { get; private set; }
+
+    public string Text { get; private set; }
+
+    public string Weather { get; private set; }
+
+    /// <summary>The site manager who wrote it: a user ID.</summary>
+    public string WrittenBy { get; private set; }
+
+    public IReadOnlyList<string> PhotoKeys { get; private set; }
 }

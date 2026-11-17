@@ -1,0 +1,26 @@
+meta {
+  name: Buyer corrects a milestone
+  type: http
+  seq: 21
+}
+
+post {
+  url: {{baseUrlV2}}/units/{{riversidePlot1}}/milestones/Foundations/correction
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{accessToken}}
+}
+
+body:json {
+  {
+    "completedOn": "2026-06-20",
+    "reason": "I would like it earlier"
+  }
+}
+
+assert {
+  res.status: eq 403
+}

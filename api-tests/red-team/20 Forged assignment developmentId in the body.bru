@@ -1,0 +1,31 @@
+meta {
+  name: Forged assignment developmentId in the body
+  type: http
+  seq: 20
+}
+
+docs {
+  The Hillcrest site manager names Hillcrest (where they are assigned) in the body of a request for a Riverside unit.
+  The API must check the development it holds for the unit, not the one the request names.
+}
+
+post {
+  url: {{baseUrlV2}}/units/{{riversidePlot1}}/milestones/Frame/completion
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{hillcrestSiteManagerToken}}
+}
+
+body:json {
+  {
+    "completedOn": "2026-11-17",
+    "developmentId": "{{hillcrest}}"
+  }
+}
+
+assert {
+  res.status: eq 403
+}

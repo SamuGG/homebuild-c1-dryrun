@@ -26,6 +26,10 @@ internal sealed class ConstructionDbContext(DbContextOptions<ConstructionDbConte
 
     public DbSet<DiaryEntry> DiaryEntries => Set<DiaryEntry>();
 
+    public DbSet<SiteAssignment> SiteAssignments => Set<SiteAssignment>();
+
+    public DbSet<MilestoneAudit> MilestoneAudits => Set<MilestoneAudit>();
+
     // Every save runs in a transaction, as in Sales, so TenantCommandInterceptor sets app.tenant_id at TransactionStarted.
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
@@ -80,11 +84,34 @@ internal sealed class ConstructionDbContext(DbContextOptions<ConstructionDbConte
             entry.Property(e => e.UnitId);
             entry.Property(e => e.WrittenOn);
             entry.Property(e => e.Text).HasMaxLength(4000);
+            entry.Property(e => e.Weather).HasMaxLength(100);
+            entry.Property(e => e.WrittenBy).HasMaxLength(100);
+            entry.Property(e => e.PhotoKeys);
             entry.HasIndex(e => new { e.UnitId, e.WrittenOn });
+        });
+
+        modelBuilder.Entity<SiteAssignment>(assignment =>
+        {
+            assignment.ToTable("site_assignments");
+            assignment.HasKey(a => new { a.SiteManager, a.DevelopmentId });
+            assignment.Property(a => a.SiteManager).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<MilestoneAudit>(audit =>
+        {
+            audit.ToTable("milestone_audit");
+            audit.HasKey(a => a.Id);
+            audit.Property(a => a.Milestone).HasConversion<string>().HasMaxLength(40);
+            audit.Property(a => a.Action).HasMaxLength(20);
+            audit.Property(a => a.By).HasMaxLength(100);
+            audit.Property(a => a.Reason).HasMaxLength(1000);
+            audit.HasIndex(a => new { a.UnitId, a.At });
         });
 
         modelBuilder.Entity<BuildProgress>().HasTenant(this);
         modelBuilder.Entity<DiaryEntry>().HasTenant(this);
+        modelBuilder.Entity<SiteAssignment>().HasTenant(this);
+        modelBuilder.Entity<MilestoneAudit>().HasTenant(this);
     }
 
     /// <summary>
@@ -105,6 +132,10 @@ internal sealed class ConstructionDbContext(DbContextOptions<ConstructionDbConte
             context.Entry(context.BuildProgress.Add(progress).Entity).Property(TenantModel.TenantId).CurrentValue = SeedData.DemoTenant;
         }
 
+        context.Entry(context.SiteAssignments.Add(new SiteAssignment(SeedData.RiversideSiteManager, SeedData.Riverside)).Entity)
+            .Property(TenantModel.TenantId).CurrentValue = SeedData.DemoTenant;
+        context.Entry(context.SiteAssignments.Add(new SiteAssignment(SeedData.HillcrestSiteManager, SeedData.Hillcrest)).Entity)
+            .Property(TenantModel.TenantId).CurrentValue = SeedData.DemoTenant;
         await context.SaveChangesAsync(cancellationToken);
     }
 

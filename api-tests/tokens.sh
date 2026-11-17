@@ -8,6 +8,8 @@ mint() { dotnet user-jwts create --project "$project" --name "$1" --output token
 
 access=$(mint 11111111-1111-1111-1111-111111111111 --claim token_use=access --claim client_id="$client" --claim cognito:groups=buyer)
 buyer2=$(mint 22222222-2222-2222-2222-222222222222 --claim token_use=access --claim client_id="$client" --claim cognito:groups=buyer)
+# C7 Lab 4: the site manager assigned to Hillcrest only (seeded membership and assignment).
+hillcrest=$(mint 44444444-4444-4444-4444-444444444444 --claim token_use=access --claim client_id="$client" --claim cognito:groups=site-manager)
 # An ID token: token_use=id and no client_id (Cognito puts the client in aud instead).
 id=$(mint 11111111-1111-1111-1111-111111111111 --claim token_use=id --claim cognito:groups=buyer)
 # A role escalation: buyer 1's valid token with the payload rewritten to the admin group, original signature kept.
@@ -20,4 +22,4 @@ forged = base64.urlsafe_b64encode(json.dumps(claims, separators=(',', ':')).enco
 print(f'{header}.{forged}.{signature}')
 PY
 )
-printf 'BRUNO_ACCESS_TOKEN=%s\nBRUNO_BUYER2_TOKEN=%s\nBRUNO_ID_TOKEN=%s\nBRUNO_FORGED_ADMIN_TOKEN=%s\n' "$access" "$buyer2" "$id" "$forged"
+printf 'BRUNO_ACCESS_TOKEN=%s\nBRUNO_BUYER2_TOKEN=%s\nBRUNO_ID_TOKEN=%s\nBRUNO_FORGED_ADMIN_TOKEN=%s\nBRUNO_HILLCREST_SITE_MANAGER_TOKEN=%s\n' "$access" "$buyer2" "$id" "$forged" "$hillcrest"

@@ -111,6 +111,12 @@ public sealed class PostgresFixture : IAsyncLifetime
         }
 
         await accounts.SaveChangesAsync();
+
+        // C7 Lab 4: the test site managers' assignments (the seeded ones belong to Bruno's site managers).
+        await using var construction = HomeBuild.Api.Modules.Construction.ConstructionModule.CreateDbContext(connectionString, TestTenants.Demo);
+        construction.SiteAssignments.Add(new(TestTokens.Users.Staff("site-manager").ToString(), HomeBuild.Api.Data.SeedData.Riverside));
+        construction.SiteAssignments.Add(new(TestTokens.Users.HillcrestSiteManager.ToString(), HomeBuild.Api.Data.SeedData.Hillcrest));
+        await construction.SaveChangesAsync();
     }
 
     /// <summary>The connection string the application uses: the non-owner role that row-level security applies to.</summary>

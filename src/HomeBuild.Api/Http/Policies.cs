@@ -27,6 +27,8 @@ public static class Policies
     public const string CanReadPayments = nameof(CanReadPayments);
     public const string CanViewBuildBoard = nameof(CanViewBuildBoard);
     public const string CanReadOwnProgress = nameof(CanReadOwnProgress);
+    public const string CanWorkOnSite = nameof(CanWorkOnSite);
+    public const string CanCorrectMilestones = nameof(CanCorrectMilestones);
 
     public static IServiceCollection AddHomeBuildPolicies(this IServiceCollection services)
     {
@@ -38,7 +40,10 @@ public static class Policies
             .AddPolicy(CanCancelReservations, p => p.RequireRole(Roles.Buyer, Roles.SalesAgent, Roles.Admin))
             .AddPolicy(CanReadPayments, p => p.RequireRole(Roles.Buyer, Roles.Finance, Roles.Admin))
             .AddPolicy(CanViewBuildBoard, p => p.RequireRole(Roles.SiteManager, Roles.Admin))
-            .AddPolicy(CanReadOwnProgress, p => p.RequireRole(Roles.Buyer));
+            .AddPolicy(CanReadOwnProgress, p => p.RequireRole(Roles.Buyer))
+            // C7 Lab 4: the role says a site manager may try; the assignment check (SiteAssignmentHandler) says on which development.
+            .AddPolicy(CanWorkOnSite, p => p.RequireRole(Roles.SiteManager))
+            .AddPolicy(CanCorrectMilestones, p => p.RequireRole(Roles.Admin));
         // Singleton: the handler is stateless.
         services.AddSingleton<IAuthorizationHandler, ReservationAccessHandler>();
         return services;

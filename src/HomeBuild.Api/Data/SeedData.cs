@@ -14,6 +14,11 @@ internal static class SeedData
     /// <summary>A second buyer in the demo tenant: the red-team collection's BOLA victim.</summary>
     public const string DemoBuyer2 = "22222222-2222-2222-2222-222222222222";
 
+    /// <summary>The demo tenant's site managers (C7 Lab 4): one assigned to Riverside, one to Hillcrest.</summary>
+    public const string RiversideSiteManager = "33333333-3333-3333-3333-333333333333";
+
+    public const string HillcrestSiteManager = "44444444-4444-4444-4444-444444444444";
+
     public static readonly DevelopmentId Riverside = new(Guid.Parse("0198a000-0000-7000-8000-000000000001"));
     public static readonly DevelopmentId Hillcrest = new(Guid.Parse("0198a000-0000-7000-8000-000000000002"));
 
