@@ -20,10 +20,12 @@ public static class PaymentsModule
         services.AddDbContext<PaymentsDbContext>((sp, options) => Configure(options, HomeBuildDatabase.ConnectionString(sp))
             .AddInterceptors(new TenantCommandInterceptor(sp.GetRequiredService<ITenantContext>())));
         // Scoped: adapters over scoped DbContexts and Catalogue's scoped queries.
-        services.AddScoped<IStagePaymentStore, EfStagePaymentStore>();
+        services.AddScoped<IPaymentStore, EfStagePaymentStore>();
         services.AddScoped<IUnitTerms, CatalogueUnitTerms>();
         // Scoped: a handler of Construction's MilestoneCompleted (C7 Lab 5), resolved by the dispatcher in the request's scope.
         services.AddScoped<IHandleDomainEvent<MilestoneCompleted>, RecordStagePaymentDue>();
+        // MarkPaid is not registered yet: it needs an IPaymentGateway, and the Stripe adapter arrives in C8 (the host's DI
+        // validation refuses a use case whose port has no adapter). Its tests use the fake gateway.
         return services;
     }
 
@@ -57,11 +59,20 @@ internal sealed class CatalogueUnitTerms(ICatalogueQueries catalogue) : IUnitTer
             : null;
 }
 
-/// <summary>Adapter for <see cref="IStagePaymentStore"/>: EF Core, schema payments, one row per unit and milestone.</summary>
-internal sealed class EfStagePaymentStore(PaymentsDbContext db) : IStagePaymentStore
+/// <summary>Adapter for <see cref="IPaymentStore"/>: EF Core, schema payments, one row per unit and milestone.</summary>
+internal sealed class EfStagePaymentStore(PaymentsDbContext db) : IPaymentStore
 {
     public Task<bool> ExistsAsync(UnitId unitId, Milestone milestone, CancellationToken cancellationToken) =>
         db.StagePayments.AnyAsync(p => p.UnitId == unitId && p.Milestone == milestone, cancellationToken);
+
+    public async Task<StoredStagePayment?> FindAsync(UnitId unitId, Milestone milestone, CancellationToken cancellationToken) =>
+        await db.StagePayments.AsNoTracking().SingleOrDefaultAsync(p => p.UnitId == unitId && p.Milestone == milestone, cancellationToken) is { } row
+            ? new StoredStagePayment(new DueStagePayment(row.UnitId, row.Milestone, new Money(row.Amount, row.Currency), row.DueFrom), row.PaidAt, row.ProviderReference)
+            : null;
+
+    public Task MarkPaidAsync(UnitId unitId, Milestone milestone, string providerReference, DateTimeOffset paidAt, CancellationToken cancellationToken) =>
+        db.StagePayments.Where(p => p.UnitId == unitId && p.Milestone == milestone && p.PaidAt == null)
+            .ExecuteUpdateAsync(set => set.SetProperty(p => p.PaidAt, paidAt).SetProperty(p => p.ProviderReference, providerReference), cancellationToken);
 
     public async Task<bool> AddAsync(DueStagePayment payment, CancellationToken cancellationToken)
     {
@@ -97,6 +108,10 @@ internal sealed class StagePaymentRow
     public required string Currency { get; init; }
 
     public required DateOnly DueFrom { get; init; }
+
+    public DateTimeOffset? PaidAt { get; init; }
+
+    public string? ProviderReference { get; init; }
 }
 
 /// <summary>Payments' tables in the API's database, schema payments (C7 Lab 5: due stage payments).</summary>
@@ -135,6 +150,7 @@ internal sealed class PaymentsDbContext(DbContextOptions<PaymentsDbContext> opti
             payment.Property(p => p.Milestone).HasConversion<string>().HasMaxLength(40);
             payment.Property(p => p.Amount).HasPrecision(12, 2);
             payment.Property(p => p.Currency).HasMaxLength(3).IsFixedLength();
+            payment.Property(p => p.ProviderReference).HasMaxLength(200);
             // Idempotency's final guard: one due payment per unit and milestone, however often the event arrives.
             payment.HasIndex(p => new { p.UnitId, p.Milestone }).IsUnique();
         });

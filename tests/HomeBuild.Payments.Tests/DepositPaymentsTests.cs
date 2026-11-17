@@ -65,19 +65,6 @@ public sealed class DepositPaymentsTests
         return (new DepositPayments(gateway, records, TimeProvider.System), gateway, records);
     }
 
-    private sealed class FakeGateway : IPaymentGateway
-    {
-        public List<string> Keys { get; } = [];
-
-        public string? Decline { get; set; }
-
-        public Task<GatewayCharge> ChargeAsync(Money amount, string paymentMethodToken, string idempotencyKey, CancellationToken cancellationToken)
-        {
-            Keys.Add(idempotencyKey);
-            return Task.FromResult(Decline is null ? new GatewayCharge(true, $"ch_{Keys.Count}", null) : new GatewayCharge(false, null, Decline));
-        }
-    }
-
     private sealed class FakeRecords : IPaymentRecords
     {
         public Dictionary<ReservationId, DepositPaid> Stored { get; } = [];
