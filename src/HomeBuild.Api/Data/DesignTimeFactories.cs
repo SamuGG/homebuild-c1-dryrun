@@ -1,6 +1,7 @@
 using HomeBuild.Api.Modules.Accounts;
 using HomeBuild.Api.Modules.Catalogue;
 using HomeBuild.Api.Modules.Construction;
+using HomeBuild.Api.Modules.Payments;
 using HomeBuild.Api.Modules.Sales;
 using Microsoft.EntityFrameworkCore.Design;
 
@@ -34,4 +35,9 @@ internal sealed class AccountsDesignTimeFactory : IDesignTimeDbContextFactory<Ac
 internal sealed class ConstructionDesignTimeFactory : IDesignTimeDbContextFactory<ConstructionDbContext>
 {
     public ConstructionDbContext CreateDbContext(string[] args) => ConstructionModule.CreateDbContext(DesignTime.ConnectionString);
+}
+
+internal sealed class PaymentsDesignTimeFactory : IDesignTimeDbContextFactory<PaymentsDbContext>
+{
+    public PaymentsDbContext CreateDbContext(string[] args) => PaymentsModule.CreateDbContext(DesignTime.ConnectionString);
 }
