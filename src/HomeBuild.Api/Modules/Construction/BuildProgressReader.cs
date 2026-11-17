@@ -20,6 +20,27 @@ internal sealed class BuildProgressReader(ConstructionDbContext db)
             : BuildProgress.Start(u.Unit, u.Development, DateOnly.FromDateTime(DateTime.UnixEpoch)));
     }
 
+    /// <summary>
+    /// The units among <paramref name="unitIds"/> whose saved build progress meets <paramref name="specification"/>, filtered
+    /// in PostgreSQL. A unit whose build has not started has no progress to meet a specification, so it never matches.
+    /// </summary>
+    public async Task<HashSet<UnitId>> MatchingAsync(
+        Specification<BuildProgress> specification, IReadOnlyCollection<UnitId> unitIds, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(specification);
+        var ids = unitIds.ToList();
+        return [.. await db.BuildProgress.Where(p => ids.Contains(p.UnitId)).Where(specification.ToExpression())
+            .Select(p => p.UnitId).ToListAsync(cancellationToken)];
+    }
+
+    /// <summary>The board's named filters: the specifications site staff ask for, or null for an unknown name.</summary>
+    public static Specification<BuildProgress>? Filter(string show, DateOnly today) => show switch
+    {
+        "behind-schedule" => new BehindSchedule(today),
+        "ready-for-handover" => BoardSpecifications.ReadyForHandover(),
+        _ => null,
+    };
+
     /// <summary>The name the board and the buyer view show for a milestone (C5's wording).</summary>
     public static string DisplayName(Milestone milestone) => milestone switch
     {
