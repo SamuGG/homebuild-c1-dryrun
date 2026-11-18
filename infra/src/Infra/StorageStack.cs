@@ -95,6 +95,37 @@ public sealed class StorageStack : Stack
             }
         }
 
+        // C9 Lab 3: the provider Lambda first runs at cdk destroy, and Lambda would then create its log group with no
+        // retention and leave it behind. Declare that log group here (1 day, deleted with the stack) and make the
+        // emptying custom resource depend on it, so CloudFormation deletes the log group only after the Lambda ran.
+        if (Node.TryFindChild("Custom::S3AutoDeleteObjectsCustomResourceProvider")?.Node.TryFindChild("Handler") is CfnResource handler
+            && bucket.Node.TryFindChild("AutoDeleteObjectsCustomResource") is Construct emptying)
+        {
+            var providerLogs = new Amazon.CDK.AWS.Logs.LogGroup(this, "AutoDeleteObjectsLogs", new Amazon.CDK.AWS.Logs.LogGroupProps
+            {
+                LogGroupName = Fn.Join("", ["/aws/lambda/", handler.Ref]),
+                Retention = Amazon.CDK.AWS.Logs.RetentionDays.ONE_DAY,
+                RemovalPolicy = RemovalPolicy.DESTROY,
+            });
+            emptying.Node.AddDependency(providerLogs);
+        }
+
+        // C9 Lab 3: the contract worker (role from HomeBuild-Messaging, referenced by name so the stacks stay
+        // independent) writes contract packs under contracts/, and nothing else in the bucket.
+        var contractWorker = Role.FromRoleName(this, "ContractWorker", "homebuild-worker-contracts");
+        contractWorker.AttachInlinePolicy(new Policy(this, "ContractWorkerWritesContracts", new PolicyProps
+        {
+            Statements =
+            [
+                new PolicyStatement(new PolicyStatementProps
+                {
+                    Sid = "WriteContractPacks",
+                    Actions = ["s3:PutObject"],
+                    Resources = [bucket.ArnForObjects("contracts/*")],
+                }),
+            ],
+        }));
+
         _ = new CfnOutput(this, "BucketName", new CfnOutputProps { Value = bucket.BucketName });
         _ = new CfnOutput(this, "UploadRoleArn", new CfnOutputProps { Value = UploadRole.RoleArn });
     }
