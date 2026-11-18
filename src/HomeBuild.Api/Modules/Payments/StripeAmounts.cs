@@ -54,6 +54,15 @@ internal static class StripeAmounts
         return (long)minor;
     }
 
+    /// <summary>The inverse, for amounts Stripe reports (webhooks, reconciliation): 500000 gbp is 5000.00 GBP.</summary>
+    public static Money FromMinorUnits(long minor, string stripeCurrency)
+    {
+        ArgumentNullException.ThrowIfNull(stripeCurrency);
+        var currency = stripeCurrency.ToUpperInvariant();
+        var factor = ZeroDecimal.Contains(currency) ? 1m : ThreeDecimal.Contains(currency) ? 1000m : 100m;
+        return new Money(minor / factor, currency);
+    }
+
     /// <summary>Stripe's currency codes are lowercase.</summary>
     public static string Currency(Money money)
     {

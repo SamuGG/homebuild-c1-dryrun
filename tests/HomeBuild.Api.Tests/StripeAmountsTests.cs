@@ -30,6 +30,15 @@ public sealed class StripeAmountsTests
     public void Refuses_amounts_Stripe_cannot_charge_exactly(string amount, string currency) =>
         Assert.Throws<ArgumentException>(() => StripeAmounts.ToMinorUnits(new Money(decimal.Parse(amount, System.Globalization.CultureInfo.InvariantCulture), currency)));
 
+    // C8 Lab 2: amounts Stripe reports back (webhooks) turn into Money the same way in reverse.
+    [Theory]
+    [InlineData(500_000, "gbp", "5000", "GBP")]
+    [InlineData(500, "jpy", "500", "JPY")]
+    [InlineData(500, "isk", "5", "ISK")]
+    [InlineData(1_230, "kwd", "1.23", "KWD")]
+    public void Converts_from_minor_units(long minor, string currency, string amount, string expectedCurrency) =>
+        Assert.Equal(new Money(decimal.Parse(amount, System.Globalization.CultureInfo.InvariantCulture), expectedCurrency), StripeAmounts.FromMinorUnits(minor, currency));
+
     [Fact]
     public void Currency_is_lowercase() => Assert.Equal("gbp", StripeAmounts.Currency(new Money(1m, "GBP")));
 }

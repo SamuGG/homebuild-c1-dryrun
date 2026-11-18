@@ -17,6 +17,10 @@ public sealed class PaymentsOptions
 
     public string? PublishableKey { get; set; }
 
+    /// <summary>The webhook endpoint's signing secret (whsec_…): `stripe listen` locally, the dashboard endpoint in AWS.</summary>
+    [Secret]
+    public string? WebhookSecret { get; set; }
+
     /// <summary>The web app's base URL: Checkout's success and cancel pages are in its My Home (C8 Lab 1). Not a secret.</summary>
     public Uri? WebBaseUrl { get; set; }
 }
