@@ -2,6 +2,7 @@ using System.Diagnostics;
 using HomeBuild.Domain;
 using HomeBuild.Messaging;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace HomeBuild.Workers.Tests;
 
@@ -81,6 +82,65 @@ public sealed class ContractWorkerTests(PostgresFixture database)
         Assert.Equal(1, await worker.ContractsAsync());
         Assert.Equal(4, worker.Queue.Released.Count); // the rest are visible again at once
         Assert.Equal(4, worker.Queue.Visible);
+    }
+
+    // Shutdown during a long poll: the poll is allowed to finish, and what it returns goes straight back to the queue.
+    // (Cancelling it would only abandon it on this side; SQS would still deliver to it and hide those messages.)
+    [Fact]
+    public async Task Shutdown_releases_what_a_receive_in_progress_returns()
+    {
+        var queue = new PollingQueue();
+        await using var worker = WorkerHarness.Create(await database.CreateDatabaseAsync());
+        using var consumer = new QueueConsumer(ContractWorker.Name, queue, worker.Services.GetRequiredService<IServiceScopeFactory>(),
+            new ConsumerOptions(), Microsoft.Extensions.Logging.Abstractions.NullLogger<QueueConsumer>.Instance);
+
+        await consumer.StartAsync(Ct);
+        await queue.Polling.Task.WaitAsync(TimeSpan.FromSeconds(10), Ct);
+        var stopping = consumer.StopAsync(Ct);
+        queue.Arrive([WorkerHarness.DepositPaid(), WorkerHarness.DepositPaid(), WorkerHarness.DepositPaid()]); // SQS answers the poll
+        await stopping;
+
+        Assert.Equal(3, queue.Released.Count);
+        Assert.Empty(queue.Deleted);
+        Assert.Equal(0, await worker.ContractsAsync());
+    }
+
+    /// <summary>A queue whose receive is a long poll that answers only when messages arrive, whatever the token says.</summary>
+    private sealed class PollingQueue : IQueueClient
+    {
+        private readonly TaskCompletionSource<IReadOnlyList<QueueMessage>> _answer = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private int _polls;
+
+        public TaskCompletionSource Polling { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public List<QueueMessage> Released { get; } = [];
+
+        public List<QueueMessage> Deleted { get; } = [];
+
+        public void Arrive(IReadOnlyList<QueueMessage> messages) => _answer.TrySetResult(messages);
+
+        public Task<IReadOnlyList<QueueMessage>> ReceiveAsync(int maxMessages, TimeSpan wait, CancellationToken cancellationToken)
+        {
+            if (Interlocked.Increment(ref _polls) > 1)
+            {
+                return Task.FromResult<IReadOnlyList<QueueMessage>>([]);
+            }
+
+            Polling.TrySetResult();
+            return _answer.Task;
+        }
+
+        public Task DeleteAsync(QueueMessage message, CancellationToken cancellationToken)
+        {
+            Deleted.Add(message);
+            return Task.CompletedTask;
+        }
+
+        public Task ReleaseAsync(QueueMessage message, CancellationToken cancellationToken)
+        {
+            Released.Add(message);
+            return Task.CompletedTask;
+        }
     }
 
     // A burst: the channel bounds what is held in memory and the processors bound the database connections.

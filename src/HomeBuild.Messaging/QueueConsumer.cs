@@ -114,13 +114,17 @@ public sealed partial class QueueConsumer(string name, IQueueClient queue, IServ
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                IReadOnlyList<QueueMessage> batch;
-                try
+                // Not cancelled by shutdown: cancelling a long poll only abandons it on this side, and SQS still hands
+                // the poll whatever arrives before its wait ends, hidden for the visibility timeout (C9 Lab 3's burst:
+                // 10 messages lost for 5 minutes). The wait bounds it (20 s, inside the host's shutdown timeout).
+                var batch = await queue.ReceiveAsync(options.MaxMessages, options.Wait, CancellationToken.None);
+                if (stoppingToken.IsCancellationRequested)
                 {
-                    batch = await queue.ReceiveAsync(options.MaxMessages, options.Wait, stoppingToken);
-                }
-                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-                {
+                    foreach (var unstarted in batch)
+                    {
+                        await queue.ReleaseAsync(unstarted, CancellationToken.None);
+                    }
+
                     break;
                 }
 
