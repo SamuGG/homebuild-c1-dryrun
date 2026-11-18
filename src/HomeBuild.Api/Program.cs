@@ -51,6 +51,15 @@ builder.Services.AddExtrasModule();
 builder.Services.AddNotificationsModule();
 var app = builder.Build();
 
+// C8 Lab 6: `dotnet run --project src/HomeBuild.Api -- reconcile --from <date> --to <date>` runs the reconciliation
+// report with the API's configuration and services, then exits (exit code 2 when there are mismatches).
+if (args is ["reconcile", ..])
+{
+    Environment.ExitCode = await HomeBuild.Api.Modules.Payments.Reconcile.ReconcileCommand.RunFromCommandLineAsync(app.Services, args);
+    return;
+}
+
+
 // Pipeline order, one reason per line:
 // 1. Exception handler: first, so it wraps everything after it and turns any exception into a 500 ProblemDetails.
 app.UseExceptionHandler();

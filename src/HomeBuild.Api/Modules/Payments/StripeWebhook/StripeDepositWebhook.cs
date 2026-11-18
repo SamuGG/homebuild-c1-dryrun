@@ -29,6 +29,12 @@ public enum WebhookResult
     DepositRefunded,
 
     SessionExpired,
+
+    /// <summary>
+    /// C8 Lab 6: an event already processed, delivered again, whose deposit is missing (found by reconciliation): the
+    /// deposit is recorded again. The deposit's unique session key keeps it to one row.
+    /// </summary>
+    DepositRepaired,
 }
 
 /// <summary>
@@ -98,17 +104,25 @@ internal sealed class StripeDepositWebhook(PaymentsDbContext db, IReservationDep
         var first = await db.Database.ExecuteSqlAsync(
             $"INSERT INTO payments.processed_webhook_events (event_id, type, processed_at, tenant_id) VALUES ({stripeEvent.Id}, {stripeEvent.Type}, {time.GetUtcNow()}, {tenantId}) ON CONFLICT (event_id) DO NOTHING",
             cancellationToken);
+        var repair = false;
         if (first == 0)
         {
-            await transaction.RollbackAsync(cancellationToken);
-            return (WebhookResult.Duplicate, reservationId);
+            // Normally a duplicate. But a completed event whose deposit has gone (reconciliation's PaidNotRecorded) is
+            // a repair: replaying the event from Stripe records the deposit again (C8 Lab 6).
+            if (stripeEvent.Type != EventTypes.CheckoutSessionCompleted || await db.Deposits.AnyAsync(d => d.SessionId == session.Id, cancellationToken))
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return (WebhookResult.Duplicate, reservationId);
+            }
+
+            repair = true;
         }
 
         var result = stripeEvent.Type == EventTypes.CheckoutSessionCompleted
             ? await CompletedAsync(session, reservationId, new DateTimeOffset(DateTime.SpecifyKind(stripeEvent.Created, DateTimeKind.Utc)), transaction, cancellationToken)
             : await ExpiredAsync(session, reservationId, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        return (result, reservationId);
+        return (repair && result is WebhookResult.DepositAlreadyConfirmed or WebhookResult.DepositConfirmed ? WebhookResult.DepositRepaired : result, reservationId);
     }
 
     private async Task<WebhookResult> CompletedAsync(Session session, ReservationId reservationId, DateTimeOffset paidAt, IDbContextTransaction transaction, CancellationToken cancellationToken)
