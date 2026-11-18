@@ -33,8 +33,10 @@ public interface IPaymentGateway
 public sealed record GatewayCharge(bool Succeeded, string? ProviderReference, string? FailureReason);
 
 /// <summary>What the provider's hosted page asks the buyer to pay, and for which reservation.</summary>
+/// <param name="IdempotencyKey">Passed to the provider (C8 Lab 3): a retried create returns the first session.</param>
 public sealed record CheckoutRequest(
-    ReservationId ReservationId, Guid TenantId, UnitId UnitId, Money Amount, string Description, Uri SuccessUrl, Uri CancelUrl, DateTimeOffset ExpiresAt);
+    ReservationId ReservationId, Guid TenantId, UnitId UnitId, Money Amount, string Description, Uri SuccessUrl, Uri CancelUrl, DateTimeOffset ExpiresAt,
+    string IdempotencyKey);
 
 /// <summary>A hosted payment page: send the buyer to <see cref="Url"/>; it stops taking payment at <see cref="ExpiresAt"/>.</summary>
 public sealed record CheckoutSession(string Id, Uri Url, DateTimeOffset ExpiresAt);

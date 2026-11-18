@@ -125,10 +125,10 @@ internal sealed class FakeCatalogueApi : HttpMessageHandler
     public static HttpResponseMessage Json<T>(T body, HttpStatusCode status = HttpStatusCode.OK) => new(status) { Content = JsonContent.Create(body) };
 
     /// <summary>A ProblemDetails response, as the API sends it.</summary>
-    public static HttpResponseMessage Problem(HttpStatusCode status, string title, string? detail = null, Dictionary<string, string[]>? errors = null) =>
+    public static HttpResponseMessage Problem(HttpStatusCode status, string title, string? detail = null, Dictionary<string, string[]>? errors = null, string type = "about:blank") =>
         new(status)
         {
-            Content = JsonContent.Create(new { type = "about:blank", title, status = (int)status, detail, errors },
+            Content = JsonContent.Create(new { type, title, status = (int)status, detail, errors },
                 mediaType: new System.Net.Http.Headers.MediaTypeHeaderValue("application/problem+json")),
         };
 }

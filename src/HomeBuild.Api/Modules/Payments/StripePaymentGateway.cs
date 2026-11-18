@@ -46,7 +46,7 @@ internal sealed class StripePaymentGateway(IStripeClient stripe) : IPaymentGatew
             ExpiresAt = request.ExpiresAt.UtcDateTime,
         };
 
-        var session = await new SessionService(stripe).CreateAsync(options, cancellationToken: cancellationToken);
+        var session = await new SessionService(stripe).CreateAsync(options, new RequestOptions { IdempotencyKey = request.IdempotencyKey }, cancellationToken);
         return new CheckoutSession(session.Id, new Uri(session.Url), new DateTimeOffset(DateTime.SpecifyKind(session.ExpiresAt, DateTimeKind.Utc)));
     }
 

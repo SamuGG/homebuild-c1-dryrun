@@ -47,10 +47,13 @@ public sealed class HomeApiClient(HttpClient http)
     public async Task<MyProgress> GetMyProgressAsync(CancellationToken cancellationToken = default) =>
         await http.GetFromJsonAsync<MyProgress>("me/progress", cancellationToken) ?? new MyProgress([]);
 
-    /// <summary>Reserves a unit for the signed-in buyer: the new reservation's ID, or the API's problem (400, 409, 422).</summary>
-    public async Task<ApiResult<Guid>> ReserveAsync(Guid unitId, decimal deposit, string currency, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Reserves a unit for the signed-in buyer: the new reservation's ID, or the API's problem (400, 409, 422).
+    /// <paramref name="idempotencyKey"/> comes from the form (C8 Lab 3): a double click or a retry sends the same key.
+    /// </summary>
+    public async Task<ApiResult<Guid>> ReserveAsync(Guid unitId, decimal deposit, string currency, Guid idempotencyKey, CancellationToken cancellationToken = default)
     {
-        using var response = await http.PostAsJsonAsync($"units/{unitId}/reservations", new { deposit, currency }, cancellationToken);
+        using var response = await PostIdempotentAsync($"units/{unitId}/reservations", JsonContent.Create(new { deposit, currency }), idempotencyKey, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             return new(default, await ApiProblem.ReadAsync(response, cancellationToken));
@@ -64,9 +67,9 @@ public sealed class HomeApiClient(HttpClient http)
     /// C8 Lab 1: a Stripe Checkout page for a held reservation's deposit. The URL to send the buyer to, or the API's
     /// problem (404 not theirs, 409 not held or too late). The page's URL is never logged.
     /// </summary>
-    public async Task<ApiResult<Uri>> StartDepositSessionAsync(Guid reservationId, CancellationToken cancellationToken = default)
+    public async Task<ApiResult<Uri>> StartDepositSessionAsync(Guid reservationId, Guid idempotencyKey, CancellationToken cancellationToken = default)
     {
-        using var response = await http.PostAsync(new Uri($"reservations/{reservationId}/deposit-session", UriKind.Relative), null, cancellationToken);
+        using var response = await PostIdempotentAsync($"reservations/{reservationId}/deposit-session", null, idempotencyKey, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             return new(null, await ApiProblem.ReadAsync(response, cancellationToken));
@@ -74,6 +77,36 @@ public sealed class HomeApiClient(HttpClient http)
 
         var session = await response.Content.ReadFromJsonAsync<DepositSession>(cancellationToken);
         return new(session!.Url, null);
+    }
+
+    /// <summary>
+    /// C8 Lab 3: POST with an Idempotency-Key. While the first request with the key is still running (a double click),
+    /// the API answers 409 with Retry-After: wait and ask again with the same key until the stored answer comes back.
+    /// </summary>
+    private async Task<HttpResponseMessage> PostIdempotentAsync(string path, HttpContent? content, Guid idempotencyKey, CancellationToken cancellationToken)
+    {
+        var body = content is null ? null : await content.ReadAsByteArrayAsync(cancellationToken);
+        for (var attempt = 1; ; attempt++)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(path, UriKind.Relative));
+            request.Headers.Add("Idempotency-Key", idempotencyKey.ToString());
+            if (body is not null)
+            {
+                request.Content = new ByteArrayContent(body);
+                request.Content.Headers.ContentType = content!.Headers.ContentType;
+            }
+
+            var response = await http.SendAsync(request, cancellationToken);
+            await response.Content.LoadIntoBufferAsync(cancellationToken); // readable again by the caller
+            if (attempt == 20 || response.StatusCode != System.Net.HttpStatusCode.Conflict
+                || !(await response.Content.ReadAsStringAsync(cancellationToken)).Contains("idempotency-in-progress", StringComparison.Ordinal))
+            {
+                return response;
+            }
+
+            response.Dispose();
+            await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken);
+        }
     }
 
     /// <summary>A reservation the signed-in user may read, or null (the API answers 404 for other buyers' reservations).</summary>

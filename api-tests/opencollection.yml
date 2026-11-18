@@ -9,6 +9,9 @@ request:
       value: "{{tenantId}}"
     - name: Authorization
       value: Bearer {{accessToken}}
+    # C8 Lab 3: a fresh UUID per request, like a well-behaved client; the reservation POSTs require one.
+    - name: Idempotency-Key
+      value: "{{$randomUUID}}"
 bundled: false
 extensions:
   bruno:

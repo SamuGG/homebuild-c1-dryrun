@@ -58,6 +58,7 @@ else if (DepositReturn == "cancelled")
                             @* A plain form post (not enhanced): the answer is a redirect to Stripe's hosted page. *@
                             <form method="post" @formname="@($"pay-deposit-{home.ReservationId}")" @onsubmit="() => PayDepositAsync(home.ReservationId)" class="mt-3" data-testid="pay-deposit-@home.ReservationId">
                                 <AntiforgeryToken />
+                                <input type="hidden" name="idempotency-key" value="@Guid.NewGuid()" />
                                 <Button Type="submit">Pay deposit</Button>
                                 <span class="ml-2 text-sm">Held until @home.ReservationExpiresAt.ToString("d MMM yyyy, HH:mm", System.Globalization.CultureInfo.GetCultureInfo("en-GB")) UTC</span>
                             </form>
@@ -81,6 +82,9 @@ else if (DepositReturn == "cancelled")
     private MyProgress? progress;
     private string? payProblem;
 
+    [SupplyParameterFromForm(Name = "idempotency-key")]
+    private Guid? PayKey { get; set; } // C8 Lab 3: from the form that was rendered, so a double click sends one key
+
     [SupplyParameterFromQuery(Name = "deposit")]
     private string? DepositReturn { get; set; }
 
@@ -93,7 +97,7 @@ else if (DepositReturn == "cancelled")
 
     private async Task PayDepositAsync(Guid reservationId)
     {
-        var session = await Api.StartDepositSessionAsync(reservationId);
+        var session = await Api.StartDepositSessionAsync(reservationId, PayKey ?? Guid.NewGuid());
         if (session.Succeeded)
         {
             Navigation.NavigateTo(session.Value!.ToString()); // static SSR: answered as a 302 to Stripe's hosted page

@@ -1,6 +1,7 @@
 using HomeBuild.Api.Modules.Construction;
 using HomeBuild.Api.Configuration;
 using HomeBuild.Api.Http;
+using HomeBuild.Api.Http.Idempotency;
 using HomeBuild.Api.Modules.Accounts;
 using HomeBuild.Api.Modules.Catalogue;
 using HomeBuild.Api.Modules.Sales;
@@ -38,6 +39,7 @@ builder.Services.AddHomeBuildRateLimiting();
 builder.Services.AddHomeBuildAuthentication();
 builder.Services.AddHomeBuildPolicies();
 builder.Services.AddTenancy();
+builder.Services.AddIdempotency();
 builder.Services.AddCatalogueModule();
 builder.Services.AddSalesModule();
 builder.Services.AddAccountsModule();
@@ -62,6 +64,8 @@ app.UseAuthorization();
 app.UseRateLimiter();
 // 7. Tenant: from the tenant_id claim (claims transformation runs in UseAuthentication); after authorisation, so 401/403 come first.
 app.UseMiddleware<TenantMiddleware>();
+// 8. Idempotency keys (C8 Lab 3): after the tenant, so 400/401/403 answers are never stored; it needs the caller.
+app.UseMiddleware<IdempotencyMiddleware>();
 
 // The OpenAPI document is published only in Development and in CI, where Bruno and reviewers use it.
 if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("CI"))

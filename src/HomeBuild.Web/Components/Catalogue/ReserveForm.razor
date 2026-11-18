@@ -7,6 +7,8 @@
 <Card Title="Reserve this home" HeadingLevel="2" class="mt-6">
     <EditForm Model="Form" FormName="reserve" OnValidSubmit="ReserveAsync" Enhance class="grid max-w-md gap-4" data-testid="reserve-form">
         <DataAnnotationsValidator />
+        @* C8 Lab 3: the Idempotency-Key, generated when the form renders: a double click sends the same key twice. *@
+        <InputText type="hidden" @bind-Value="Form!.IdempotencyKey" />
         <ProblemDetailsValidator @ref="problems" />
         <ValidationSummary class="text-danger-600" role="alert" />
 
@@ -40,17 +42,25 @@
     [SupplyParameterFromForm(FormName = "reserve")]
     private ReservationModel? Form { get; set; }
 
-    protected override void OnInitialized() => Form ??= new();
+    protected override void OnInitialized()
+    {
+        Form ??= new();
+        Form.IdempotencyKey ??= Guid.NewGuid().ToString();
+    }
 
     private async Task ReserveAsync()
     {
-        var result = await Api.ReserveAsync(UnitId, Form!.Deposit!.Value, Currency);
+        var key = Guid.TryParse(Form!.IdempotencyKey, out var parsed) ? parsed : Guid.NewGuid();
+        var result = await Api.ReserveAsync(UnitId, Form.Deposit!.Value, Currency, key);
         if (result.Succeeded)
         {
             // Post-redirect-get: the browser lands on a GET, so refreshing does not post again.
             Navigation.NavigateTo($"my-home/reservations/{result.Value}");
             return;
         }
+
+        // A corrected submission is a new action: a new key (the old one would now be refused as reused).
+        Form.IdempotencyKey = Guid.NewGuid().ToString();
 
         // 400: field errors. 422: the deposit is outside the allowed range. 409: the unit is no longer available.
         problems!.Show(result.Problem!, result.Problem!.Status == StatusCodes.Status422UnprocessableEntity ? nameof(ReservationModel.Deposit) : null);
@@ -64,5 +74,7 @@
 
         [Range(typeof(bool), "true", "true", ErrorMessage = "Accept the reservation terms to reserve.")]
         public bool AcceptTerms { get; set; }
+
+        public string? IdempotencyKey { get; set; }
     }
 }

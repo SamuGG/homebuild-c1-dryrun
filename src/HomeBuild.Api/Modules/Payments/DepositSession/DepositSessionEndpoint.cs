@@ -1,5 +1,6 @@
 using HomeBuild.Api.Configuration;
 using HomeBuild.Api.Http;
+using HomeBuild.Api.Http.Idempotency;
 using HomeBuild.Api.Modules.Sales;
 using HomeBuild.Domain;
 using HomeBuild.Payments;
@@ -25,6 +26,7 @@ internal static class DepositSessionEndpoint
             .WithName("CreateDepositSession")
             .WithSummary("Open a Stripe Checkout page for a held reservation's deposit")
             .ProducesProblem(StatusCodes.Status403Forbidden)
+            .RequireIdempotencyKey() // C8 Lab 3
             .RequireAuthorization(Policies.CanPayDeposits);
 
     private static async Task<Results<Ok<DepositSessionResponse>, NotFound, Conflict<ProblemDetails>>> Handle(
