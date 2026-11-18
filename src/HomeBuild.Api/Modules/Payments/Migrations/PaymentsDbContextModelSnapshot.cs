@@ -23,6 +23,126 @@ namespace HomeBuild.Api.Modules.Payments.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("HomeBuild.Api.Modules.Payments.DepositRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character(3)")
+                        .HasColumnName("currency")
+                        .IsFixedLength();
+
+                    b.Property<DateTimeOffset>("PaidAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("paid_at");
+
+                    b.Property<string>("ProviderReference")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("provider_reference");
+
+                    b.Property<Guid>("ReservationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reservation_id");
+
+                    b.Property<string>("SessionId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("session_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_deposits");
+
+                    b.HasIndex("ReservationId")
+                        .HasDatabaseName("ix_deposits_reservation_id");
+
+                    b.HasIndex("SessionId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_deposits_session_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_deposits_tenant_id");
+
+                    b.ToTable("deposits", "payments");
+                });
+
+            modelBuilder.Entity("HomeBuild.Api.Modules.Payments.ExpiredCheckoutSession", b =>
+                {
+                    b.Property<string>("SessionId")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("session_id");
+
+                    b.Property<DateTimeOffset>("ExpiredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expired_at");
+
+                    b.Property<Guid>("ReservationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reservation_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("SessionId")
+                        .HasName("pk_expired_checkout_sessions");
+
+                    b.HasIndex("ReservationId")
+                        .HasDatabaseName("ix_expired_checkout_sessions_reservation_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_expired_checkout_sessions_tenant_id");
+
+                    b.ToTable("expired_checkout_sessions", "payments");
+                });
+
+            modelBuilder.Entity("HomeBuild.Api.Modules.Payments.ProcessedWebhookEvent", b =>
+                {
+                    b.Property<string>("EventId")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("event_id");
+
+                    b.Property<DateTimeOffset>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("processed_at");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("type");
+
+                    b.HasKey("EventId")
+                        .HasName("pk_processed_webhook_events");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_processed_webhook_events_tenant_id");
+
+                    b.ToTable("processed_webhook_events", "payments");
+                });
+
             modelBuilder.Entity("HomeBuild.Api.Modules.Payments.StagePaymentRow", b =>
                 {
                     b.Property<Guid>("Id")

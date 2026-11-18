@@ -4,6 +4,7 @@ using HomeBuild.Api.Configuration;
 using HomeBuild.Api.Modules.Catalogue;
 using HomeBuild.Api.Modules.Payments.DepositSession;
 using HomeBuild.Api.Modules.Payments.ListOverdue;
+using HomeBuild.Api.Modules.Payments.StripeWebhook;
 using HomeBuild.Domain;
 using HomeBuild.Payments;
 using Microsoft.EntityFrameworkCore;
@@ -39,6 +40,8 @@ public static class PaymentsModule
         // Scoped: the use cases are per request, like the stores they sit beside.
         services.AddScoped<IPaymentGateway, StripePaymentGateway>();
         services.AddScoped<StartDepositCheckout>();
+        // Scoped: the webhook's transaction script over the request's DbContexts (C8 Lab 2).
+        services.AddScoped<StripeDepositWebhook>();
         // MarkPaid stays unregistered: no endpoint pays stage payments yet. Its tests use the fake gateway.
         return services;
     }
@@ -48,6 +51,8 @@ public static class PaymentsModule
         var group = endpoints.MapVersionedGroup().WithTags(Name);
         group.MapListOverdueStagePayments();
         group.MapDepositSession();
+        // Not versioned: Stripe calls one fixed URL. Anonymous, but every request must carry Stripe's signature.
+        endpoints.MapStripeWebhook().WithTags(Name);
         return endpoints;
     }
 
@@ -119,6 +124,44 @@ internal sealed class EfStagePaymentStore(PaymentsDbContext db) : IPaymentStore
     }
 }
 
+/// <summary>A Stripe event HomeBuild has processed: the unique event ID makes a redelivery a no-op (C8 Lab 2).</summary>
+internal sealed class ProcessedWebhookEvent
+{
+    public required string EventId { get; init; }
+
+    public required string Type { get; init; }
+
+    public required DateTimeOffset ProcessedAt { get; init; }
+}
+
+/// <summary>A paid deposit (<see cref="HomeBuild.Payments.DepositPaid"/>): one row per paid Checkout Session.</summary>
+internal sealed class DepositRow
+{
+    public Guid Id { get; init; } = Guid.CreateVersion7();
+
+    public required ReservationId ReservationId { get; init; }
+
+    public required string SessionId { get; init; }
+
+    public required string ProviderReference { get; init; }
+
+    public required decimal Amount { get; init; }
+
+    public required string Currency { get; init; }
+
+    public required DateTimeOffset PaidAt { get; init; }
+}
+
+/// <summary>A Checkout Session that closed unpaid: payment did not happen. The reservation's hold is untouched.</summary>
+internal sealed class ExpiredCheckoutSession
+{
+    public required string SessionId { get; init; }
+
+    public required ReservationId ReservationId { get; init; }
+
+    public required DateTimeOffset ExpiredAt { get; init; }
+}
+
 internal sealed class StagePaymentRow
 {
     public Guid Id { get; init; } = Guid.CreateVersion7();
@@ -146,6 +189,12 @@ internal sealed class PaymentsDbContext(DbContextOptions<PaymentsDbContext> opti
     public Guid CurrentTenantId => tenant.TenantId ?? Guid.Empty;
 
     public DbSet<StagePaymentRow> StagePayments => Set<StagePaymentRow>();
+
+    public DbSet<ProcessedWebhookEvent> ProcessedWebhookEvents => Set<ProcessedWebhookEvent>();
+
+    public DbSet<DepositRow> Deposits => Set<DepositRow>();
+
+    public DbSet<ExpiredCheckoutSession> ExpiredCheckoutSessions => Set<ExpiredCheckoutSession>();
 
     public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
@@ -179,5 +228,35 @@ internal sealed class PaymentsDbContext(DbContextOptions<PaymentsDbContext> opti
             payment.HasIndex(p => new { p.UnitId, p.Milestone }).IsUnique();
         });
         modelBuilder.Entity<StagePaymentRow>().HasTenant(this);
+
+        // C8 Lab 2: the webhook's tables.
+        modelBuilder.Entity<ProcessedWebhookEvent>(e =>
+        {
+            e.ToTable("processed_webhook_events");
+            e.HasKey(x => x.EventId); // unique event ID: the idempotency guard
+            e.Property(x => x.EventId).HasMaxLength(255);
+            e.Property(x => x.Type).HasMaxLength(100);
+        });
+        modelBuilder.Entity<DepositRow>(d =>
+        {
+            d.ToTable("deposits");
+            d.HasKey(x => x.Id);
+            d.HasIndex(x => x.SessionId).IsUnique(); // one deposit per paid session
+            d.HasIndex(x => x.ReservationId);
+            d.Property(x => x.SessionId).HasMaxLength(255);
+            d.Property(x => x.ProviderReference).HasMaxLength(255);
+            d.Property(x => x.Amount).HasPrecision(12, 2);
+            d.Property(x => x.Currency).HasMaxLength(3).IsFixedLength();
+        });
+        modelBuilder.Entity<ExpiredCheckoutSession>(x =>
+        {
+            x.ToTable("expired_checkout_sessions");
+            x.HasKey(s => s.SessionId);
+            x.Property(s => s.SessionId).HasMaxLength(255);
+            x.HasIndex(s => s.ReservationId);
+        });
+        modelBuilder.Entity<ProcessedWebhookEvent>().HasTenant(this);
+        modelBuilder.Entity<DepositRow>().HasTenant(this);
+        modelBuilder.Entity<ExpiredCheckoutSession>().HasTenant(this);
     }
 }
