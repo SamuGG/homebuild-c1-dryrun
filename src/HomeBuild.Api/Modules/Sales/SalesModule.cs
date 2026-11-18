@@ -20,7 +20,7 @@ public static class SalesModule
         services.AddSingleton(TimeProvider.System);
         // Scoped (AddDbContext's default): a DbContext is not thread-safe and tracks entities per request.
         services.AddDbContext<SalesDbContext>((sp, options) => Configure(options, HomeBuildDatabase.ConnectionString(sp))
-            .AddInterceptors(new TenantCommandInterceptor(sp.GetRequiredService<ITenantContext>())));
+            .AddInterceptors(new TenantCommandInterceptor(sp.GetRequiredService<ITenantContext>()), sp.GetRequiredService<OpenTransactions>()));
         // Scoped: wraps the scoped DbContext.
         services.AddScoped<EfReservationStore>();
         services.AddScoped<IReservationStore>(sp => sp.GetRequiredService<EfReservationStore>());

@@ -139,6 +139,9 @@ public sealed class ApiFactory(string connectionString) : WebApplicationFactory<
 {
     public string ConnectionString { get; } = PostgresFixture.AppConnectionString(connectionString);
 
+    /// <summary>The database owner's connection (outside row-level security), for test set-up such as fault triggers.</summary>
+    public string OwnerConnectionString { get; } = connectionString;
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);

@@ -14,7 +14,7 @@ public static class AccountsModule
     public static IServiceCollection AddAccountsModule(this IServiceCollection services)
     {
         // Scoped (AddDbContext's default).
-        services.AddDbContext<AccountsDbContext>((sp, options) => Configure(options, HomeBuildDatabase.ConnectionString(sp)));
+        services.AddDbContext<AccountsDbContext>((sp, options) => Configure(options, HomeBuildDatabase.ConnectionString(sp)).AddInterceptors(sp.GetRequiredService<OpenTransactions>()));
         // Scoped: the transformation caches the membership for one request only (C16 revisits caching).
         services.AddScoped<IClaimsTransformation, TenantClaimsTransformation>();
         return services;

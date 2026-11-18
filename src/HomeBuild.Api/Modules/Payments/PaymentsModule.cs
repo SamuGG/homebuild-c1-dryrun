@@ -24,7 +24,7 @@ public static class PaymentsModule
     public static IServiceCollection AddPaymentsModule(this IServiceCollection services)
     {
         services.AddDbContext<PaymentsDbContext>((sp, options) => Configure(options, HomeBuildDatabase.ConnectionString(sp))
-            .AddInterceptors(new TenantCommandInterceptor(sp.GetRequiredService<ITenantContext>())));
+            .AddInterceptors(new TenantCommandInterceptor(sp.GetRequiredService<ITenantContext>()), sp.GetRequiredService<OpenTransactions>()));
         // Scoped: adapters over scoped DbContexts and Catalogue's scoped queries.
         services.AddScoped<IPaymentStore, EfStagePaymentStore>();
         services.AddScoped<IUnitTerms, CatalogueUnitTerms>();

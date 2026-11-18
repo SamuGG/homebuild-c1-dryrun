@@ -18,7 +18,7 @@ public static class IdempotencyExtensions
         builder.WithMetadata(new RequiresIdempotencyKey());
 
     public static IServiceCollection AddIdempotency(this IServiceCollection services) =>
-        services.AddDbContext<IdempotencyDbContext>((sp, options) => IdempotencyDbContext.Configure(options, HomeBuildDatabase.ConnectionString(sp)));
+        services.AddDbContext<IdempotencyDbContext>((sp, options) => IdempotencyDbContext.Configure(options, HomeBuildDatabase.ConnectionString(sp)).AddInterceptors(sp.GetRequiredService<OpenTransactions>()));
 }
 
 /// <summary>

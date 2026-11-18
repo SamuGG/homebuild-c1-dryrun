@@ -12,9 +12,16 @@ public static class HomeBuildDatabase
 {
     public const string ConnectionStringName = "HomeBuild";
 
-    /// <summary>Each module keeps its own migrations history table inside its own schema.</summary>
+    /// <summary>
+    /// Each module keeps its own migrations history table inside its own schema. C8 Lab 4: the Npgsql execution strategy
+    /// retries transient failures (a dropped connection, a serialization failure, a failover). With it, every explicit
+    /// transaction must run inside <c>Database.CreateExecutionStrategy().ExecuteAsync</c>, so a retry replays the whole
+    /// unit of work; a BeginTransaction outside it fails fast with InvalidOperationException.
+    /// </summary>
     internal static DbContextOptionsBuilder UseHomeBuildDatabase(this DbContextOptionsBuilder options, string connectionString, string schema) =>
-        options.UseNpgsql(connectionString, npgsql => npgsql.MigrationsHistoryTable("__ef_migrations_history", schema))
+        options.UseNpgsql(connectionString, npgsql => npgsql
+                .MigrationsHistoryTable("__ef_migrations_history", schema)
+                .EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(2), errorCodesToAdd: null))
             .UseSnakeCaseNamingConvention();
 
     internal static string ConnectionString(IServiceProvider services) =>

@@ -17,7 +17,9 @@ public static class ConstructionModule
         // Scoped (AddDbContext's default): a DbContext is not thread-safe and tracks entities per request.
         // The DomainEventInterceptor dispatches BuildProgress's events (C7 Lab 5) to handlers in other modules.
         services.AddDbContext<ConstructionDbContext>((sp, options) => Configure(options, HomeBuildDatabase.ConnectionString(sp))
-            .AddInterceptors(new TenantCommandInterceptor(sp.GetRequiredService<ITenantContext>()), new DomainEventInterceptor(sp)));
+            // OpenTransactions first: its commit runs before DomainEventInterceptor dispatches the events, so after-commit
+            // handlers are outside the transaction (C8 Lab 4).
+            .AddInterceptors(sp.GetRequiredService<OpenTransactions>(), new TenantCommandInterceptor(sp.GetRequiredService<ITenantContext>()), new DomainEventInterceptor(sp)));
         // Scoped: resolves the handlers in the request's scope, so they see its tenant.
         services.AddScoped<DomainEventDispatcher>();
         // Scoped: wraps the scoped DbContext.

@@ -9,7 +9,7 @@ namespace HomeBuild.Api.Modules.Payments;
 /// The Stripe adapter for Payments' <see cref="IPaymentGateway"/> port (C8 Lab 1). Stripe types stop here: the core sees
 /// only its own records. Tests give it a <see cref="StripeClient"/> over a stub HTTP handler; CI never has a Stripe key.
 /// </summary>
-internal sealed class StripePaymentGateway(IStripeClient stripe) : IPaymentGateway
+internal sealed class StripePaymentGateway(IStripeClient stripe, HomeBuild.Api.Data.OpenTransactions? transactions = null) : IPaymentGateway
 {
     public const string TenantMetadata = "tenant_id";
     public const string UnitMetadata = "unit_id";
@@ -18,6 +18,7 @@ internal sealed class StripePaymentGateway(IStripeClient stripe) : IPaymentGatew
     public async Task<CheckoutSession> CreateCheckoutSessionAsync(CheckoutRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
+        transactions?.EnsureNone("Stripe Checkout Session create"); // C8 Lab 4
         var options = new SessionCreateOptions
         {
             Mode = "payment",
@@ -54,6 +55,7 @@ internal sealed class StripePaymentGateway(IStripeClient stripe) : IPaymentGatew
     public async Task<GatewayCharge> ChargeAsync(Money amount, string paymentMethodToken, string idempotencyKey, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(amount);
+        transactions?.EnsureNone("Stripe charge"); // C8 Lab 4
         try
         {
             var intent = await new PaymentIntentService(stripe).CreateAsync(
