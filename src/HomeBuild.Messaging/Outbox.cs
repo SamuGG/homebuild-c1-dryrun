@@ -1,13 +1,13 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 
-namespace HomeBuild.Api.Data;
+namespace HomeBuild.Messaging;
 
 /// <summary>
 /// C9 Lab 2: an event waiting to be published, written in the same transaction as the change that raised it. The ID is
 /// the message ID consumers deduplicate on. One <c>outbox_messages</c> table per module schema.
 /// </summary>
-internal sealed class OutboxMessage
+public sealed class OutboxMessage
 {
     public Guid Id { get; init; } = Guid.CreateVersion7();
 
@@ -33,7 +33,7 @@ internal sealed class OutboxMessage
     };
 }
 
-internal static class OutboxModel
+public static class OutboxModel
 {
     public const string Table = "outbox_messages";
 

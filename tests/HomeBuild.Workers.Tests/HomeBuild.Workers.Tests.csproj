@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- C9 Lab 3: the worker host's tests. An in-memory queue stands in for SQS (CI has no AWS); PostgreSQL is real. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>HomeBuild.Workers.Tests</RootNamespace>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Testcontainers.PostgreSql" />
+    <PackageReference Include="xunit.v3.mtp-v2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\HomeBuild.Workers\HomeBuild.Workers.csproj" />
+  </ItemGroup>
+
+</Project>

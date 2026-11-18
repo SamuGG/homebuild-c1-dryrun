@@ -24,7 +24,7 @@ namespace HomeBuild.Api.Modules.Sales.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("HomeBuild.Api.Data.OutboxMessage", b =>
+            modelBuilder.Entity("HomeBuild.Messaging.OutboxMessage", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid")

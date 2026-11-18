@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Stripe;
 using Stripe.Checkout;
+using HomeBuild.Messaging;
 
 namespace HomeBuild.Api.Modules.Payments.StripeWebhook;
 

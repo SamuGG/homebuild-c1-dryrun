@@ -20,7 +20,12 @@ public sealed class ReferenceTests
         new(typeof(HomeBuild.Payments.Infrastructure.PaymentsInfrastructure).Assembly,
             ["HomeBuild.Domain", "HomeBuild.Payments.Core"], ["Microsoft.EntityFrameworkCore", "Microsoft.Extensions.", "Npgsql"]),
         // C7 Lab 5: the API hosts Payments' core (use cases, ports) and owns its adapters; never Payments.Infrastructure.
-        new(typeof(HomeBuild.Api.Modules.Catalogue.CatalogueModule).Assembly, ["HomeBuild.Domain", "HomeBuild.Payments.Core"], ["*"]),
+        // C9 Lab 3: it shares the outbox, relay and publisher with the worker host through HomeBuild.Messaging.
+        new(typeof(HomeBuild.Api.Modules.Catalogue.CatalogueModule).Assembly, ["HomeBuild.Domain", "HomeBuild.Messaging", "HomeBuild.Payments.Core"], ["*"]),
+        // C9 Lab 3: messaging plumbing only, no HomeBuild code: EF Core, the AWS SDK and the hosting abstractions.
+        new(typeof(HomeBuild.Messaging.OutboxMessage).Assembly, [], ["Microsoft.EntityFrameworkCore", "Microsoft.Extensions.", "AWSSDK.", "Microsoft.AspNetCore"]),
+        // C9 Lab 3: the worker host reads messages (Domain's contracts), never the API's modules.
+        new(typeof(HomeBuild.Workers.ContractsDbContext).Assembly, ["HomeBuild.Domain", "HomeBuild.Messaging"], ["*"]),
         new(typeof(HomeBuild.Web.Components.App).Assembly, [], ["Microsoft.AspNetCore", "Microsoft.Extensions.", "Microsoft.IdentityModel.", "Microsoft.JSInterop"]),
     ];
 

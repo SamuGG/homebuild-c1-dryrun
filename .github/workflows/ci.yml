@@ -69,10 +69,15 @@ jobs:
             dotnet ef migrations script --idempotent --no-build --configuration Release --project src/HomeBuild.Api \
               --context ${context}DbContext --output artifacts/migrate-$name.sql
           done
+          # C9 Lab 3: the worker host's schema (contracts), from its own project.
+          dotnet ef migrations bundle --project src/HomeBuild.Workers --context ContractsDbContext --configuration Release \
+            --self-contained --target-runtime $rid --output artifacts/migrate-contracts --force
+          dotnet ef migrations script --idempotent --no-build --configuration Release --project src/HomeBuild.Workers \
+            --context ContractsDbContext --output artifacts/migrate-contracts.sql
       - name: Apply each bundle twice to the empty CI database
         run: |
           for run in 1 2; do
-            for name in catalogue sales accounts construction payments idempotency; do
+            for name in catalogue sales accounts construction payments idempotency contracts; do
               echo "::group::run $run: migrate-$name"
               ./artifacts/migrate-$name --connection "$MIGRATIONS_CONNECTION"
               echo "::endgroup::"

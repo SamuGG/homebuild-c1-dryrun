@@ -460,12 +460,12 @@
         "dependencies": {
           "AWSSDK.S3": "[4.1.1, )",
           "AWSSDK.SecurityToken": "[4.1.0.2, )",
-          "AWSSDK.SimpleNotificationService": "[4.1.0.1, )",
           "Amazon.Extensions.Configuration.SystemsManager": "[7.1.1, )",
           "Asp.Versioning.Http": "[10.2.3, )",
           "Asp.Versioning.Mvc.ApiExplorer": "[10.2.1, )",
           "EFCore.NamingConventions": "[10.0.1, )",
           "HomeBuild.Domain": "[1.0.0, )",
+          "HomeBuild.Messaging": "[1.0.0, )",
           "HomeBuild.Payments.Core": "[1.0.0, )",
           "Microsoft.AspNetCore.Authentication.JwtBearer": "[11.0.0, )",
           "Microsoft.AspNetCore.OpenApi": "[11.0.0, )",
@@ -477,6 +477,14 @@
       },
       "homebuild.domain": {
         "type": "Project"
+      },
+      "homebuild.messaging": {
+        "type": "Project",
+        "dependencies": {
+          "AWSSDK.SQS": "[4.1.0.2, )",
+          "AWSSDK.SimpleNotificationService": "[4.1.0.1, )",
+          "Microsoft.EntityFrameworkCore.Relational": "[10.0.15, )"
+        }
       },
       "homebuild.payments.core": {
         "type": "Project",
@@ -496,6 +504,16 @@
         "type": "Project",
         "dependencies": {
           "Microsoft.AspNetCore.Authentication.OpenIdConnect": "[11.0.0, )"
+        }
+      },
+      "homebuild.workers": {
+        "type": "Project",
+        "dependencies": {
+          "AWSSDK.S3": "[4.1.1, )",
+          "EFCore.NamingConventions": "[10.0.1, )",
+          "HomeBuild.Domain": "[1.0.0, )",
+          "HomeBuild.Messaging": "[1.0.0, )",
+          "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.3, )"
         }
       },
       "Amazon.Extensions.Configuration.SystemsManager": {
@@ -553,6 +571,15 @@
         "contentHash": "ZkLhhi8lE8mkW5PFY/70EeC90UKUzV9BA924gdfWIOFM9XGFuk+U4HFGZCJrm0cgcJJCsHoPxDqyRURMHxIsEw==",
         "dependencies": {
           "AWSSDK.Core": "[4.1.1, 5.0.0)"
+        }
+      },
+      "AWSSDK.SQS": {
+        "type": "CentralTransitive",
+        "requested": "[4.1.0.2, )",
+        "resolved": "4.1.0.2",
+        "contentHash": "clZzwfg/mOaW+q28fAcT92UO0XoFIdJiJ2DDfO1bGCC1UVm+aJTlSgpeE3W2tEvLnDNXXCp4O3JQAnXJ4/HefQ==",
+        "dependencies": {
+          "AWSSDK.Core": "[4.1.1.1, 5.0.0)"
         }
       },
       "EFCore.NamingConventions": {

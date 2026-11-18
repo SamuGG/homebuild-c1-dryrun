@@ -1,12 +1,15 @@
 using Amazon.SimpleNotificationService;
 using Amazon.SimpleNotificationService.Model;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace HomeBuild.Api.Data;
+namespace HomeBuild.Messaging;
 
 /// <summary>Port: where outbox messages go (SNS in the app, an in-memory fake in tests and CI).</summary>
-internal interface IEventPublisher
+public interface IEventPublisher
 {
     Task PublishAsync(OutboxMessage message, CancellationToken cancellationToken);
 }
@@ -25,7 +28,7 @@ public sealed class MessagingOptions
 }
 
 /// <summary>The SNS adapter: the message ID and type travel as message attributes; the body is the event JSON.</summary>
-internal sealed class SnsEventPublisher(IAmazonSimpleNotificationService sns, IOptions<MessagingOptions> options) : IEventPublisher
+public sealed class SnsEventPublisher(IAmazonSimpleNotificationService sns, IOptions<MessagingOptions> options) : IEventPublisher
 {
     public async Task PublishAsync(OutboxMessage message, CancellationToken cancellationToken)
     {
@@ -52,7 +55,7 @@ internal sealed class SnsEventPublisher(IAmazonSimpleNotificationService sns, IO
 /// unpublished rows oldest first <c>FOR UPDATE SKIP LOCKED</c>, publish each, mark them published, commit. A second relay
 /// (another API instance) skips the locked rows instead of waiting for them or publishing them again.
 /// </summary>
-internal sealed partial class OutboxRelay<TContext>(IServiceScopeFactory scopes, IOptions<MessagingOptions> options, TimeProvider time, ILogger<OutboxRelay<TContext>> logger)
+public sealed partial class OutboxRelay<TContext>(IServiceScopeFactory scopes, IOptions<MessagingOptions> options, TimeProvider time, ILogger<OutboxRelay<TContext>> logger)
     : BackgroundService
     where TContext : DbContext
 {

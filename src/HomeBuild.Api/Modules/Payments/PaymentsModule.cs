@@ -11,6 +11,7 @@ using HomeBuild.Payments;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Stripe;
+using HomeBuild.Messaging;
 
 namespace HomeBuild.Api.Modules.Payments;
 

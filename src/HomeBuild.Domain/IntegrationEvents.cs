@@ -10,6 +10,7 @@ public static class IntegrationEvents
     public const string DepositPaid = nameof(DepositPaid);
     public const string MilestoneCompleted = nameof(MilestoneCompleted);
     public const string ReservationExpired = nameof(ReservationExpired);
+    public const string ContractIssued = nameof(ContractIssued);
 }
 
 public sealed record DepositPaidMessage(Guid ReservationId, Guid UnitId, Guid TenantId, decimal Amount, string Currency, string SessionId, DateTimeOffset PaidAt);
@@ -17,3 +18,6 @@ public sealed record DepositPaidMessage(Guid ReservationId, Guid UnitId, Guid Te
 public sealed record MilestoneCompletedMessage(Guid UnitId, Guid TenantId, string Milestone, DateOnly CompletedAt);
 
 public sealed record ReservationExpiredMessage(Guid ReservationId, Guid UnitId, Guid BuyerId, Guid TenantId, DateTimeOffset ExpiredAt);
+
+/// <summary>C9 Lab 3: the contract worker issued the contract pack for a paid deposit (a PDF in S3).</summary>
+public sealed record ContractIssuedMessage(Guid ReservationId, Guid UnitId, Guid TenantId, string DocumentKey, DateTimeOffset IssuedAt);
