@@ -166,6 +166,32 @@ public sealed class StripeWebhookTests(PostgresFixture database)
         Assert.Equal(2, commits); // the first commit failed, the replay committed
     }
 
+    // C8 Lab 6: replaying an event repairs a deposit that went missing after it was processed (reconciliation's
+    // PaidNotRecorded); a replay with the deposit present stays a duplicate.
+    [Fact]
+    public async Task Replayed_event_repairs_a_deleted_deposit()
+    {
+        var (factory, api) = await CreateApiAsync();
+        await using var _ = factory;
+        using var client = Anonymous(factory);
+        var reservation = await ReserveAsync(factory);
+        var payload = Completed("evt_repair_1", "cs_repair_1", reservation);
+        using var first = await PostAsync(client, payload, Sign(payload, Secret, DateTimeOffset.UtcNow));
+        await using (var payments = PaymentsModule.CreateDbContext(api.ConnectionString, TestTenants.Demo))
+        {
+            payments.Deposits.Remove(await payments.Deposits.SingleAsync(Ct));
+            await payments.SaveChangesAsync(Ct);
+        }
+
+        using var replay = await PostAsync(client, payload, Sign(payload, Secret, DateTimeOffset.UtcNow));
+        using var again = await PostAsync(client, payload, Sign(payload, Secret, DateTimeOffset.UtcNow));
+
+        Assert.Equal((HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK), (first.StatusCode, replay.StatusCode, again.StatusCode));
+        Assert.Equal((1, 1), await CountsAsync(api)); // the deposit is back, once
+        Assert.IsType<Confirmed>(await StateAsync(api, reservation));
+        Assert.Contains(factory.Services.GetFakeLogCollector().GetSnapshot(), r => r.Id.Id == 1302 && r.Message.Contains("DepositRepaired", StringComparison.Ordinal));
+    }
+
     // The raw body matters: the same event re-serialised (as model binding would) is different bytes.
     [Fact]
     public async Task Reserialised_body_fails_verification()
