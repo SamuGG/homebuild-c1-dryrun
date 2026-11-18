@@ -1,0 +1,29 @@
+info:
+  name: Mass assignment buyerId of another buyer
+  type: http
+  seq: 8
+
+http:
+  method: POST
+  url: "{{baseUrl}}/units/{{riversidePlot3}}/reservations"
+  body:
+    type: json
+    data: |-
+      {
+        "buyerId": "22222222-2222-2222-2222-222222222222",
+        "deposit": 5000,
+        "currency": "GBP"
+      }
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "403"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

@@ -1,0 +1,34 @@
+info:
+  name: 02 Development detail
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{webUrl}}/developments/{{riverside}}"
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("renders >Riverside</h1>", function () {
+          expect(res.body).to.contain(">Riverside</h1>");
+        });
+
+        test("is static SSR: no interactive component markers", function () {
+          expect(res.body).not.to.contain("<!--Blazor:{");
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.headers["content-type"]
+      operator: contains
+      value: text/html
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

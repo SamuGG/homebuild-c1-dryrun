@@ -1,0 +1,32 @@
+info:
+  name: Reserve with low deposit
+  type: http
+  seq: 12
+
+http:
+  method: POST
+  url: "{{baseUrl}}/units/{{riversidePlot3}}/reservations"
+  body:
+    type: json
+    data: |-
+      {
+        "buyerId": "11111111-1111-1111-1111-111111111111",
+        "deposit": 1,
+        "currency": "GBP"
+      }
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "422"
+    - expression: res.body.type
+      operator: eq
+      value: https://homebuild.dev/problems/deposit-rejected
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

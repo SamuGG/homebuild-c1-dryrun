@@ -1,0 +1,30 @@
+info:
+  name: Site manager of another development completes a milestone
+  type: http
+  seq: 17
+
+http:
+  method: POST
+  url: "{{baseUrlV2}}/units/{{riversidePlot1}}/milestones/Frame/completion"
+  headers:
+    - name: Authorization
+      value: Bearer {{hillcrestSiteManagerToken}}
+  body:
+    type: json
+    data: |-
+      {
+        "completedOn": "2026-11-17"
+      }
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "403"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

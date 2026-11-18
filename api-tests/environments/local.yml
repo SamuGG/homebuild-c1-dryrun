@@ -1,0 +1,31 @@
+variables:
+  - name: forgedAdminToken
+    value: set-with---env-var
+  - name: hillcrestSiteManagerToken
+    value: set-with---env-var
+  - name: idToken
+    value: set-with---env-var
+  - name: buyer2Token
+    value: set-with---env-var
+  - name: accessToken
+    value: set-with---env-var
+  - name: tenantId
+    value: 0198a000-0000-7000-8000-00000000000a
+  - name: host
+    value: http://localhost:5104
+  - name: webUrl
+    value: http://localhost:5266
+  - name: baseUrl
+    value: http://localhost:5104/v1
+  - name: baseUrlV2
+    value: http://localhost:5104/v2
+  - name: riverside
+    value: 0198a000-0000-7000-8000-000000000001
+  - name: hillcrest
+    value: 0198a000-0000-7000-8000-000000000002
+  - name: riversidePlot1
+    value: 0198a000-0000-7000-8001-000000000001
+  - name: riversidePlot2
+    value: 0198a000-0000-7000-8001-000000000002
+  - name: riversidePlot3
+    value: 0198a000-0000-7000-8001-000000000003

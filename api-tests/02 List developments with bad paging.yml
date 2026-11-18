@@ -1,0 +1,25 @@
+info:
+  name: List developments with bad paging
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{baseUrl}}/developments?page=0&size=10"
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "400"
+    - expression: res.body.errors.page
+      operator: isDefined
+    - expression: res.body.traceId
+      operator: isString
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

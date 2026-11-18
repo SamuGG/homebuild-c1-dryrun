@@ -1,0 +1,18 @@
+opencollection: 1.0.0
+
+info:
+  name: HomeBuild API
+
+request:
+  headers:
+    - name: X-Tenant-Id
+      value: "{{tenantId}}"
+    - name: Authorization
+      value: Bearer {{accessToken}}
+bundled: false
+extensions:
+  bruno:
+    ignore:
+      - node_modules
+      - .git
+      - results

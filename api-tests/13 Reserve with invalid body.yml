@@ -1,0 +1,33 @@
+info:
+  name: Reserve with invalid body
+  type: http
+  seq: 13
+
+http:
+  method: POST
+  url: "{{baseUrl}}/units/{{riversidePlot3}}/reservations"
+  body:
+    type: json
+    data: |-
+      {
+        "buyerId": "11111111-1111-1111-1111-111111111111",
+        "deposit": -5,
+        "currency": "pounds"
+      }
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "400"
+    - expression: res.body.errors.Deposit
+      operator: isArray
+    - expression: res.body.errors.Currency
+      operator: isArray
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
