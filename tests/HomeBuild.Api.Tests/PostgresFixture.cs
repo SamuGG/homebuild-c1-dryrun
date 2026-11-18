@@ -1,7 +1,10 @@
 using HomeBuild.Api.Data;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using Testcontainers.PostgreSql;
 
@@ -150,7 +153,11 @@ public sealed class ApiFactory(string connectionString) : WebApplicationFactory<
             builder.UseSetting(key, value);
         }
 
-        builder.ConfigureTestServices(services => services.AddFakeAuthentication());
+        builder.ConfigureTestServices(services =>
+        {
+            services.AddFakeAuthentication();
+            services.AddTransient<IStartupFilter, FreshIdempotencyKeys>();
+        });
     }
 
     protected override void ConfigureClient(HttpClient client)
@@ -169,4 +176,27 @@ public sealed class ApiFactory(string connectionString) : WebApplicationFactory<
             client.DefaultRequestHeaders.Authorization = new("Bearer", TestTokens.Access(TestTokens.DefaultBuyer.ToString(), "buyer"));
         }
     }
+}
+
+/// <summary>
+/// C8 Lab 3: tests that are not about idempotency act like a well-behaved client, which sends a fresh Idempotency-Key with
+/// every POST. Added in the test host so every factory (WithWebHostBuilder included) gets it. A request that sends its
+/// own key keeps it; X-No-Idempotency-Key asks for none (the missing-key tests).
+/// </summary>
+internal sealed class FreshIdempotencyKeys : IStartupFilter
+{
+    public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next) => app =>
+    {
+        app.Use((context, nextMiddleware) =>
+        {
+            var headers = context.Request.Headers;
+            if (HttpMethods.IsPost(context.Request.Method) && !headers.ContainsKey("Idempotency-Key") && !headers.Remove("X-No-Idempotency-Key"))
+            {
+                headers["Idempotency-Key"] = Guid.NewGuid().ToString();
+            }
+
+            return nextMiddleware(context);
+        });
+        next(app);
+    };
 }

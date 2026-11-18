@@ -101,6 +101,27 @@ public sealed class JourneyTests(Journeys browser)
         await Assertions.Expect(dialog).ToHaveJSPropertyAsync("open", false);
         await Assertions.Expect(open).ToBeFocusedAsync();
     }
+
+    // C8 Lab 3: a double click on Reserve sends one Idempotency-Key twice (generated when the form rendered), so the
+    // buyer gets one reservation. Uses Riverside P3, not P2 (the dry run's real paid reservation lives on P2).
+    [Fact]
+    public async Task Double_click_on_reserve_creates_one_reservation()
+    {
+        Assert.SkipUnless(RealSignInTests.Enabled, "Set HOMEBUILD_COGNITO_TESTS=1 to run the journeys against the local stack.");
+        const string PlotThree = "0198a000-0000-7000-8001-000000000003";
+        await LocalData.MakeAvailableAsync(PlotThree);
+        var state = await SignedInState.ForAsync(browser.Browser, "buyer.tenant-a@example.com");
+        await using var context = await browser.Browser.NewContextAsync(new() { StorageStatePath = state });
+        var page = await context.NewPageAsync();
+
+        await page.GotoAsync(RealSignInTests.WebUrl + "/units/" + PlotThree);
+        await page.Locator("#deposit").FillAsync("5000");
+        await page.Locator("#terms").CheckAsync();
+        await page.GetByRole(AriaRole.Button, new() { Name = "Reserve" }).DblClickAsync();
+
+        await Assertions.Expect(page).ToHaveURLAsync(new Regex("/my-home/reservations/[0-9a-f-]{36}$"));
+        Assert.Equal(1, await LocalData.ReservationCountAsync(PlotThree));
+    }
 }
 
 /// <summary>One browser for the journeys (the collection), launched once.</summary>
@@ -136,6 +157,20 @@ public sealed class Journeys : IAsyncLifetime, ICollectionFixture<Journeys>
 /// <summary>Resets the one row the buyer journey changes, in the local compose database (the journey's own data).</summary>
 internal static class LocalData
 {
+    /// <summary>C8 Lab 3: how many reservations the unit has in the local database.</summary>
+    public static async Task<int> ReservationCountAsync(string unitId)
+    {
+        using var psql = Process.Start(new ProcessStartInfo("docker", ["compose", "exec", "-T", "postgres", "psql", "-q", "-t", "-A", "-U", "homebuild", "-d", "homebuild",
+            "-c", $"SELECT count(*) FROM sales.reservations WHERE unit_id = '{unitId}';"])
+        {
+            WorkingDirectory = RepoRoot(),
+            RedirectStandardOutput = true,
+        })!;
+        var output = await psql.StandardOutput.ReadToEndAsync();
+        await psql.WaitForExitAsync();
+        return int.Parse(output.Trim(), System.Globalization.CultureInfo.InvariantCulture);
+    }
+
     public static async Task MakeAvailableAsync(string unitId)
     {
         var sql = $"DELETE FROM sales.reservations WHERE unit_id = '{unitId}'; UPDATE sales.units SET status = 'Available' WHERE id = '{unitId}';";

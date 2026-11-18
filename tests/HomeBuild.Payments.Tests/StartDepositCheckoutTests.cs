@@ -37,14 +37,16 @@ public sealed class StartDepositCheckoutTests
         Assert.Empty(gateway.Checkouts);
     }
 
-    // The window's boundary rows (C6): Stripe's shortest page is 30 minutes and its longest 24 hours, each with a minute's margin.
+    // The window's boundary rows (C6): Stripe's shortest page is 30 minutes (plus a minute's margin) and the cap is on an
+    // hourly grid inside Stripe's 24 hours (C8 Lab 3).
     [Theory]
     [InlineData(30, null)] // the hold ends in 30 minutes: too soon
     [InlineData(31, 31)] // first minute that fits: the page closes with the hold
     [InlineData(60, 60)] // the C1 minimum hold of 1 hour
-    [InlineData(23 * 60 + 59, 23 * 60 + 59)] // last minute that still closes with the hold
-    [InlineData(24 * 60, 23 * 60 + 59)] // a 24-hour hold: capped just inside Stripe's maximum
-    [InlineData(7 * 24 * 60, 23 * 60 + 59)] // the configured 7-day hold: capped, never after the hold ends
+    [InlineData(23 * 60 - 1, 23 * 60 - 1)] // last minute that still closes with the hold (Now is on the hour)
+    [InlineData(23 * 60, 23 * 60)] // the cap: 23 hours after the start of the hour
+    [InlineData(24 * 60, 23 * 60)] // a 24-hour hold: capped inside Stripe's maximum
+    [InlineData(7 * 24 * 60, 23 * 60)] // the configured 7-day hold: capped, never after the hold ends
     public async Task Session_closes_with_the_hold_inside_Stripes_window(int holdEndsInMinutes, int? closesInMinutes)
     {
         var reservation = AReservation().CreatedAt(Now).HeldFor(TimeSpan.FromMinutes(holdEndsInMinutes)).Build();
@@ -62,6 +64,25 @@ public sealed class StartDepositCheckoutTests
             Assert.Equal(Now.AddMinutes(closesInMinutes.Value), Assert.Single(gateway.Checkouts).ExpiresAt);
             Assert.True(gateway.Checkouts[0].ExpiresAt <= reservation.ExpiresAt);
         }
+    }
+
+    // C8 Lab 3: retries within the same hour derive the same Stripe key and expiry; the next hour, a new one.
+    [Fact]
+    public async Task Retries_in_the_same_hour_send_the_same_key_and_expiry()
+    {
+        var reservation = AReservation().CreatedAt(Now).Build(); // 7-day hold: capped
+        var gateway = new FakeGateway();
+
+        foreach (var at in new[] { Now.AddMinutes(1), Now.AddMinutes(59), Now.AddMinutes(61) })
+        {
+            await new StartDepositCheckout(gateway, new FixedTime(at)).HandleAsync(Command(reservation), TestContext.Current.CancellationToken);
+        }
+
+        var (a, b, c) = (gateway.Checkouts[0], gateway.Checkouts[1], gateway.Checkouts[2]);
+        Assert.Equal((a.IdempotencyKey, a.ExpiresAt), (b.IdempotencyKey, b.ExpiresAt));
+        Assert.Equal($"deposit-session:{reservation.Id.Value}:{Now.AddHours(23).ToUnixTimeSeconds()}", a.IdempotencyKey);
+        Assert.NotEqual(a.IdempotencyKey, c.IdempotencyKey);
+        Assert.Equal(Now.AddHours(24), c.ExpiresAt);
     }
 
     private static StartDepositCheckoutCommand Command(Reservation reservation) =>

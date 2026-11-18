@@ -167,6 +167,7 @@ public sealed class StripeWebhookTests(PostgresFixture database)
             Content = JsonContent.Create(new { deposit = 5000m, currency = "GBP" }),
         };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", TestTokens.Access(TestTokens.Users.Owner.ToString(), "buyer"));
+        request.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
         using var response = await client.SendAsync(request, Ct);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         return new ReservationId(JsonElement.Parse(await response.Content.ReadAsStringAsync(Ct)).GetProperty("id").GetGuid());

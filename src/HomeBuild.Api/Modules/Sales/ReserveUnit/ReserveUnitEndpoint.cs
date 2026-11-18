@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Asp.Versioning;
 using HomeBuild.Api.Http;
+using HomeBuild.Api.Http.Idempotency;
 using HomeBuild.Api.Modules.Catalogue;
 using HomeBuild.Domain;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -24,6 +25,7 @@ internal static class ReserveUnitEndpoint
             .ProducesProblem(StatusCodes.Status429TooManyRequests)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .RequireRateLimiting(RateLimiting.Reservations)
+            .RequireIdempotencyKey() // C8 Lab 3
             .RequireAuthorization(Policies.CanReserve);
 
     internal static async Task<Results<Created<ReservationResponse>, NotFound, Conflict<ProblemDetails>, UnprocessableEntity<ProblemDetails>, ProblemHttpResult>>

@@ -192,6 +192,38 @@ public sealed class FormsTests
         Assert.Contains("Edit this unit", adminUnit, StringComparison.Ordinal);
     }
 
+    // C8 Lab 3: the key is generated when the form renders, so posting the same rendered form twice (a double click)
+    // sends one key twice; while the first is still running the API answers 409 in progress, and the client waits.
+    [Fact]
+    public async Task Double_submit_sends_one_idempotency_key_and_waits_out_in_progress()
+    {
+        var reservationId = Guid.CreateVersion7();
+        var calls = 0;
+        var api = new FakeCatalogueApi
+        {
+            Respond = r => r.Method == HttpMethod.Post && r.RequestUri!.AbsolutePath == ReservationsPath
+                ? Interlocked.Increment(ref calls) == 2
+                    ? FakeCatalogueApi.Problem(HttpStatusCode.Conflict, "Request still in progress", "The first request with this key has not finished.", type: "https://homebuild.example/problems/idempotency-in-progress")
+                    : FakeCatalogueApi.Json(new HomeBuild.Web.Api.Reservation(reservationId, PlotOne, Guid.NewGuid(), 5000m, "GBP", "Held", DateTimeOffset.UtcNow), HttpStatusCode.Created)
+                : null,
+        };
+        await using var factory = new WebFactory(api);
+        using var browser = factory.CreateBrowser();
+        await factory.SignInAsync(browser, Fresh, "buyer");
+        var page = await browser.GetStringAsync(new Uri(UnitPage, UriKind.Relative), Ct);
+        var fields = HtmlForm.Fields(page, "reserve-form", new Dictionary<string, string> { ["deposit"] = "5000", ["terms"] = "true" });
+
+        using var first = await browser.PostAsync(new Uri(UnitPage, UriKind.Relative), new FormUrlEncodedContent(fields), Ct);
+        using var second = await browser.PostAsync(new Uri(UnitPage, UriKind.Relative), new FormUrlEncodedContent(fields), Ct);
+
+        var keys = api.Requests.Where(r => r.Method == HttpMethod.Post).Select(r => r.Headers.GetValues("Idempotency-Key").Single()).ToList();
+        Assert.Equal(3, keys.Count); // first; second (409 in progress); second again (201)
+        Assert.Single(keys.Distinct());
+        Assert.True(Guid.TryParse(keys[0], out _));
+        Assert.Equal($"/my-home/reservations/{reservationId}", first.Headers.Location?.AbsolutePath);
+        Assert.Equal($"/my-home/reservations/{reservationId}", second.Headers.Location?.AbsolutePath);
+    }
+
     private static async Task<string> PostReservationAsync(FakeCatalogueApi api, string deposit, string? terms = "true")
     {
         await using var factory = new WebFactory(api);

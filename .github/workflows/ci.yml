@@ -62,7 +62,7 @@ jobs:
           # The bundles run on this runner, so build them for its architecture (linux-arm64 on ubuntu-24.04-arm).
           rid=linux-$([ "$(uname -m)" = aarch64 ] && echo arm64 || echo x64)
           echo "Bundles for $rid"
-          for context in Catalogue Sales Accounts Construction Payments; do
+          for context in Catalogue Sales Accounts Construction Payments Idempotency; do
             name=$(echo "$context" | tr '[:upper:]' '[:lower:]')
             dotnet ef migrations bundle --project src/HomeBuild.Api --context ${context}DbContext --configuration Release \
               --self-contained --target-runtime $rid --output artifacts/migrate-$name --force
@@ -72,7 +72,7 @@ jobs:
       - name: Apply each bundle twice to the empty CI database
         run: |
           for run in 1 2; do
-            for name in catalogue sales accounts construction payments; do
+            for name in catalogue sales accounts construction payments idempotency; do
               echo "::group::run $run: migrate-$name"
               ./artifacts/migrate-$name --connection "$MIGRATIONS_CONNECTION"
               echo "::endgroup::"

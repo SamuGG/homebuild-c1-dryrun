@@ -81,9 +81,9 @@ public sealed class DepositCheckoutTests(PostgresFixture database)
         Assert.Equal(StubStripe.SessionId, body.GetProperty("sessionId").GetString());
     }
 
-    // The brief: "expires_at = the reservation's expiry". Stripe allows 30 minutes to 24 hours, so a hold within 24 hours
+    // The brief: "expires_at = the reservation's expiry". Stripe allows 30 minutes to 24 hours, so a hold that ends soon
     // closes the page exactly when the hold ends (to the second Stripe stores), and a longer one (the 7-day default) is
-    // capped at Stripe's 24 hours. Either way the page never outlives the reservation.
+    // capped 23 hours after the start of the hour (C8 Lab 3). Either way the page never outlives the reservation.
     [Theory]
     [InlineData("01:00:00", false)]
     [InlineData("7.00:00:00", true)]
@@ -103,7 +103,7 @@ public sealed class DepositCheckoutTests(PostgresFixture database)
         Assert.True(expiresAt <= reservationExpiresAt, $"The page closes at {expiresAt:O}, after the reservation's hold ends at {reservationExpiresAt:O}.");
         if (capped)
         {
-            Assert.InRange(expiresAt, before.AddHours(24).AddMinutes(-2), DateTimeOffset.UtcNow.AddHours(24));
+            Assert.InRange(expiresAt, before.AddHours(22), DateTimeOffset.UtcNow.AddHours(23)); // 23 h after the start of the hour
         }
         else
         {
@@ -131,6 +131,7 @@ public sealed class DepositCheckoutTests(PostgresFixture database)
             Content = JsonContent.Create(new { deposit, currency = "GBP" }),
         };
         request.Headers.Authorization = Bearer("owner");
+        request.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
         using var response = await client.SendAsync(request, Ct);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         return JsonElement.Parse(await response.Content.ReadAsStringAsync(Ct));
@@ -140,6 +141,7 @@ public sealed class DepositCheckoutTests(PostgresFixture database)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, $"/v1/reservations/{reservation.GetProperty("id").GetGuid()}/deposit-session");
         request.Headers.Authorization = Bearer(caller);
+        request.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
         return await client.SendAsync(request, Ct);
     }
 
