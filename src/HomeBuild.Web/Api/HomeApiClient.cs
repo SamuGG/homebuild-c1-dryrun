@@ -20,6 +20,8 @@ public sealed record BuyerHome(Guid ReservationId, Guid UnitId, string PlotNumbe
 
 public sealed record MyProgress(IReadOnlyList<BuyerHome> Homes);
 
+public sealed record DepositSession(string SessionId, Uri Url, DateTimeOffset ExpiresAt);
+
 public sealed record Reservation(Guid Id, Guid UnitId, Guid BuyerId, decimal Deposit, string Currency, string State, DateTimeOffset ExpiresAt);
 
 /// <summary>Typed client for the API's signed-in endpoints. <c>AccessTokenHandler</c> adds the user's token.</summary>
@@ -56,6 +58,22 @@ public sealed class HomeApiClient(HttpClient http)
 
         var created = await response.Content.ReadFromJsonAsync<Reservation>(cancellationToken);
         return new(created!.Id, null);
+    }
+
+    /// <summary>
+    /// C8 Lab 1: a Stripe Checkout page for a held reservation's deposit. The URL to send the buyer to, or the API's
+    /// problem (404 not theirs, 409 not held or too late). The page's URL is never logged.
+    /// </summary>
+    public async Task<ApiResult<Uri>> StartDepositSessionAsync(Guid reservationId, CancellationToken cancellationToken = default)
+    {
+        using var response = await http.PostAsync(new Uri($"reservations/{reservationId}/deposit-session", UriKind.Relative), null, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            return new(null, await ApiProblem.ReadAsync(response, cancellationToken));
+        }
+
+        var session = await response.Content.ReadFromJsonAsync<DepositSession>(cancellationToken);
+        return new(session!.Url, null);
     }
 
     /// <summary>A reservation the signed-in user may read, or null (the API answers 404 for other buyers' reservations).</summary>

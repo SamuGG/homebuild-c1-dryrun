@@ -26,6 +26,8 @@ public static class SalesModule
         services.AddScoped<IReservationStore>(sp => sp.GetRequiredService<EfReservationStore>());
         // Scoped: Sales' public availability reads, for Catalogue.
         services.AddScoped<IUnitAvailability>(sp => sp.GetRequiredService<EfReservationStore>());
+        // Scoped: Sales' published reservation read, for Payments' deposit checkout (C8 Lab 1).
+        services.AddScoped<IReservationReader>(sp => sp.GetRequiredService<EfReservationStore>());
         // Scoped: runs one bulk update over the scoped context.
         services.AddScoped<ReservationExpiry>();
         // Keyed singletons: stateless strategies, one per key, picked per development.

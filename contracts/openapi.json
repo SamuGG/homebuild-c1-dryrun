@@ -612,6 +612,60 @@
           }
         }
       }
+    },
+    "/v1/reservations/{reservationId}/deposit-session": {
+      "post": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "Open a Stripe Checkout page for a held reservation's deposit",
+        "operationId": "CreateDepositSession",
+        "parameters": [
+          {
+            "name": "reservationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepositSessionResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -693,6 +747,27 @@
               "null",
               "string"
             ],
+            "format": "date-time"
+          }
+        }
+      },
+      "DepositSessionResponse": {
+        "required": [
+          "sessionId",
+          "url",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "expiresAt": {
+            "type": "string",
             "format": "date-time"
           }
         }
@@ -1241,6 +1316,9 @@
     },
     {
       "name": "Catalogue"
+    },
+    {
+      "name": "Payments"
     },
     {
       "name": "Sales"

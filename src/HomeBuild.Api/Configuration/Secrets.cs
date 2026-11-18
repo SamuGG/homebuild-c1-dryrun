@@ -16,6 +16,9 @@ public sealed class PaymentsOptions
     public string? SecretKey { get; set; }
 
     public string? PublishableKey { get; set; }
+
+    /// <summary>The web app's base URL: Checkout's success and cancel pages are in its My Home (C8 Lab 1). Not a secret.</summary>
+    public Uri? WebBaseUrl { get; set; }
 }
 
 public static class SecretRedaction

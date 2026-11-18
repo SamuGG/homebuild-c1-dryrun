@@ -32,7 +32,7 @@ internal interface IReservationStore
 }
 
 /// <summary>Scoped over <see cref="SalesDbContext"/>: the unit and its reservation are saved in one transaction.</summary>
-internal sealed class EfReservationStore(SalesDbContext db) : IReservationStore, IUnitAvailability
+internal sealed class EfReservationStore(SalesDbContext db) : IReservationStore, IUnitAvailability, IReservationReader
 {
     public Task<Unit?> FindUnitAsync(UnitId id, CancellationToken cancellationToken) =>
         db.Units.SingleOrDefaultAsync(u => u.Id == id, cancellationToken);
@@ -42,6 +42,8 @@ internal sealed class EfReservationStore(SalesDbContext db) : IReservationStore,
 
     public Task<Reservation?> FindReadOnlyAsync(ReservationId id, CancellationToken cancellationToken) =>
         db.Reservations.AsNoTracking().SingleOrDefaultAsync(r => r.Id == id, cancellationToken);
+
+    Task<Reservation?> IReservationReader.FindAsync(ReservationId id, CancellationToken cancellationToken) => FindReadOnlyAsync(id, cancellationToken);
 
     public async Task<IReadOnlyList<Unit>> UnitsByStatusAsync(DevelopmentId developmentId, UnitStatus status, CancellationToken cancellationToken) =>
         await HotQueries.UnitsByStatus(db, developmentId, status).ToListAsync(cancellationToken);

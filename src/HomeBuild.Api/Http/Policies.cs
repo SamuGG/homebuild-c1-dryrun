@@ -25,6 +25,7 @@ public static class Policies
     public const string CanReadReservations = nameof(CanReadReservations);
     public const string CanCancelReservations = nameof(CanCancelReservations);
     public const string CanReadPayments = nameof(CanReadPayments);
+    public const string CanPayDeposits = nameof(CanPayDeposits);
     public const string CanViewBuildBoard = nameof(CanViewBuildBoard);
     public const string CanReadOwnProgress = nameof(CanReadOwnProgress);
     public const string CanWorkOnSite = nameof(CanWorkOnSite);
@@ -40,6 +41,8 @@ public static class Policies
             .AddPolicy(CanReadReservations, p => p.RequireRole(Roles.Buyer, Roles.SalesAgent, Roles.Finance, Roles.Admin))
             .AddPolicy(CanCancelReservations, p => p.RequireRole(Roles.Buyer, Roles.SalesAgent, Roles.Admin))
             .AddPolicy(CanReadPayments, p => p.RequireRole(Roles.Buyer, Roles.Finance, Roles.Admin))
+            // C8 Lab 1: only the buyer pays their deposit online (staff take payments some other way).
+            .AddPolicy(CanPayDeposits, p => p.RequireRole(Roles.Buyer))
             .AddPolicy(CanViewBuildBoard, p => p.RequireRole(Roles.SiteManager, Roles.Admin))
             .AddPolicy(CanReadOwnProgress, p => p.RequireRole(Roles.Buyer))
             // C7 Lab 4: the role says a site manager may try; the assignment check (SiteAssignmentHandler) says on which development.
@@ -62,6 +65,7 @@ public static class ReservationOperations
     public static readonly OperationAuthorizationRequirement Read = new() { Name = nameof(Read) };
     public static readonly OperationAuthorizationRequirement Cancel = new() { Name = nameof(Cancel) };
     public static readonly OperationAuthorizationRequirement ReadPayments = new() { Name = nameof(ReadPayments) };
+    public static readonly OperationAuthorizationRequirement PayDeposit = new() { Name = nameof(PayDeposit) };
 }
 
 /// <summary>
@@ -75,6 +79,7 @@ internal sealed class ReservationAccessHandler : AuthorizationHandler<OperationA
         [nameof(ReservationOperations.Read)] = [Roles.SalesAgent, Roles.Finance, Roles.Admin],
         [nameof(ReservationOperations.Cancel)] = [Roles.SalesAgent, Roles.Admin],
         [nameof(ReservationOperations.ReadPayments)] = [Roles.Finance, Roles.Admin],
+        [nameof(ReservationOperations.PayDeposit)] = [], // the owning buyer only
     };
 
     protected override Task HandleRequirementAsync(

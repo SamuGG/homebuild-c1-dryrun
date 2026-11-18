@@ -141,6 +141,10 @@ public sealed class ApiFactory(string connectionString) : WebApplicationFactory<
         ArgumentNullException.ThrowIfNull(builder);
         builder.UseSetting("ConnectionStrings:" + HomeBuildDatabase.ConnectionStringName, ConnectionString);
         builder.UseSetting("Ssm:Enabled", "false"); // tests never read SSM, even as Production
+        // C8 Lab 1: as Development, the host loads the developer's user-secrets, real Stripe test keys included. Tests
+        // never see them: a test that forgot the stub Stripe client would otherwise call Stripe for real.
+        builder.UseSetting("Payments:SecretKey", "");
+        builder.UseSetting("Payments:PublishableKey", "");
         foreach (var (key, value) in TestTokens.Settings())
         {
             builder.UseSetting(key, value);
