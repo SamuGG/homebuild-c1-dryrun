@@ -31,7 +31,7 @@ Then wait for CI and review the PR as usual.
 Dependabot ignores `Microsoft.CodeAnalysis.CSharp`. The source generator (`src/HomeBuild.Generators`) runs inside the SDK's compiler, so the package must not be newer than that compiler's Roslyn. When `global.json` moves to a new SDK, check its compiler:
 
 ```bash
-dotnet "$(dirname "$(dotnet --list-sdks | tail -1 | sed -E 's/.*\[(.*)\]/\1/')")/$(dotnet --version)/Roslyn/bincore/csc.dll" -version
+dotnet "$(dotnet --list-sdks | tail -1 | sed -E 's/.*\[(.*)\]/\1/')/$(dotnet --version)/Roslyn/bincore/csc.dll" -version
 ```
 
 and set `Microsoft.CodeAnalysis.CSharp` in `Directory.Packages.props` to that version or lower. Never add a direct reference to it elsewhere: EF Core's design-time package pins its own copy exactly (`NU1608`).
