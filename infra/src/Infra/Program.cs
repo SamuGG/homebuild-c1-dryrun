@@ -23,4 +23,8 @@ Tags.Of(identity).Add("lab", "c4-lab2");
 var storage = new StorageStack(app, "HomeBuild-Storage", new StackProps { Env = env }, webOrigins: ["http://localhost:5266"]);
 Tags.Of(storage).Add("lab", "c5-lab7");
 
+// C9 Lab 1: the messaging stack (SNS topic, SQS queues with DLQs). Queues and topics are free when idle.
+var messaging = new MessagingStack(app, "HomeBuild-Messaging", new StackProps { Env = env });
+Tags.Of(messaging).Add("lab", "c9");
+
 app.Synth();
