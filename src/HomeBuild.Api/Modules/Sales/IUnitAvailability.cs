@@ -8,6 +8,15 @@ public sealed record LatestReservation(UnitId UnitId, ReservationId ReservationI
 /// <summary>One of a buyer's reservations, as other modules may see it.</summary>
 public sealed record BuyerReservation(ReservationId ReservationId, UnitId UnitId, string State, DateTimeOffset ExpiresAt);
 
+/// <summary>
+/// Sales' published reservation read (C8 Lab 1): Payments reads a reservation, untracked, to open its deposit checkout.
+/// It returns the domain aggregate, which other modules may read but never save: only Sales saves reservations.
+/// </summary>
+public interface IReservationReader
+{
+    Task<Reservation?> FindAsync(ReservationId id, CancellationToken cancellationToken = default);
+}
+
 /// <summary>Sales' published read surface: other modules ask it about availability and reservations.</summary>
 public interface IUnitAvailability
 {

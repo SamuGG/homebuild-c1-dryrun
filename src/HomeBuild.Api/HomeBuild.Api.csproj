@@ -26,6 +26,8 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <!-- C8 Lab 1: the Stripe adapter for Payments' IPaymentGateway. Only the host references it; the core never does. -->
+    <PackageReference Include="Stripe.net" />
   </ItemGroup>
 
   <PropertyGroup>

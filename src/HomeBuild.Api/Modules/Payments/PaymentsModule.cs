@@ -1,10 +1,14 @@
 using HomeBuild.Api.Data;
 using HomeBuild.Api.Http;
+using HomeBuild.Api.Configuration;
 using HomeBuild.Api.Modules.Catalogue;
+using HomeBuild.Api.Modules.Payments.DepositSession;
 using HomeBuild.Api.Modules.Payments.ListOverdue;
 using HomeBuild.Domain;
 using HomeBuild.Payments;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Stripe;
 
 namespace HomeBuild.Api.Modules.Payments;
 
@@ -26,8 +30,16 @@ public static class PaymentsModule
         // Scoped: a handler of Construction's MilestoneCompleted (C7 Lab 5), resolved by the dispatcher in the request's scope.
         services.AddScoped<IHandleDomainEvent<MilestoneCompleted>, RecordStagePaymentDue>();
         services.AddScoped<ListOverdueStagePayments>();
-        // MarkPaid is not registered yet: it needs an IPaymentGateway, and the Stripe adapter arrives in C8 (the host's DI
-        // validation refuses a use case whose port has no adapter). Its tests use the fake gateway.
+        // C8 Lab 1: the Stripe adapter. Singleton client: StripeClient is thread-safe and reuses one HttpClient. The key
+        // is read when the client is first used, so CI (which never has a Stripe key) starts, and tests swap the client.
+        services.AddSingleton<IStripeClient>(sp => new StripeClient(
+            sp.GetRequiredService<IOptions<PaymentsOptions>>().Value.SecretKey is { Length: > 0 } key
+                ? key
+                : throw new InvalidOperationException("Payments:SecretKey is not set (user-secrets locally, SSM in AWS).")));
+        // Scoped: the use cases are per request, like the stores they sit beside.
+        services.AddScoped<IPaymentGateway, StripePaymentGateway>();
+        services.AddScoped<StartDepositCheckout>();
+        // MarkPaid stays unregistered: no endpoint pays stage payments yet. Its tests use the fake gateway.
         return services;
     }
 
@@ -35,6 +47,7 @@ public static class PaymentsModule
     {
         var group = endpoints.MapVersionedGroup().WithTags(Name);
         group.MapListOverdueStagePayments();
+        group.MapDepositSession();
         return endpoints;
     }
 
