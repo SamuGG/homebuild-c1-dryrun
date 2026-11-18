@@ -22,6 +22,9 @@ public sealed record MyProgress(IReadOnlyList<BuyerHome> Homes);
 
 public sealed record DepositSession(string SessionId, Uri Url, DateTimeOffset ExpiresAt);
 
+/// <summary>C8 Lab 5: a deposit and what happened to it (paid, refund-pending, refunded), with the reason.</summary>
+public sealed record MyDeposit(Guid ReservationId, decimal Amount, string Currency, DateTimeOffset PaidAt, string Status, string? Reason, DateTimeOffset? RefundedAt);
+
 public sealed record Reservation(Guid Id, Guid UnitId, Guid BuyerId, decimal Deposit, string Currency, string State, DateTimeOffset ExpiresAt);
 
 /// <summary>Typed client for the API's signed-in endpoints. <c>AccessTokenHandler</c> adds the user's token.</summary>
@@ -62,6 +65,10 @@ public sealed class HomeApiClient(HttpClient http)
         var created = await response.Content.ReadFromJsonAsync<Reservation>(cancellationToken);
         return new(created!.Id, null);
     }
+
+    /// <summary>C8 Lab 5: the signed-in buyer's deposits, so My Home can say why one was refunded.</summary>
+    public async Task<IReadOnlyList<MyDeposit>> GetMyDepositsAsync(CancellationToken cancellationToken = default) =>
+        await http.GetFromJsonAsync<List<MyDeposit>>("me/deposits", cancellationToken) ?? [];
 
     /// <summary>
     /// C8 Lab 1: a Stripe Checkout page for a held reservation's deposit. The URL to send the buyer to, or the API's

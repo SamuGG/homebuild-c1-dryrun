@@ -15,6 +15,14 @@ internal sealed class FakeGateway : IPaymentGateway
         return Task.FromResult(Decline is null ? new GatewayCharge(true, $"ch_{Keys.Count}", null) : new GatewayCharge(false, null, Decline));
     }
 
+    public List<(string Reference, Money Amount, string Key)> Refunds { get; } = [];
+
+    public Task<GatewayRefund> RefundAsync(string providerReference, Money amount, string idempotencyKey, CancellationToken cancellationToken)
+    {
+        Refunds.Add((providerReference, amount, idempotencyKey));
+        return Task.FromResult(new GatewayRefund($"re_{Refunds.Count}", "succeeded"));
+    }
+
     public List<CheckoutRequest> Checkouts { get; } = [];
 
     public Task<CheckoutSession> CreateCheckoutSessionAsync(CheckoutRequest request, CancellationToken cancellationToken)

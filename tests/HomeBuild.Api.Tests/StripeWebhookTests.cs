@@ -25,8 +25,7 @@ public sealed class StripeWebhookTests(PostgresFixture database)
 {
     private const string Path = "/webhooks/stripe";
 
-    // Generated at run time; Stripe's secrets have this prefix, and the value is any string.
-    private static readonly string Secret = "whsec_" + Convert.ToBase64String(RandomNumberGenerator.GetBytes(24));
+    private static readonly string Secret = StripeTestEvents.Secret;
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -239,52 +238,9 @@ public sealed class StripeWebhookTests(PostgresFixture database)
         return (await sales.Reservations.AsNoTracking().SingleAsync(r => r.Id == id, Ct)).State;
     }
 
-    /// <summary>Stripe's scheme: t=timestamp, v1=hex(HMAC-SHA256(secret, "{t}.{payload}")).</summary>
-    private static string Sign(string payload, string secret, DateTimeOffset at)
-    {
-        var timestamp = at.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
-        var mac = HMACSHA256.HashData(Encoding.UTF8.GetBytes(secret), Encoding.UTF8.GetBytes($"{timestamp}.{payload}"));
-        return $"t={timestamp},v1={Convert.ToHexStringLower(mac)}";
-    }
+    private static string Sign(string payload, string secret, DateTimeOffset at) => StripeTestEvents.Sign(payload, secret, at);
 
-    private static string Completed(string eventId, string sessionId, ReservationId reservation) =>
-        Event(eventId, "checkout.session.completed", sessionId, reservation, "complete", "paid");
+    private static string Completed(string eventId, string sessionId, ReservationId reservation) => StripeTestEvents.Completed(eventId, sessionId, reservation);
 
-    private static string Expired(string eventId, string sessionId, ReservationId reservation) =>
-        Event(eventId, "checkout.session.expired", sessionId, reservation, "expired", "unpaid");
-
-    /// <summary>An event shaped like Stripe's, indented as Stripe sends it.</summary>
-    private static string Event(string eventId, string type, string sessionId, ReservationId reservation, string status, string paymentStatus) =>
-        JsonSerializer.Serialize(new Dictionary<string, object?>
-        {
-            ["id"] = eventId,
-            ["object"] = "event",
-            ["api_version"] = Stripe.StripeConfiguration.ApiVersion,
-            ["created"] = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-            ["livemode"] = false,
-            ["type"] = type,
-            ["data"] = new Dictionary<string, object?>
-            {
-                ["object"] = new Dictionary<string, object?>
-                {
-                    ["id"] = sessionId,
-                    ["object"] = "checkout.session",
-                    ["client_reference_id"] = reservation.Value.ToString(),
-                    ["metadata"] = new Dictionary<string, string>
-                    {
-                        ["tenant_id"] = TestTenants.Demo.ToString(),
-                        ["unit_id"] = EndpointTests.RiversidePlot1,
-                        ["reservation_id"] = reservation.Value.ToString(),
-                    },
-                    ["amount_total"] = 500000,
-                    ["currency"] = "gbp",
-                    ["payment_intent"] = status == "complete" ? "pi_" + sessionId : null,
-                    ["status"] = status,
-                    ["payment_status"] = paymentStatus,
-                    ["livemode"] = false,
-                },
-            },
-        }, Indented);
-
-    private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true };
+    private static string Expired(string eventId, string sessionId, ReservationId reservation) => StripeTestEvents.Expired(eventId, sessionId, reservation);
 }

@@ -28,9 +28,18 @@ public interface IPaymentGateway
     /// the buyer pays on the provider's page, and HomeBuild learns the outcome later from a signed webhook (Lab 2).
     /// </summary>
     Task<CheckoutSession> CreateCheckoutSessionAsync(CheckoutRequest request, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// C8 Lab 5: refunds a payment in full, once per <paramref name="idempotencyKey"/> (a retry never refunds twice).
+    /// Never call it inside a database transaction: record the intent, commit, refund, record the result.
+    /// </summary>
+    Task<GatewayRefund> RefundAsync(string providerReference, Money amount, string idempotencyKey, CancellationToken cancellationToken);
 }
 
 public sealed record GatewayCharge(bool Succeeded, string? ProviderReference, string? FailureReason);
+
+/// <summary>A refund the provider accepted (C8 Lab 5).</summary>
+public sealed record GatewayRefund(string Id, string Status);
 
 /// <summary>What the provider's hosted page asks the buyer to pay, and for which reservation.</summary>
 /// <param name="IdempotencyKey">Passed to the provider (C8 Lab 3): a retried create returns the first session.</param>

@@ -83,6 +83,17 @@ public sealed class Unit
         Price = price;
     }
 
+    /// <summary>C8 Lab 5: reserves an available unit again for an existing reservation that is being reinstated.</summary>
+    public void Hold()
+    {
+        if (Status != UnitStatus.Available)
+        {
+            throw new InvalidOperationException($"Only an available unit can be held; this one is {Status}.");
+        }
+
+        Status = UnitStatus.Reserved;
+    }
+
     /// <summary>Makes a reserved unit available again, for example after its reservation is cancelled.</summary>
     public void Release()
     {

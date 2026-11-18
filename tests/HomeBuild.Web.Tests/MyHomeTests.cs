@@ -73,4 +73,34 @@ public sealed class MyHomeTests
         Assert.NotNull(HtmlForm.Parse(html).QuerySelector("[data-testid=deposit-returned]"));
         Assert.All(api.Requests, r => Assert.Equal(HttpMethod.Get, r.Method)); // the success URL changes nothing
     }
+    // C8 Lab 5: a late payment that was refunded says why, on the reservation it belongs to.
+    [Fact]
+    public async Task Refunded_late_payment_is_explained_in_my_home()
+    {
+        var expired = Guid.Parse("0198a000-0000-7000-a000-000000000003");
+        var api = new FakeCatalogueApi
+        {
+            Respond = r => r.RequestUri!.AbsolutePath switch
+            {
+                "/v2/me/progress" => FakeCatalogueApi.Json(new HomeBuild.Web.Api.MyProgress(
+                    [new(expired, Guid.NewGuid(), "P1", "Riverside", "Expired", DateTimeOffset.UtcNow.AddDays(-1), new("Frame", 1, 3, "Roof"))])),
+                "/v2/me/deposits" => FakeCatalogueApi.Json(new[]
+                {
+                    new HomeBuild.Web.Api.MyDeposit(expired, 5000m, "GBP", DateTimeOffset.UtcNow, "refunded",
+                        "The hold ended before your payment arrived, and another buyer has since reserved this home. Your deposit has been refunded in full.", DateTimeOffset.UtcNow),
+                }),
+                _ => null,
+            },
+        };
+        await using var factory = new WebFactory(api);
+        using var browser = factory.CreateBrowser();
+        await factory.SignInAsync(browser, new TokenSet("access-1", "refresh-1", DateTimeOffset.UtcNow.AddHours(1)), "buyer");
+
+        var html = await browser.GetStringAsync(new Uri("/my-home", UriKind.Relative), TestContext.Current.CancellationToken);
+
+        var note = HtmlForm.Parse(html).QuerySelector($"[data-testid=refund-{expired}]")!.TextContent;
+        Assert.Contains("Deposit refunded", note, StringComparison.Ordinal);
+        Assert.Contains("£5,000.00", note, StringComparison.Ordinal);
+        Assert.Contains("another buyer has since reserved this home", note, StringComparison.Ordinal);
+    }
 }

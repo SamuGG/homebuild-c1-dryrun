@@ -16,6 +16,16 @@ public closed record class ReservationState
         Expired or Confirmed or Cancelled => new InvalidTransition(this, "Only a held reservation can be confirmed."),
     };
 
+    /// <summary>
+    /// C8 Lab 5: an expired reservation is held again (until <paramref name="holdUntil"/>) when its deposit arrives late
+    /// and its unit is still free. The caller checks the unit; the state only allows it from Expired.
+    /// </summary>
+    public TransitionResult Reinstate(DateTimeOffset holdUntil) => this switch
+    {
+        Expired => new Transitioned(new Held(holdUntil)),
+        Held or Confirmed or Cancelled => new InvalidTransition(this, "Only an expired reservation can be held again."),
+    };
+
     public TransitionResult Cancel(DateTimeOffset now) => this switch
     {
         // A confirmed reservation can still be cancelled (by staff, C4 Lab 4; the deposit is then refunded by Finance).

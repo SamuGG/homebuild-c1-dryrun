@@ -25,6 +25,7 @@ public class ReservationStateTableTests
         ["Expire"] = (r, at) => r.Expire(at),
         ["Confirm"] = (r, at) => r.Confirm(at),
         ["Cancel"] = (r, at) => r.Cancel(at),
+        ["Reinstate"] = (r, at) => r.Reinstate(at + Hold), // C8 Lab 5: a late deposit, unit still free
     };
 
     // (state, action, when, expected): "when" is "before expiry" or "at expiry"; expected is a state, or "invalid".
@@ -45,6 +46,11 @@ public class ReservationStateTableTests
         Row("Cancelled", "Expire", "at expiry", "invalid"),
         Row("Cancelled", "Confirm", "before expiry", "invalid"),
         Row("Cancelled", "Cancel", "at expiry", "invalid"),
+        // C8 Lab 5: only an expired reservation is held again.
+        Row("Held", "Reinstate", "at expiry", "invalid"),
+        Row("Expired", "Reinstate", "at expiry", "Held"),
+        Row("Confirmed", "Reinstate", "at expiry", "invalid"),
+        Row("Cancelled", "Reinstate", "at expiry", "invalid"),
     };
 
     [Theory]

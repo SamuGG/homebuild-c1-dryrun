@@ -52,6 +52,20 @@ namespace HomeBuild.Api.Modules.Payments.Migrations
                         .HasColumnType("character varying(255)")
                         .HasColumnName("provider_reference");
 
+                    b.Property<string>("RefundReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("refund_reason");
+
+                    b.Property<string>("RefundReference")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("refund_reference");
+
+                    b.Property<DateTimeOffset?>("RefundedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("refunded_at");
+
                     b.Property<Guid>("ReservationId")
                         .HasColumnType("uuid")
                         .HasColumnName("reservation_id");

@@ -89,6 +89,11 @@ internal sealed class FakeCatalogueApi : HttpMessageHandler
                 key = "incoming/t/u/f.pdf", maxBytes = 10485760, contentType = "application/pdf", expiresAt = DateTimeOffset.UtcNow.AddMinutes(5) });
         }
 
+        if (path == "/v2/me/deposits")
+        {
+            return Json(Array.Empty<HomeBuild.Web.Api.MyDeposit>()); // C8 Lab 5: no deposits unless a test says so
+        }
+
         if (path == "/v2/me/progress")
         {
             return Json(new HomeBuild.Web.Api.MyProgress(
