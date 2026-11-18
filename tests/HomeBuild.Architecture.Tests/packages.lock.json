@@ -460,6 +460,7 @@
         "dependencies": {
           "AWSSDK.S3": "[4.1.1, )",
           "AWSSDK.SecurityToken": "[4.1.0.2, )",
+          "AWSSDK.SimpleNotificationService": "[4.1.0.1, )",
           "Amazon.Extensions.Configuration.SystemsManager": "[7.1.1, )",
           "Asp.Versioning.Http": "[10.2.3, )",
           "Asp.Versioning.Mvc.ApiExplorer": "[10.2.1, )",
@@ -543,6 +544,15 @@
         "contentHash": "VCLUAO6N9v1A8aGHarISLuyoKHQfkv+6VUHs9Rggx6+h4xGjEPslUHJvmlDpS39er0wrIrK1sNcC8LfebIHRiQ==",
         "dependencies": {
           "AWSSDK.Core": "[4.1.1.1, 5.0.0)"
+        }
+      },
+      "AWSSDK.SimpleNotificationService": {
+        "type": "CentralTransitive",
+        "requested": "[4.1.0.1, )",
+        "resolved": "4.1.0.1",
+        "contentHash": "ZkLhhi8lE8mkW5PFY/70EeC90UKUzV9BA924gdfWIOFM9XGFuk+U4HFGZCJrm0cgcJJCsHoPxDqyRURMHxIsEw==",
+        "dependencies": {
+          "AWSSDK.Core": "[4.1.1, 5.0.0)"
         }
       },
       "EFCore.NamingConventions": {

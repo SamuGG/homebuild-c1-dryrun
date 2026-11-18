@@ -42,6 +42,8 @@ builder.Services.AddTenancy();
 // Scoped: counts the request's open database transactions, so no external call happens inside one (C8 Lab 4).
 builder.Services.AddScoped<HomeBuild.Api.Data.OpenTransactions>();
 builder.Services.AddIdempotency();
+// C9 Lab 2: relays for the modules' outboxes (they run only when Messaging:TopicArn is set).
+HomeBuild.Api.Data.OutboxServices.AddOutboxRelays(builder.Services);
 builder.Services.AddCatalogueModule();
 builder.Services.AddSalesModule();
 builder.Services.AddAccountsModule();
