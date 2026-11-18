@@ -1351,6 +1351,40 @@
           }
         }
       }
+    },
+    "/v2/me/deposits": {
+      "get": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "The signed-in buyer's deposits: paid, refund pending or refunded, with the reason (v2)",
+        "operationId": "ListMyDeposits",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MyDepositResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2105,6 +2139,55 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "MyDepositResponse": {
+        "required": [
+          "reservationId",
+          "amount",
+          "currency",
+          "paidAt",
+          "status",
+          "reason",
+          "refundedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "reservationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "paidAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "refundedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },

@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- C8 Lab 5: fires concurrent reservation and payment requests against running API instances and prints the
+       outcomes. Plain HTTP: it references no HomeBuild project. C15 grows it into a load tool. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" />
+  </ItemGroup>
+
+</Project>

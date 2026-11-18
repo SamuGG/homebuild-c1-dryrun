@@ -53,6 +53,9 @@ public sealed class Reservation
 
     public TransitionResult Cancel(DateTimeOffset now) => Apply(State.Cancel(now));
 
+    /// <summary>C8 Lab 5: hold an expired reservation again (a late deposit for a unit that is still free).</summary>
+    public TransitionResult Reinstate(DateTimeOffset holdUntil) => Apply(State.Reinstate(holdUntil));
+
     private TransitionResult Apply(TransitionResult result)
     {
         if (result is Transitioned transitioned)

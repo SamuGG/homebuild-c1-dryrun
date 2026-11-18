@@ -51,6 +51,17 @@ internal sealed class StripePaymentGateway(IStripeClient stripe, HomeBuild.Api.D
         return new CheckoutSession(session.Id, new Uri(session.Url), new DateTimeOffset(DateTime.SpecifyKind(session.ExpiresAt, DateTimeKind.Utc)));
     }
 
+    public async Task<GatewayRefund> RefundAsync(string providerReference, Money amount, string idempotencyKey, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(amount);
+        transactions?.EnsureNone("Stripe refund"); // C8 Lab 4
+        var refund = await new RefundService(stripe).CreateAsync(
+            new RefundCreateOptions { PaymentIntent = providerReference, Amount = StripeAmounts.ToMinorUnits(amount) },
+            new RequestOptions { IdempotencyKey = idempotencyKey },
+            cancellationToken);
+        return new GatewayRefund(refund.Id, refund.Status);
+    }
+
     /// <summary>A direct charge of a payment method tokenised in the browser (C6's port; used by MarkPaid, not by deposits).</summary>
     public async Task<GatewayCharge> ChargeAsync(Money amount, string paymentMethodToken, string idempotencyKey, CancellationToken cancellationToken)
     {

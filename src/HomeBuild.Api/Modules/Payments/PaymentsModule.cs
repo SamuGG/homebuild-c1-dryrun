@@ -4,6 +4,7 @@ using HomeBuild.Api.Configuration;
 using HomeBuild.Api.Modules.Catalogue;
 using HomeBuild.Api.Modules.Payments.DepositSession;
 using HomeBuild.Api.Modules.Payments.ListOverdue;
+using HomeBuild.Api.Modules.Payments.MyDeposits;
 using HomeBuild.Api.Modules.Payments.StripeWebhook;
 using HomeBuild.Domain;
 using HomeBuild.Payments;
@@ -51,6 +52,7 @@ public static class PaymentsModule
         var group = endpoints.MapVersionedGroup().WithTags(Name);
         group.MapListOverdueStagePayments();
         group.MapDepositSession();
+        group.MapMyDeposits(); // C8 Lab 5
         // Not versioned: Stripe calls one fixed URL. Anonymous, but every request must carry Stripe's signature.
         endpoints.MapStripeWebhook().WithTags(Name);
         return endpoints;
@@ -150,6 +152,14 @@ internal sealed class DepositRow
     public required string Currency { get; init; }
 
     public required DateTimeOffset PaidAt { get; init; }
+
+    /// <summary>C8 Lab 5: why this payment is being given back (set with the deposit, in the webhook's transaction).</summary>
+    public string? RefundReason { get; init; }
+
+    /// <summary>Stripe's refund ID, once the refund call (after the commit) succeeded. Reason without it: pending.</summary>
+    public string? RefundReference { get; init; }
+
+    public DateTimeOffset? RefundedAt { get; init; }
 }
 
 /// <summary>A Checkout Session that closed unpaid: payment did not happen. The reservation's hold is untouched.</summary>
@@ -247,6 +257,8 @@ internal sealed class PaymentsDbContext(DbContextOptions<PaymentsDbContext> opti
             d.Property(x => x.ProviderReference).HasMaxLength(255);
             d.Property(x => x.Amount).HasPrecision(12, 2);
             d.Property(x => x.Currency).HasMaxLength(3).IsFixedLength();
+            d.Property(x => x.RefundReason).HasMaxLength(500);
+            d.Property(x => x.RefundReference).HasMaxLength(255);
         });
         modelBuilder.Entity<ExpiredCheckoutSession>(x =>
         {

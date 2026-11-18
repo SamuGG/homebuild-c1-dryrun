@@ -53,6 +53,14 @@ else if (DepositReturn == "cancelled")
                             <span class="text-sm">@home.Progress.StepsDone of @home.Progress.StepsTotal steps done@(home.Progress.NextStep is { } next ? $"; next: {next}" : "")</span>
                         </p>
                         <p class="mt-3"><a class="@Styles.Link" href="my-home/reservations/@home.ReservationId">Reservation details</a></p>
+                        @foreach (var refund in deposits.Where(d => d.ReservationId == home.ReservationId && d.Status != "paid"))
+                        {
+                            @* C8 Lab 5: a late payment that could not be kept, and why. *@
+                            <p class="mt-3" role="status" data-testid="refund-@home.ReservationId">
+                                @(refund.Status == "refunded" ? "Deposit refunded" : "Refund in progress"):
+                                @refund.Amount.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("en-GB")). @refund.Reason
+                            </p>
+                        }
                         @if (home.ReservationState == "Held")
                         {
                             @* A plain form post (not enhanced): the answer is a redirect to Stripe's hosted page. *@
@@ -81,6 +89,7 @@ else if (DepositReturn == "cancelled")
     private CurrentUser? me;
     private MyProgress? progress;
     private string? payProblem;
+    private IReadOnlyList<MyDeposit> deposits = [];
 
     [SupplyParameterFromForm(Name = "idempotency-key")]
     private Guid? PayKey { get; set; } // C8 Lab 3: from the form that was rendered, so a double click sends one key
@@ -93,6 +102,7 @@ else if (DepositReturn == "cancelled")
         user = AuthenticationState is null ? null : (await AuthenticationState).User;
         me = await Api.GetMeAsync();
         progress = user!.IsInRole("buyer") ? await Api.GetMyProgressAsync() : new MyProgress([]);
+        deposits = user.IsInRole("buyer") ? await Api.GetMyDepositsAsync() : [];
     }
 
     private async Task PayDepositAsync(Guid reservationId)
