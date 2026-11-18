@@ -24,6 +24,9 @@ updates:
         update-types: [version-update:semver-major]
       - dependency-name: "dotnet-ef"
         update-types: [version-update:semver-major]
+      # The source generator's Roslyn must not be newer than the SDK's compiler; updated by hand with the SDK
+      # (see CONTRIBUTING.md). Dependabot also tried to lift EF Core Design's transitive copy, which breaks NU1608.
+      - dependency-name: "Microsoft.CodeAnalysis.CSharp"
 
   # npm: the Bruno CLI that runs the API acceptance collection in CI.
   - package-ecosystem: npm
