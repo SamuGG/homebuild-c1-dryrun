@@ -20,6 +20,8 @@
 
   <ItemGroup>
     <PackageReference Include="Amazon.Extensions.Configuration.SystemsManager" />
+    <!-- C9: the opt-in tests read the real queues (HOMEBUILD_AWS_TESTS=1); CI uses the in-memory publisher. -->
+    <PackageReference Include="AWSSDK.SQS" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
     <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" />

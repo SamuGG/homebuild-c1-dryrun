@@ -33,6 +33,7 @@ internal sealed class ConstructionDbContext(DbContextOptions<ConstructionDbConte
     // Every save runs in a transaction, as in Sales, so TenantCommandInterceptor sets app.tenant_id at TransactionStarted.
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
+        StageOutboxMessages();
         ChangeTracker.StampTenant(tenant);
         Database.AutoTransactionBehavior = AutoTransactionBehavior.Always;
         return base.SaveChanges(acceptAllChangesOnSuccess);
@@ -40,9 +41,30 @@ internal sealed class ConstructionDbContext(DbContextOptions<ConstructionDbConte
 
     public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
+        StageOutboxMessages();
         ChangeTracker.StampTenant(tenant);
         Database.AutoTransactionBehavior = AutoTransactionBehavior.Always;
         return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    /// <summary>
+    /// C9 Lab 2: every MilestoneCompleted leaves the module through the outbox, written in this same SaveChanges (and so
+    /// the same transaction) as the milestone. C7's in-process dispatch still runs after the commit (see
+    /// docs/construction/domain-events.md) until each handler's consumer reads the queue instead.
+    /// </summary>
+    private void StageOutboxMessages()
+    {
+        foreach (var entry in ChangeTracker.Entries<BuildProgress>().ToList())
+        {
+            // The aggregate's own tenant (a seed or a tool has no request tenant).
+            var tenantId = (Guid?)entry.Property(TenantModel.TenantId).CurrentValue is { } t && t != Guid.Empty ? t : CurrentTenantId;
+            foreach (var completed in entry.Entity.DomainEvents.OfType<MilestoneCompleted>())
+            {
+                Set<OutboxMessage>().Add(OutboxMessage.For(IntegrationEvents.MilestoneCompleted,
+                    new MilestoneCompletedMessage(completed.UnitId.Value, tenantId, completed.Milestone.ToString(), completed.CompletedAt),
+                    tenantId, DateTimeOffset.UtcNow));
+            }
+        }
     }
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
@@ -110,6 +132,7 @@ internal sealed class ConstructionDbContext(DbContextOptions<ConstructionDbConte
         });
 
         modelBuilder.Entity<BuildProgress>().HasTenant(this);
+        modelBuilder.HasOutbox(); // C9 Lab 2
         modelBuilder.Entity<DiaryEntry>().HasTenant(this);
         modelBuilder.Entity<SiteAssignment>().HasTenant(this);
         modelBuilder.Entity<MilestoneAudit>().HasTenant(this);
@@ -157,6 +180,7 @@ internal sealed class ConstructionDbContext(DbContextOptions<ConstructionDbConte
             progress.Note(Domain.BuildProgress.Order[done], "Awaiting inspection sign-off", 2);
         }
 
+        progress.ClearDomainEvents(); // seed data, not things that happened: nothing to publish (C9 Lab 2)
         return progress;
     }
 }

@@ -101,6 +101,7 @@ internal sealed class SalesDbContext(DbContextOptions<SalesDbContext> options, I
 
         modelBuilder.Entity<Unit>().HasTenant(this);
         modelBuilder.Entity<Reservation>().HasTenant(this);
+        modelBuilder.HasOutbox(); // C9 Lab 2
     }
 
     internal static async Task SeedAsync(DbContext db, CancellationToken cancellationToken)

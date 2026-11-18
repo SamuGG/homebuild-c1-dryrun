@@ -110,7 +110,7 @@ public sealed class MappingTests(PostgresFixture database)
 
         Assert.Equal(
             ["catalogue.__ef_migrations_history", "catalogue.developments", "catalogue.unit_prices", "catalogue.units",
-             "sales.__ef_migrations_history", "sales.reservations", "sales.units"],
+             "sales.__ef_migrations_history", "sales.outbox_messages", "sales.reservations", "sales.units"], // C9 Lab 2: the module's outbox
             tables);
     }
 }

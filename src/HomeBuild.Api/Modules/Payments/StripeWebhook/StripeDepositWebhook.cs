@@ -1,3 +1,4 @@
+using HomeBuild.Api.Data;
 using HomeBuild.Api.Http;
 using HomeBuild.Api.Modules.Sales;
 using HomeBuild.Domain;
@@ -140,6 +141,15 @@ internal sealed class StripeDepositWebhook(PaymentsDbContext db, IReservationDep
             DepositConfirmation.AlreadyConfirmed => (WebhookResult.DepositAlreadyConfirmed, null),
             _ => (WebhookResult.DepositRefunded, confirmation.Reason ?? "This payment could not be matched to a held reservation, so it"),
         };
+        // C9 Lab 2: a kept deposit leaves the module as DepositPaid, through the outbox, in this transaction.
+        if (result is WebhookResult.DepositConfirmed or WebhookResult.DepositReheldAndConfirmed)
+        {
+            var unit = Guid.TryParse(session.Metadata?.GetValueOrDefault(StripePaymentGateway.UnitMetadata), out var u) ? u : Guid.Empty;
+            db.Set<OutboxMessage>().Add(OutboxMessage.For(IntegrationEvents.DepositPaid,
+                new DepositPaidMessage(reservationId.Value, unit, tenant.TenantId!.Value, paid.Amount.Amount, paid.Amount.Currency, session.Id, paid.PaidAt),
+                tenant.TenantId!.Value, time.GetUtcNow()));
+        }
+
         db.Deposits.Add(new DepositRow
         {
             ReservationId = paid.ReservationId, SessionId = session.Id, ProviderReference = paid.ProviderReference,

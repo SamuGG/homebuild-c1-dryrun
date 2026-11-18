@@ -270,5 +270,6 @@ internal sealed class PaymentsDbContext(DbContextOptions<PaymentsDbContext> opti
         modelBuilder.Entity<ProcessedWebhookEvent>().HasTenant(this);
         modelBuilder.Entity<DepositRow>().HasTenant(this);
         modelBuilder.Entity<ExpiredCheckoutSession>().HasTenant(this);
+        modelBuilder.HasOutbox(); // C9 Lab 2
     }
 }
