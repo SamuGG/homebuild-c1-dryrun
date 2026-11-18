@@ -2,6 +2,7 @@ using HomeBuild.Api.Data;
 using HomeBuild.Api.Http;
 using HomeBuild.Domain;
 using Microsoft.EntityFrameworkCore;
+using HomeBuild.Messaging;
 
 namespace HomeBuild.Api.Modules.Construction;
 

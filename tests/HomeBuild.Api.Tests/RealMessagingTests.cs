@@ -7,6 +7,7 @@ using HomeBuild.Api.Modules.Payments;
 using HomeBuild.Api.Modules.Sales;
 using HomeBuild.Domain;
 using Microsoft.Extensions.DependencyInjection;
+using HomeBuild.Messaging;
 
 namespace HomeBuild.Api.Tests;
 

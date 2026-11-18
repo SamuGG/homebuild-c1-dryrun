@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <!-- C9 Lab 3: the worker host. One BackgroundService per queue it consumes; the first is the contract worker.
+       It shares the API's user-secrets (same UserSecretsId) for the local connection string and AWS settings. -->
+  <PropertyGroup>
+    <UserSecretsId>027b04ea-0e16-497b-a8a8-7da1ad7477ff</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HomeBuild.Domain\HomeBuild.Domain.csproj" />
+    <ProjectReference Include="..\HomeBuild.Messaging\HomeBuild.Messaging.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AWSSDK.S3" />
+    <PackageReference Include="EFCore.NamingConventions" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="HomeBuild.Workers.Tests" />
+    <InternalsVisibleTo Include="HomeBuild.Architecture.Tests" />
+  </ItemGroup>
+
+</Project>

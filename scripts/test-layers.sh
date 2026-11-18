@@ -19,6 +19,7 @@ layers=(
   "Boundary (project references)|10|dotnet test --no-build -c $config --project tests/HomeBuild.Architecture.Tests"
   "Web components and in-memory host (fake API)|20|dotnet test --no-build -c $config --project tests/HomeBuild.Web.Tests"
   "Integration (real PostgreSQL, includes the namespace tests)|90|dotnet test --no-build -c $config --project tests/HomeBuild.Api.Tests"
+  "Workers (real PostgreSQL, in-memory queue; C9 Lab 3)|30|dotnet test --no-build -c $config --project tests/HomeBuild.Workers.Tests"
   "Contract (contracts/ unchanged after the build)|10|git add -N contracts && git diff --exit-code -- contracts/"
 )
 

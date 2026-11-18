@@ -434,12 +434,12 @@
         "dependencies": {
           "AWSSDK.S3": "[4.1.1, )",
           "AWSSDK.SecurityToken": "[4.1.0.2, )",
-          "AWSSDK.SimpleNotificationService": "[4.1.0.1, )",
           "Amazon.Extensions.Configuration.SystemsManager": "[7.1.1, )",
           "Asp.Versioning.Http": "[10.2.3, )",
           "Asp.Versioning.Mvc.ApiExplorer": "[10.2.1, )",
           "EFCore.NamingConventions": "[10.0.1, )",
           "HomeBuild.Domain": "[1.0.0, )",
+          "HomeBuild.Messaging": "[1.0.0, )",
           "HomeBuild.Payments.Core": "[1.0.0, )",
           "Microsoft.AspNetCore.Authentication.JwtBearer": "[11.0.0, )",
           "Microsoft.AspNetCore.OpenApi": "[11.0.0, )",
@@ -451,6 +451,14 @@
       },
       "homebuild.domain": {
         "type": "Project"
+      },
+      "homebuild.messaging": {
+        "type": "Project",
+        "dependencies": {
+          "AWSSDK.SQS": "[4.1.0.2, )",
+          "AWSSDK.SimpleNotificationService": "[4.1.0.1, )",
+          "Microsoft.EntityFrameworkCore.Relational": "[10.0.15, )"
+        }
       },
       "homebuild.payments.core": {
         "type": "Project",

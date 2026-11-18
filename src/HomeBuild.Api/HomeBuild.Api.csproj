@@ -4,13 +4,14 @@
     <ProjectReference Include="..\HomeBuild.Domain\HomeBuild.Domain.csproj" />
     <!-- C7 Lab 5: the host wires Payments' core (use cases and ports) to adapters it owns. Never the infrastructure project's internals. -->
     <ProjectReference Include="..\HomeBuild.Payments.Core\HomeBuild.Payments.Core.csproj" />
+    <!-- C9 Lab 3: the outbox, relay and SNS publisher, shared with the worker host. -->
+    <ProjectReference Include="..\HomeBuild.Messaging\HomeBuild.Messaging.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Amazon.Extensions.Configuration.SystemsManager" />
     <PackageReference Include="AWSSDK.S3" />
     <PackageReference Include="AWSSDK.SecurityToken" />
-    <PackageReference Include="AWSSDK.SimpleNotificationService" />
     <PackageReference Include="Asp.Versioning.Http" />
     <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" />
     <PackageReference Include="EFCore.NamingConventions" />

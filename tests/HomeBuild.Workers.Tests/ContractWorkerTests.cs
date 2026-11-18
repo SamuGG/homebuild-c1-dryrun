@@ -1,0 +1,150 @@
+using System.Diagnostics;
+using HomeBuild.Domain;
+using HomeBuild.Messaging;
+using Microsoft.EntityFrameworkCore;
+
+namespace HomeBuild.Workers.Tests;
+
+/// <summary>C9 Lab 3's acceptance tests: the contract worker over a real database and an in-memory queue.</summary>
+[Collection(WorkerDatabase.Name)]
+public sealed class ContractWorkerTests(PostgresFixture database)
+{
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    // The relay can publish a row twice (Lab 2), and SQS can deliver a message twice: same message_id, one contract.
+    [Fact]
+    public async Task Duplicate_message_is_processed_once()
+    {
+        await using var worker = WorkerHarness.Create(await database.CreateDatabaseAsync());
+        var messageId = Guid.NewGuid();
+        var reservation = Guid.NewGuid();
+        worker.Queue.Send(WorkerHarness.DepositPaid(messageId, reservation));
+        worker.Queue.Send(WorkerHarness.DepositPaid(messageId, reservation)); // a different SQS message, the same event
+
+        await RunUntilAsync(worker, () => worker.Queue.Deleted.Count == 2);
+
+        Assert.Equal(1, await worker.ContractsAsync());
+        // Two processors can take the two copies at the same moment: both pass the inbox pre-check and write the PDF
+        // (the same key, so the second overwrites the first); the inbox insert lets only one record the contract.
+        Assert.InRange(worker.Documents.Puts, 1, 2);
+        Assert.Single(worker.Documents.Stored);
+        await using var db = ContractsDbContext.Create(worker.Connection);
+        Assert.Equal(1, await db.Set<InboxMessage>().CountAsync(Ct));
+        Assert.Equal(1, await db.Set<OutboxMessage>().CountAsync(m => m.Type == IntegrationEvents.ContractIssued, Ct));
+    }
+
+    [Fact]
+    public async Task Message_not_deleted_when_processing_fails()
+    {
+        var documents = new InMemoryDocuments { Before = _ => throw new IOException("S3 timeout") };
+        await using var worker = WorkerHarness.Create(await database.CreateDatabaseAsync(), documents: documents);
+        worker.Queue.Send(WorkerHarness.DepositPaid());
+
+        await worker.Consumer.StartAsync(Ct);
+        await WaitAsync(() => worker.Queue.Visible == 0); // taken
+        await Task.Delay(300, Ct);
+        await worker.Consumer.StopAsync(Ct);
+
+        Assert.Empty(worker.Queue.Deleted); // it stays on the queue: visible again after the visibility timeout
+        Assert.Equal(0, await worker.ContractsAsync());
+        await using var db = ContractsDbContext.Create(worker.Connection);
+        Assert.Equal(0, await db.Set<InboxMessage>().CountAsync(Ct)); // nothing recorded, so the retry does the work
+    }
+
+    // Stopping while a message is being processed: that one finishes and is deleted; the ones not started go back.
+    [Fact]
+    public async Task Shutdown_finishes_in_flight_work()
+    {
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var documents = new InMemoryDocuments
+        {
+            Before = async _ =>
+            {
+                started.TrySetResult();
+                await Task.Delay(TimeSpan.FromSeconds(1)); // a slow S3 write
+            },
+        };
+        await using var worker = WorkerHarness.Create(await database.CreateDatabaseAsync(),
+            new ConsumerOptions { Processors = 1, ChannelCapacity = 5, Wait = TimeSpan.FromMilliseconds(50) }, documents);
+        foreach (var _ in Enumerable.Range(0, 5))
+        {
+            worker.Queue.Send(WorkerHarness.DepositPaid());
+        }
+
+        await worker.Consumer.StartAsync(Ct);
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(10), Ct);
+        var clock = Stopwatch.StartNew();
+        await worker.Consumer.StopAsync(Ct);
+
+        TestContext.Current.TestOutputHelper?.WriteLine($"stopped in {clock.ElapsedMilliseconds} ms; deleted {worker.Queue.Deleted.Count}, released {worker.Queue.Released.Count}, contracts {await worker.ContractsAsync()}");
+        Assert.Single(worker.Queue.Deleted); // the in-flight one finished
+        Assert.Equal(1, await worker.ContractsAsync());
+        Assert.Equal(4, worker.Queue.Released.Count); // the rest are visible again at once
+        Assert.Equal(4, worker.Queue.Visible);
+    }
+
+    // A burst: the channel bounds what is held in memory and the processors bound the database connections.
+    [Fact]
+    public async Task Burst_of_1000_messages_respects_channel_bound()
+    {
+        var options = new ConsumerOptions { Processors = 4, ChannelCapacity = 20, Wait = TimeSpan.FromMilliseconds(50) };
+        await using var worker = WorkerHarness.Create(await database.CreateDatabaseAsync(), options);
+        foreach (var _ in Enumerable.Range(0, 1000))
+        {
+            worker.Queue.Send(WorkerHarness.DepositPaid());
+        }
+
+        var databaseName = new Npgsql.NpgsqlConnectionStringBuilder(worker.Connection).Database!;
+        var maxConnections = 0;
+        long peakMemory = 0;
+        using var sampling = new CancellationTokenSource();
+        var sampler = Task.Run(async () =>
+        {
+            await using var conn = new Npgsql.NpgsqlConnection(new Npgsql.NpgsqlConnectionStringBuilder(worker.Connection) { Database = "postgres", Pooling = false }.ToString());
+            await conn.OpenAsync(sampling.Token);
+            while (!sampling.IsCancellationRequested)
+            {
+                await using var q = new Npgsql.NpgsqlCommand($"SELECT count(*) FROM pg_stat_activity WHERE datname = '{databaseName}' AND state <> 'idle'", conn);
+                maxConnections = Math.Max(maxConnections, (int)(long)(await q.ExecuteScalarAsync(sampling.Token))!);
+                peakMemory = Math.Max(peakMemory, GC.GetTotalMemory(false));
+                await Task.Delay(10, sampling.Token);
+            }
+        }, Ct);
+        GC.Collect();
+        var before = GC.GetTotalMemory(true);
+        var clock = Stopwatch.StartNew();
+
+        await RunUntilAsync(worker, () => worker.Queue.Deleted.Count == 1000, TimeSpan.FromMinutes(2));
+
+        clock.Stop();
+        await sampling.CancelAsync();
+        try { await sampler; } catch (OperationCanceledException) { }
+        GC.Collect();
+        var after = GC.GetTotalMemory(true);
+        TestContext.Current.TestOutputHelper?.WriteLine(
+            $"1000 messages in {clock.ElapsedMilliseconds} ms ({1000 * 1000 / Math.Max(1, clock.ElapsedMilliseconds)} msg/s); max in flight {worker.Consumer.MaxInFlight} (processors {options.Processors}); " +
+            $"max in channel {worker.Consumer.MaxQueued} (capacity {options.ChannelCapacity}); max active DB connections {maxConnections}; managed memory before {before / 1024} KB, peak {peakMemory / 1024} KB, after {after / 1024} KB");
+        Assert.Equal(1000, await worker.ContractsAsync());
+        Assert.InRange(worker.Consumer.MaxInFlight, 1, options.Processors);
+        Assert.InRange(worker.Consumer.MaxQueued, 0, options.ChannelCapacity);
+        Assert.InRange(maxConnections, 0, options.Processors);
+        Assert.InRange(after - before, long.MinValue, 20 * 1024 * 1024); // flat: no growth with the backlog
+    }
+
+    private static async Task RunUntilAsync(WorkerHarness worker, Func<bool> done, TimeSpan? timeout = null)
+    {
+        await worker.Consumer.StartAsync(Ct);
+        await WaitAsync(done, timeout);
+        await worker.Consumer.StopAsync(Ct);
+    }
+
+    private static async Task WaitAsync(Func<bool> done, TimeSpan? timeout = null)
+    {
+        var until = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(30));
+        while (!done())
+        {
+            Assert.True(DateTime.UtcNow < until, "timed out waiting");
+            await Task.Delay(20, Ct);
+        }
+    }
+}

@@ -3,6 +3,7 @@ using Amazon.SimpleNotificationService;
 using HomeBuild.Api.Modules.Construction;
 using HomeBuild.Api.Modules.Payments;
 using HomeBuild.Api.Modules.Sales;
+using HomeBuild.Messaging;
 
 namespace HomeBuild.Api.Data;
 

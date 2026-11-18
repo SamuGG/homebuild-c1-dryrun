@@ -2,6 +2,7 @@ using System.Globalization;
 using HomeBuild.Api.Data;
 using HomeBuild.Domain;
 using Microsoft.EntityFrameworkCore;
+using HomeBuild.Messaging;
 
 namespace HomeBuild.Api.Modules.Sales;
 

@@ -25,6 +25,8 @@
     <ProjectReference Include="..\..\src\HomeBuild.Payments.Infrastructure\HomeBuild.Payments.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\HomeBuild.Api\HomeBuild.Api.csproj" />
     <ProjectReference Include="..\..\src\HomeBuild.Web\HomeBuild.Web.csproj" />
+    <ProjectReference Include="..\..\src\HomeBuild.Messaging\HomeBuild.Messaging.csproj" />
+    <ProjectReference Include="..\..\src\HomeBuild.Workers\HomeBuild.Workers.csproj" />
   </ItemGroup>
 
 </Project>
