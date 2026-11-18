@@ -36,7 +36,14 @@ internal sealed class EfReservationDeposits(SalesDbContext db) : IReservationDep
     public async Task<DepositConfirmationResult> ConfirmPaidAsync(ReservationId id, DateTimeOffset paidAt, DbTransaction transaction, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(transaction);
-        db.Database.SetDbConnection(transaction.Connection);
+        // Joins the caller's connection and transaction. Under the execution strategy the caller may run this again on
+        // a retry (a new transaction, same connection), so nothing from a failed attempt is kept.
+        db.ChangeTracker.Clear();
+        if (!ReferenceEquals(db.Database.GetDbConnection(), transaction.Connection))
+        {
+            db.Database.SetDbConnection(transaction.Connection);
+        }
+
         await db.Database.UseTransactionAsync(transaction, cancellationToken);
 
         // Read the current state, never assume it: events arrive late, twice and out of order.

@@ -52,6 +52,18 @@ internal sealed class StripeDepositWebhook(PaymentsDbContext db, IReservationDep
         tenant.TenantId = tenantId;
         var reservationId = new ReservationId(reservationGuid);
 
+        // C8 Lab 4: the whole unit of work runs under the execution strategy, so a transient failure (even at commit)
+        // replays all of it from the start: the event ID insert, the deposit, the confirmation.
+        return await db.Database.CreateExecutionStrategy().ExecuteAsync(
+            (stripeEvent, session, reservationId, tenantId),
+            async (_, state, ct) => await ProcessAsync(state.stripeEvent, state.session, state.reservationId, state.tenantId, ct),
+            verifySucceeded: null,
+            cancellationToken);
+    }
+
+    private async Task<(WebhookResult Result, ReservationId? Reservation)> ProcessAsync(Event stripeEvent, Session session, ReservationId reservationId, Guid tenantId, CancellationToken cancellationToken)
+    {
+        db.ChangeTracker.Clear(); // a retried attempt starts from nothing
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         var first = await db.Database.ExecuteSqlAsync(
             $"INSERT INTO payments.processed_webhook_events (event_id, type, processed_at, tenant_id) VALUES ({stripeEvent.Id}, {stripeEvent.Type}, {time.GetUtcNow()}, {tenantId}) ON CONFLICT (event_id) DO NOTHING",

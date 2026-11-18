@@ -39,6 +39,8 @@ builder.Services.AddHomeBuildRateLimiting();
 builder.Services.AddHomeBuildAuthentication();
 builder.Services.AddHomeBuildPolicies();
 builder.Services.AddTenancy();
+// Scoped: counts the request's open database transactions, so no external call happens inside one (C8 Lab 4).
+builder.Services.AddScoped<HomeBuild.Api.Data.OpenTransactions>();
 builder.Services.AddIdempotency();
 builder.Services.AddCatalogueModule();
 builder.Services.AddSalesModule();

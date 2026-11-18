@@ -55,11 +55,15 @@ public sealed class DomainEventTests(PostgresFixture database) : IAsyncLifetime
         {
             scope.ServiceProvider.GetRequiredService<RequestTenantContext>().TenantId = TestTenants.Demo;
             var db = scope.ServiceProvider.GetRequiredService<ConstructionDbContext>();
-            await using var transaction = await db.Database.BeginTransactionAsync(Ct);
-            var progress = await db.BuildProgress.SingleAsync(p => p.UnitId == RiversidePlot2, Ct);
-            Assert.IsType<MilestoneDone>(progress.Complete(Milestone.Roof, "site-manager", Today).Value);
-            await db.SaveChangesAsync(Ct);
-            await transaction.RollbackAsync(Ct);
+            // C8 Lab 4: explicit transactions run under the execution strategy.
+            await db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
+            {
+                await using var transaction = await db.Database.BeginTransactionAsync(Ct);
+                var progress = await db.BuildProgress.SingleAsync(p => p.UnitId == RiversidePlot2, Ct);
+                Assert.IsType<MilestoneDone>(progress.Complete(Milestone.Roof, "site-manager", Today).Value);
+                await db.SaveChangesAsync(Ct);
+                await transaction.RollbackAsync(Ct);
+            });
         }
 
         Assert.Empty(await StagePaymentsAsync(RiversidePlot2));
@@ -74,12 +78,16 @@ public sealed class DomainEventTests(PostgresFixture database) : IAsyncLifetime
         {
             scope.ServiceProvider.GetRequiredService<RequestTenantContext>().TenantId = TestTenants.Demo;
             var db = scope.ServiceProvider.GetRequiredService<ConstructionDbContext>();
-            await using var transaction = await db.Database.BeginTransactionAsync(Ct);
-            var progress = await db.BuildProgress.SingleAsync(p => p.UnitId == RiversidePlot2, Ct);
-            progress.Complete(Milestone.Roof, "site-manager", Today);
-            await db.SaveChangesAsync(Ct);
-            Assert.Empty(await StagePaymentsAsync(RiversidePlot2)); // saved, not yet committed: nothing dispatched
-            await transaction.CommitAsync(Ct);
+            // C8 Lab 4: explicit transactions run under the execution strategy.
+            await db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
+            {
+                await using var transaction = await db.Database.BeginTransactionAsync(Ct);
+                var progress = await db.BuildProgress.SingleAsync(p => p.UnitId == RiversidePlot2, Ct);
+                progress.Complete(Milestone.Roof, "site-manager", Today);
+                await db.SaveChangesAsync(Ct);
+                Assert.Empty(await StagePaymentsAsync(RiversidePlot2)); // saved, not yet committed: nothing dispatched
+                await transaction.CommitAsync(Ct);
+            });
         }
 
         Assert.Single(await StagePaymentsAsync(RiversidePlot2));

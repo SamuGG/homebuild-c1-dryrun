@@ -24,7 +24,7 @@ public static class CatalogueModule
     {
         // Scoped (AddDbContext's default): a DbContext is not thread-safe and tracks entities per request.
         services.AddDbContext<CatalogueDbContext>((sp, options) => Configure(options, HomeBuildDatabase.ConnectionString(sp))
-            .AddInterceptors(new TenantCommandInterceptor(sp.GetRequiredService<ITenantContext>())));
+            .AddInterceptors(new TenantCommandInterceptor(sp.GetRequiredService<ITenantContext>()), sp.GetRequiredService<OpenTransactions>()));
         // Scoped: wraps the scoped DbContext.
         services.AddScoped<EfCatalogueStore>();
         services.AddScoped<ICatalogueStore>(sp => sp.GetRequiredService<EfCatalogueStore>());

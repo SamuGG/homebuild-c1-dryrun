@@ -124,6 +124,49 @@ public sealed class StripeWebhookTests(PostgresFixture database)
         Assert.IsType<Confirmed>(await StateAsync(api, reservation));
     }
 
+    // C8 Lab 4: a transient failure at commit (a serialization failure, 40001, raised by a deferred trigger the first
+    // time only) makes the execution strategy replay the whole unit of work: the event ID, the deposit and the
+    // confirmation are written once, and Stripe gets 200.
+    [Fact]
+    public async Task Transient_failure_retries_whole_unit_of_work()
+    {
+        var (factory, api) = await CreateApiAsync();
+        await using var _ = factory;
+        await using (var owner = new Npgsql.NpgsqlConnection(api.OwnerConnectionString))
+        {
+            await owner.OpenAsync(Ct);
+            await using var fault = new Npgsql.NpgsqlCommand("""
+                CREATE SEQUENCE payments.commit_attempts;
+                CREATE FUNCTION payments.fail_first_commit() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
+                BEGIN
+                  IF nextval('payments.commit_attempts') = 1 THEN
+                    RAISE EXCEPTION 'injected transient failure at commit' USING ERRCODE = '40001';
+                  END IF;
+                  RETURN NULL;
+                END $$;
+                CREATE CONSTRAINT TRIGGER fail_first_commit AFTER INSERT ON payments.deposits
+                  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION payments.fail_first_commit();
+                """, owner);
+            await fault.ExecuteNonQueryAsync(Ct);
+        }
+
+        using var client = Anonymous(factory);
+        var reservation = await ReserveAsync(factory);
+        var payload = Completed("evt_transient_1", "cs_transient_1", reservation);
+
+        using var response = await PostAsync(client, payload, Sign(payload, Secret, DateTimeOffset.UtcNow));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal((1, 1), await CountsAsync(api));
+        Assert.IsType<Confirmed>(await StateAsync(api, reservation));
+        await using var check = new Npgsql.NpgsqlConnection(api.OwnerConnectionString);
+        await check.OpenAsync(Ct);
+        await using var attempts = new Npgsql.NpgsqlCommand("SELECT last_value FROM payments.commit_attempts", check);
+        var commits = (long)(await attempts.ExecuteScalarAsync(Ct))!;
+        TestContext.Current.TestOutputHelper?.WriteLine($"commit attempts: {commits}; processed events, deposits: {await CountsAsync(api)}");
+        Assert.Equal(2, commits); // the first commit failed, the replay committed
+    }
+
     // The raw body matters: the same event re-serialised (as model binding would) is different bytes.
     [Fact]
     public async Task Reserialised_body_fails_verification()
