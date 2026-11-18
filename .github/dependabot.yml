@@ -4,7 +4,29 @@ updates:
     directory: /
     schedule:
       interval: weekly
+
+  # NuGet: one weekly PR for every minor and patch update (majors still come one by one).
+  # Fixing a PR that fails `dotnet restore --locked-mode`: see CONTRIBUTING.md.
   - package-ecosystem: nuget
     directory: /
+    schedule:
+      interval: weekly
+    groups:
+      nuget-minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # EF Core, Npgsql and their tools move to 11 together, once the Npgsql EF Core provider 11 is GA.
+      - dependency-name: "Microsoft.EntityFrameworkCore*"
+        update-types: [version-update:semver-major]
+      - dependency-name: "Npgsql*"
+        update-types: [version-update:semver-major]
+      - dependency-name: "EFCore.NamingConventions"
+        update-types: [version-update:semver-major]
+      - dependency-name: "dotnet-ef"
+        update-types: [version-update:semver-major]
+
+  # npm: the Bruno CLI that runs the API acceptance collection in CI.
+  - package-ecosystem: npm
+    directory: /api-tests
     schedule:
       interval: weekly

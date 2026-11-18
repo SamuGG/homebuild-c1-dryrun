@@ -10,7 +10,8 @@ concurrency:
   cancel-in-progress: true
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # Arm64 runner (C8 Lab 0): bundles and the Tailwind CLI follow the runner's architecture.
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 10
     services:
       # Database for the Bruno run. Tests use Testcontainers instead. Throwaway CI-only credentials.
@@ -50,18 +51,21 @@ jobs:
           test -z "$(git ls-files "$css")"
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1     # v7.1.0
         with:
-          node-version: 24
+          node-version: 26
           cache: npm
           cache-dependency-path: api-tests/package-lock.json
-      - run: npm ci
+      - run: npm ci --no-audit --no-fund
         working-directory: api-tests
       - run: dotnet tool restore
       - name: Build migration bundles and idempotent scripts
         run: |
+          # The bundles run on this runner, so build them for its architecture (linux-arm64 on ubuntu-24.04-arm).
+          rid=linux-$([ "$(uname -m)" = aarch64 ] && echo arm64 || echo x64)
+          echo "Bundles for $rid"
           for context in Catalogue Sales Accounts Construction Payments; do
             name=$(echo "$context" | tr '[:upper:]' '[:lower:]')
             dotnet ef migrations bundle --project src/HomeBuild.Api --context ${context}DbContext --configuration Release \
-              --self-contained --target-runtime linux-x64 --output artifacts/migrate-$name --force
+              --self-contained --target-runtime $rid --output artifacts/migrate-$name --force
             dotnet ef migrations script --idempotent --no-build --configuration Release --project src/HomeBuild.Api \
               --context ${context}DbContext --output artifacts/migrate-$name.sql
           done
@@ -79,6 +83,8 @@ jobs:
           PGPASSWORD: homebuild-ci
         run: psql -h localhost -U homebuild -d homebuild -c "ALTER ROLE homebuild_app LOGIN PASSWORD 'homebuild-ci-app'"
       - name: Publish migration bundles and scripts
+        # Only main's bundles are deployable; on PRs, building and applying them twice is the test.
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: migrations
@@ -126,7 +132,8 @@ jobs:
             "| API acceptance (Bruno, running API and web app) | $((SECONDS - start)) s | 60 s |" >> "$GITHUB_STEP_SUMMARY"
         working-directory: api-tests
       - name: Publish Bruno JUnit report
-        if: always()
+        # Only when something failed: a green run's report adds nothing to the job summary.
+        if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: bruno-junit

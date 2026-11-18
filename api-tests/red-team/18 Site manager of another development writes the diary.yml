@@ -1,0 +1,32 @@
+info:
+  name: Site manager of another development writes the diary
+  type: http
+  seq: 18
+
+http:
+  method: POST
+  url: "{{baseUrlV2}}/units/{{riversidePlot1}}/diary"
+  headers:
+    - name: Authorization
+      value: Bearer {{hillcrestSiteManagerToken}}
+  body:
+    type: json
+    data: |-
+      {
+        "writtenOn": "2026-11-17",
+        "text": "Written by a site manager from another development.",
+        "weather": "Dry"
+      }
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "403"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

@@ -1,0 +1,24 @@
+info:
+  name: Mass assignment reservation is still held in own tenant
+  type: http
+  seq: 6
+
+http:
+  method: GET
+  url: "{{host}}{{massAssignedReservation}}"
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.state
+      operator: eq
+      value: Held
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

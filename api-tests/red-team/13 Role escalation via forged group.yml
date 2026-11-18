@@ -1,0 +1,32 @@
+info:
+  name: Role escalation via forged group
+  type: http
+  seq: 13
+
+http:
+  method: POST
+  url: "{{baseUrl}}/developments"
+  headers:
+    - name: Authorization
+      value: Bearer {{forgedAdminToken}}
+  body:
+    type: json
+    data: |-
+      {
+        "name": "Escalated",
+        "town": "Nowhere",
+        "depositStrategy": "fixed"
+      }
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "401"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

@@ -1,0 +1,40 @@
+info:
+  name: Reserve unit
+  type: http
+  seq: 10
+
+http:
+  method: POST
+  url: "{{baseUrl}}/units/{{unitId}}/reservations"
+  body:
+    type: json
+    data: |-
+      {
+        "buyerId": "11111111-1111-1111-1111-111111111111",
+        "deposit": 5000,
+        "currency": "GBP"
+      }
+
+runtime:
+  scripts:
+    - type: after-response
+      code: bru.setVar("reservationPath", res.headers.location);
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "201"
+    - expression: res.headers.location
+      operator: isString
+    - expression: res.body.state
+      operator: eq
+      value: Held
+    - expression: res.body.unitId
+      operator: eq
+      value: "{{unitId}}"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

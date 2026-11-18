@@ -1,0 +1,26 @@
+info:
+  name: List units v2 last page
+  type: http
+  seq: 24
+
+http:
+  method: GET
+  url: "{{baseUrlV2}}/developments/{{riverside}}/units?size=2&after={{unitsCursor}}"
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.items
+      operator: length
+      value: "1"
+    - expression: res.body.next
+      operator: isNull
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

@@ -1,0 +1,21 @@
+info:
+  name: Get unknown unit
+  type: http
+  seq: 8
+
+http:
+  method: GET
+  url: "{{baseUrl}}/units/0198a000-0000-7000-8001-0000000000ff"
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "404"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

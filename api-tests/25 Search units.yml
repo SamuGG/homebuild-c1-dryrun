@@ -1,0 +1,24 @@
+info:
+  name: Search units
+  type: http
+  seq: 25
+
+http:
+  method: GET
+  url: "{{baseUrl}}/units/search?q=balconies"
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.items
+      operator: length
+      value: "4"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

@@ -1,0 +1,34 @@
+info:
+  name: Setup victim reservation (buyer 2)
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/units/{{riversidePlot2}}/reservations"
+  headers:
+    - name: Authorization
+      value: Bearer {{buyer2Token}}
+  body:
+    type: json
+    data: |-
+      {
+        "deposit": 5000,
+        "currency": "GBP"
+      }
+
+runtime:
+  scripts:
+    - type: after-response
+      code: bru.setVar("victimReservation", res.headers.location);
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "201"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

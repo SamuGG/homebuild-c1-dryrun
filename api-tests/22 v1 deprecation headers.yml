@@ -1,0 +1,27 @@
+info:
+  name: v1 deprecation headers
+  type: http
+  seq: 22
+
+http:
+  method: GET
+  url: "{{baseUrl}}/units/{{unitId}}"
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.headers.deprecation
+      operator: eq
+      value: "@1794268800"
+    - expression: res.headers.sunset
+      operator: eq
+      value: Mon, 31 May 2027 00:00:00 GMT
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

@@ -1,0 +1,31 @@
+info:
+  name: Buyer corrects a milestone
+  type: http
+  seq: 21
+
+http:
+  method: POST
+  url: "{{baseUrlV2}}/units/{{riversidePlot1}}/milestones/Foundations/correction"
+  headers:
+    - name: Authorization
+      value: Bearer {{accessToken}}
+  body:
+    type: json
+    data: |-
+      {
+        "completedOn": "2026-06-20",
+        "reason": "I would like it earlier"
+      }
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "403"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
