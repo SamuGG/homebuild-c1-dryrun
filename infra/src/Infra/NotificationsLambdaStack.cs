@@ -15,13 +15,13 @@ namespace Infra;
 /// homebuild-notifications through an event source mapping (batch 10, partial batch responses); <c>homebuild-notifications-jit</c>
 /// is the same handler with the JIT, for the cold-start comparison only (no event source). Each function's log group is
 /// declared with retention and DESTROY, so cdk destroy leaves none behind. Build the zips first:
-/// scripts/build-notifications-lambda.sh. The Break deploys with <c>-c partialBatch=false</c>.
+/// scripts/build-notifications-lambda.sh. The Break deploys with <c>-c partialBatch=false -c batchingWindow=10</c>.
 /// </summary>
 #pragma warning disable CA1711 // CDK names stacks "...Stack" by convention
 public sealed class NotificationsLambdaStack : Stack
 #pragma warning restore CA1711
 {
-    public NotificationsLambdaStack(Construct scope, string id, IStackProps props, IBucket bucket, string artifacts, bool partialBatch) : base(scope, id, props)
+    public NotificationsLambdaStack(Construct scope, string id, IStackProps props, IBucket bucket, string artifacts, bool partialBatch, int? batchingWindowSeconds = null) : base(scope, id, props)
     {
         // By name, not a cross-stack reference: the messaging stack stays unchanged.
         var queue = Queue.FromQueueArn(this, "NotificationsQueue", $"arn:{Aws.PARTITION}:sqs:{Region}:{Account}:homebuild-notifications");
@@ -66,6 +66,8 @@ public sealed class NotificationsLambdaStack : Stack
                 function.AddEventSource(new SqsEventSource(queue, new SqsEventSourceProps
                 {
                     BatchSize = 10,
+                    // Without a window the poller hands over whatever one receive returns, often 1 to 3 messages.
+                    MaxBatchingWindow = batchingWindowSeconds is { } w ? Duration.Seconds(w) : null,
                     ReportBatchItemFailures = partialBatch,
                 }));
             }

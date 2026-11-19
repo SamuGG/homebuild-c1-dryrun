@@ -36,7 +36,8 @@ Tags.Of(scheduling).Add("lab", "c9-lab6");
 if (app.Node.TryGetContext("notificationsLambda") is "true")
 {
     var notifications = new NotificationsLambdaStack(app, "HomeBuild-Notifications", new StackProps { Env = env }, storage.Bucket,
-        artifacts: System.IO.Path.GetFullPath("../artifacts"), partialBatch: app.Node.TryGetContext("partialBatch") is not "false");
+        artifacts: System.IO.Path.GetFullPath("../artifacts"), partialBatch: app.Node.TryGetContext("partialBatch") is not "false",
+        batchingWindowSeconds: int.TryParse(app.Node.TryGetContext("batchingWindow") as string, out var window) ? window : null);
     Tags.Of(notifications).Add("lab", "c9-lab7");
 }
 
