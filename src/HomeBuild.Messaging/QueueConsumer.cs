@@ -25,6 +25,31 @@ public interface IQueueClient
 
     /// <summary>Makes a message visible again now (visibility 0), for one taken but not started.</summary>
     Task ReleaseAsync(QueueMessage message, CancellationToken cancellationToken);
+
+    /// <summary>Sets how long from now the message stays hidden (SQS ChangeMessageVisibility): to extend a long job, or to back off a retry.</summary>
+    Task ChangeVisibilityAsync(QueueMessage message, TimeSpan timeout, CancellationToken cancellationToken);
+
+    /// <summary>The approximate number of visible messages (SQS ApproximateNumberOfMessages), for the dead-letter check.</summary>
+    Task<int> DepthAsync(CancellationToken cancellationToken);
+}
+
+/// <summary>
+/// A failure that no retry can fix (bad data, an unknown unit): the consumer does not back off, so the message reaches
+/// the dead-letter queue after maxReceiveCount receives in seconds instead of hours. Anything else is treated as transient.
+/// </summary>
+public sealed class PermanentMessageException : Exception
+{
+    public PermanentMessageException()
+    {
+    }
+
+    public PermanentMessageException(string message) : base(message)
+    {
+    }
+
+    public PermanentMessageException(string message, Exception innerException) : base(message, innerException)
+    {
+    }
 }
 
 /// <summary>Port: what a consumer does with one message, in its own DI scope. Throwing leaves the message on the queue.</summary>
@@ -44,6 +69,24 @@ public sealed class ConsumerOptions
     public int MaxMessages { get; set; } = 10;
 
     public TimeSpan Wait { get; set; } = TimeSpan.FromSeconds(20);
+
+    /// <summary>The queue's visibility timeout (MessagingStack): a job still running at half of it extends it by a full one.</summary>
+    public TimeSpan VisibilityTimeout { get; set; } = TimeSpan.FromMinutes(1);
+
+    /// <summary>Extend visibility while a handler runs (C9 Lab 4). Off only to show the Break: a slow job handed to a second worker.</summary>
+    public bool ExtendVisibility { get; set; } = true;
+
+    /// <summary>The first retry's delay after a transient failure; it doubles with each receive, up to <see cref="MaxRetryDelay"/>.</summary>
+    public TimeSpan RetryDelay { get; set; } = TimeSpan.FromSeconds(10);
+
+    public TimeSpan MaxRetryDelay { get; set; } = TimeSpan.FromMinutes(5);
+
+    /// <summary>The delay before receive <paramref name="receiveCount"/> + 1: RetryDelay × 2^(receiveCount − 1), capped.</summary>
+    public TimeSpan BackoffFor(int receiveCount)
+    {
+        var factor = Math.Pow(2, Math.Clamp(receiveCount, 1, 20) - 1);
+        return TimeSpan.FromTicks((long)Math.Min(RetryDelay.Ticks * factor, MaxRetryDelay.Ticks));
+    }
 }
 
 public sealed class SqsQueueClient(IAmazonSQS sqs, string queueUrl) : IQueueClient
@@ -75,6 +118,18 @@ public sealed class SqsQueueClient(IAmazonSQS sqs, string queueUrl) : IQueueClie
         ArgumentNullException.ThrowIfNull(message);
         return sqs.ChangeMessageVisibilityAsync(queueUrl, message.ReceiptHandle, 0, cancellationToken);
     }
+
+    public Task ChangeVisibilityAsync(QueueMessage message, TimeSpan timeout, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(message);
+        return sqs.ChangeMessageVisibilityAsync(queueUrl, message.ReceiptHandle, (int)Math.Ceiling(timeout.TotalSeconds), cancellationToken);
+    }
+
+    public async Task<int> DepthAsync(CancellationToken cancellationToken)
+    {
+        var attributes = await sqs.GetQueueAttributesAsync(queueUrl, ["ApproximateNumberOfMessages"], cancellationToken);
+        return attributes.ApproximateNumberOfMessages;
+    }
 }
 
 /// <summary>
@@ -83,6 +138,10 @@ public sealed class SqsQueueClient(IAmazonSQS sqs, string queueUrl) : IQueueClie
 /// message in its own DI scope (so at most <see cref="ConsumerOptions.Processors"/> database connections). A message is
 /// deleted only after its handler returns (after the handler's transaction committed). On shutdown: receiving stops,
 /// processors finish the message they hold, and messages still in the channel are released to the queue at once.
+/// Lab 4: while a handler runs, its message's visibility is extended at half the timeout, so a slow job is never handed
+/// to a second worker. A transient failure backs off by the receive count (the message reappears later each time); a
+/// <see cref="PermanentMessageException"/> releases it at once. Either way the queue's redrive policy moves it to the
+/// dead-letter queue after maxReceiveCount receives, and the other messages keep flowing meanwhile.
 /// </summary>
 public sealed partial class QueueConsumer(string name, IQueueClient queue, IServiceScopeFactory scopes, ConsumerOptions options, ILogger<QueueConsumer> logger)
     : BackgroundService
@@ -99,7 +158,9 @@ public sealed partial class QueueConsumer(string name, IQueueClient queue, IServ
     /// <summary>The most messages waiting in the channel at once so far.</summary>
     public int MaxQueued => Volatile.Read(ref _maxQueued);
 
-    public int Processed { get; private set; }
+    private int _processed;
+
+    public int Processed => Volatile.Read(ref _processed);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -185,21 +246,78 @@ public sealed partial class QueueConsumer(string name, IQueueClient queue, IServ
             try
             {
                 // In-flight work is not cancelled by shutdown: it finishes within the host's shutdown timeout.
-                await using var scope = scopes.CreateAsyncScope();
-                await scope.ServiceProvider.GetRequiredKeyedService<IMessageHandler>(name).HandleAsync(message, CancellationToken.None);
+                using var heartbeat = new CancellationTokenSource();
+                var extending = options.ExtendVisibility ? ExtendWhileRunningAsync(message, heartbeat.Token) : Task.CompletedTask;
+                try
+                {
+                    await using var scope = scopes.CreateAsyncScope();
+                    await scope.ServiceProvider.GetRequiredKeyedService<IMessageHandler>(name).HandleAsync(message, CancellationToken.None);
+                }
+                finally
+                {
+                    await heartbeat.CancelAsync();
+                    await extending;
+                }
+
                 await queue.DeleteAsync(message, CancellationToken.None);
-                Processed++;
+                Interlocked.Increment(ref _processed);
             }
-#pragma warning disable CA1031 // any failure leaves the message on the queue: it becomes visible again and is retried
+            catch (PermanentMessageException e)
+            {
+                // No retry can fix it: visible again now, so the redrive policy parks it after maxReceiveCount receives.
+                PermanentFailure(logger, e, name, message.ProviderId, message.ReceiveCount);
+                await TryAsync(() => queue.ReleaseAsync(message, CancellationToken.None));
+            }
+#pragma warning disable CA1031 // any other failure is treated as transient: the message is retried after a back-off
             catch (Exception e)
 #pragma warning restore CA1031
             {
-                HandlerFailed(logger, e, name, message.ProviderId, message.ReceiveCount);
+                var delay = options.BackoffFor(message.ReceiveCount);
+                HandlerFailed(logger, e, name, message.ProviderId, message.ReceiveCount, delay);
+                await TryAsync(() => queue.ChangeVisibilityAsync(message, delay, CancellationToken.None));
             }
             finally
             {
                 Interlocked.Decrement(ref _inFlight);
             }
+        }
+    }
+
+    /// <summary>Heartbeat: at half the visibility timeout, hide the message for another full timeout, until the handler ends.</summary>
+    private async Task ExtendWhileRunningAsync(QueueMessage message, CancellationToken done)
+    {
+        var interval = options.VisibilityTimeout / 2;
+        try
+        {
+            while (true)
+            {
+                await Task.Delay(interval, done);
+                await queue.ChangeVisibilityAsync(message, options.VisibilityTimeout, CancellationToken.None);
+                VisibilityExtended(logger, name, message.ProviderId, options.VisibilityTimeout);
+            }
+        }
+        catch (OperationCanceledException) when (done.IsCancellationRequested)
+        {
+        }
+#pragma warning disable CA1031 // a failed extension must not fail the job; at worst the message is delivered again (the inbox absorbs it)
+        catch (Exception e)
+#pragma warning restore CA1031
+        {
+            ExtendFailed(logger, e, name, message.ProviderId);
+        }
+    }
+
+    private async Task TryAsync(Func<Task> call)
+    {
+        try
+        {
+            await call();
+        }
+#pragma warning disable CA1031 // if the queue call fails, the visibility timeout still returns the message
+        catch (Exception e)
+#pragma warning restore CA1031
+        {
+            ExtendFailed(logger, e, name, "(retry)");
         }
     }
 
@@ -211,6 +329,15 @@ public sealed partial class QueueConsumer(string name, IQueueClient queue, IServ
         }
     }
 
-    [LoggerMessage(EventId = 1701, Level = LogLevel.Warning, Message = "Consumer {Consumer} failed message {MessageId} (receive {ReceiveCount}); left on the queue")]
-    private static partial void HandlerFailed(ILogger logger, Exception exception, string consumer, string messageId, int receiveCount);
+    [LoggerMessage(EventId = 1701, Level = LogLevel.Warning, Message = "Consumer {Consumer} failed message {MessageId} (receive {ReceiveCount}); retry in {Delay}")]
+    private static partial void HandlerFailed(ILogger logger, Exception exception, string consumer, string messageId, int receiveCount, TimeSpan delay);
+
+    [LoggerMessage(EventId = 1702, Level = LogLevel.Error, Message = "Consumer {Consumer} cannot process message {MessageId} (receive {ReceiveCount}): permanent failure, released for the dead-letter queue")]
+    private static partial void PermanentFailure(ILogger logger, Exception exception, string consumer, string messageId, int receiveCount);
+
+    [LoggerMessage(EventId = 1703, Level = LogLevel.Debug, Message = "Consumer {Consumer} extended message {MessageId} by {Timeout}")]
+    private static partial void VisibilityExtended(ILogger logger, string consumer, string messageId, TimeSpan timeout);
+
+    [LoggerMessage(EventId = 1704, Level = LogLevel.Warning, Message = "Consumer {Consumer} could not change visibility of message {MessageId}")]
+    private static partial void ExtendFailed(ILogger logger, Exception exception, string consumer, string messageId);
 }

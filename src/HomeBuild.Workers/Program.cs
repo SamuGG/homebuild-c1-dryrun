@@ -11,6 +11,7 @@ using Microsoft.Extensions.Options;
 //   Workers:Contracts:QueueUrl   the homebuild-contracts queue (the consumer runs only when it is set)
 //   Storage:BucketName           the bucket contract packs go to (contracts/)
 //   Messaging:TopicArn           homebuild-events, for ContractIssued (the relay runs only when it is set)
+//   Workers:Contracts:DeadLetterQueueUrl  homebuild-contracts-dlq, whose depth is logged every DeadLetterCheck (Lab 4)
 var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddWorkers(builder.Configuration);
 builder.Build().Run();
@@ -48,6 +49,13 @@ namespace HomeBuild.Workers
                 services.AddSingleton(sp => new QueueConsumer(ContractWorker.Name, sp.GetRequiredService<IQueueClient>(), sp.GetRequiredService<IServiceScopeFactory>(),
                     sp.GetRequiredService<IOptions<ConsumerOptions>>().Value, sp.GetRequiredService<ILogger<QueueConsumer>>()));
                 services.AddHostedService(sp => sp.GetRequiredService<QueueConsumer>());
+            }
+
+            if (configuration["Workers:Contracts:DeadLetterQueueUrl"] is { Length: > 0 } dlqUrl)
+            {
+                var interval = configuration.GetValue("Workers:Contracts:DeadLetterCheck", TimeSpan.FromMinutes(5));
+                services.AddHostedService(sp => new DeadLetterMonitor("homebuild-contracts-dlq", new SqsQueueClient(sp.GetRequiredService<IAmazonSQS>(), dlqUrl),
+                    interval, sp.GetRequiredService<ILogger<DeadLetterMonitor>>(), sp.GetRequiredService<TimeProvider>()));
             }
 
             return services;
