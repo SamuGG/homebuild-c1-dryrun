@@ -36,6 +36,7 @@ internal static class ReserveUnitEndpoint
             IReservationStore reservations,
             ReservationPolicy policy,
             DepositStrategySelector deposits,
+            IReservationExpirySchedules expiry,
             TimeProvider time,
             ILogger<ReserveRequest> logger,
             HttpContext http,
@@ -79,6 +80,12 @@ internal static class ReserveUnitEndpoint
         var result = await reservations.ReserveAndSaveAsync(
             unit, buyer, new Money(request.Deposit, request.Currency), unitPolicy, time.GetUtcNow(), cancellationToken);
         logger.LogOutcome(unitId, result);
+
+        // C9 Lab 6: after the commit, a one-time schedule for the hold's end (best effort: the hourly sweep catches a miss).
+        if (result is Reserved { Reservation.State: Held held } reserved)
+        {
+            await expiry.TryScheduleAsync(reserved.Reservation.Id, held.ExpiresAt, cancellationToken);
+        }
 
         // No default arm: a new ReserveResult case must fail the build here.
         return result switch

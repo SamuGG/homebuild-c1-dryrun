@@ -16,8 +16,8 @@ internal static class CancelReservationEndpoint
             .RequireAuthorization(Policies.CanCancelReservations);
 
     private static async Task<Results<NoContent, NotFound, Conflict<ProblemDetails>, ProblemHttpResult>> Handle(
-        ReservationId reservationId, IReservationStore reservations, IAuthorizationService authorization, TimeProvider time,
-        HttpContext http, CancellationToken cancellationToken)
+        ReservationId reservationId, IReservationStore reservations, IAuthorizationService authorization, IReservationExpirySchedules expiry,
+        TimeProvider time, HttpContext http, CancellationToken cancellationToken)
     {
         if (await reservations.FindAsync(reservationId, cancellationToken) is not { } reservation
             || !(await authorization.AuthorizeAsync(http.User, reservation, ReservationOperations.Cancel)).Succeeded)
@@ -39,16 +39,17 @@ internal static class CancelReservationEndpoint
 
         return reservation.Cancel(time.GetUtcNow()) switch
         {
-            Transitioned => await ReleaseAsync(reservations, reservation.UnitId, cancellationToken),
+            Transitioned => await ReleaseAsync(reservations, expiry, reservation.Id, reservation.UnitId, cancellationToken),
             InvalidTransition invalid => TypedResults.Conflict(Problems.Business(
                 http, "reservation-not-cancellable", "Reservation cannot be cancelled", StatusCodes.Status409Conflict, invalid.Reason)),
         };
     }
 
-    private static async Task<NoContent> ReleaseAsync(IReservationStore reservations, UnitId unitId, CancellationToken cancellationToken)
+    private static async Task<NoContent> ReleaseAsync(IReservationStore reservations, IReservationExpirySchedules expiry, ReservationId id, UnitId unitId, CancellationToken cancellationToken)
     {
         (await reservations.FindUnitAsync(unitId, cancellationToken))?.Release();
         await reservations.SaveChangesAsync(cancellationToken);
+        await expiry.TryCancelAsync(id, cancellationToken); // C9 Lab 6: after the commit; best effort
         return TypedResults.NoContent();
     }
 }

@@ -27,6 +27,10 @@ Tags.Of(storage).Add("lab", "c5-lab7");
 var messaging = new MessagingStack(app, "HomeBuild-Messaging", new StackProps { Env = env });
 Tags.Of(messaging).Add("lab", "c9");
 
+// C9 Lab 6: scheduled work (EventBridge Scheduler group, recurring schedules, the queue they send to).
+var scheduling = new SchedulingStack(app, "HomeBuild-Scheduling", new StackProps { Env = env });
+Tags.Of(scheduling).Add("lab", "c9-lab6");
+
 // C9 Lab 5: the FIFO comparison, deployed only for the measurement (-c orderingLab=true) and destroyed after it.
 if (app.Node.TryGetContext("orderingLab") is "true")
 {

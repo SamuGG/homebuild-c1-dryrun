@@ -41,6 +41,12 @@
           "Microsoft.Extensions.Telemetry.Abstractions": "11.0.0"
         }
       },
+      "Microsoft.Extensions.TimeProvider.Testing": {
+        "type": "Direct",
+        "requested": "[11.0.0, )",
+        "resolved": "11.0.0",
+        "contentHash": "GMXLbXAPI1GrcNQJQCHr0jgH/5fdPAGI4easP0KwMeJ6neSeWFeZcd8PhxDlII8TVXO1UctHl/4OC0sYZS4iuA=="
+      },
       "Microsoft.IdentityModel.JsonWebTokens": {
         "type": "Direct",
         "requested": "[8.23.0, )",
@@ -433,6 +439,7 @@
         "type": "Project",
         "dependencies": {
           "AWSSDK.S3": "[4.1.1, )",
+          "AWSSDK.Scheduler": "[4.1.1.2, )",
           "AWSSDK.SecurityToken": "[4.1.0.2, )",
           "Amazon.Extensions.Configuration.SystemsManager": "[7.1.1, )",
           "Asp.Versioning.Http": "[10.2.3, )",
@@ -495,6 +502,15 @@
         "requested": "[4.1.1, )",
         "resolved": "4.1.1",
         "contentHash": "iqT0dNuaUHkh4hHyG40/brQj0220YomPzAmhSrx82xul+LNTUTMzxcQSQrD+rvtHMlOwxmqaN+xhCnthgKNIFw==",
+        "dependencies": {
+          "AWSSDK.Core": "[4.1.1.1, 5.0.0)"
+        }
+      },
+      "AWSSDK.Scheduler": {
+        "type": "CentralTransitive",
+        "requested": "[4.1.1.2, )",
+        "resolved": "4.1.1.2",
+        "contentHash": "koNEr8geJ6uZZFo8Qg3o6yOHj/Ij6Hw/J3Kob/eAxufxrhk9+qp6EixudHDDmsoOSaoTKKJ8w2+W6dqWGHDgeA==",
         "dependencies": {
           "AWSSDK.Core": "[4.1.1.1, 5.0.0)"
         }

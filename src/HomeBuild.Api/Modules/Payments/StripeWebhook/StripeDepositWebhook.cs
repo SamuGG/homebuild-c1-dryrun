@@ -47,7 +47,7 @@ public enum WebhookResult
 /// </summary>
 // The gateway is resolved only when a refund is due: most events need no Stripe call, and a host without a Stripe key
 // (CI, tests) still verifies and records webhooks.
-internal sealed class StripeDepositWebhook(PaymentsDbContext db, IReservationDeposits reservations, IServiceProvider services, RequestTenantContext tenant, TimeProvider time)
+internal sealed class StripeDepositWebhook(PaymentsDbContext db, IReservationDeposits reservations, IReservationExpirySchedules expiry, IServiceProvider services, RequestTenantContext tenant, TimeProvider time)
 {
     public async Task<(WebhookResult Result, ReservationId? Reservation)> HandleAsync(Event stripeEvent, CancellationToken cancellationToken)
     {
@@ -72,6 +72,13 @@ internal sealed class StripeDepositWebhook(PaymentsDbContext db, IReservationDep
             async (_, state, ct) => await ProcessAsync(state.stripeEvent, state.session, state.reservationId, state.tenantId, ct),
             verifySucceeded: null,
             cancellationToken);
+
+        // C9 Lab 6: a confirmed reservation no longer expires: delete its schedule, after the commit (best effort; if it
+        // fires anyway, the expiry handler finds the reservation confirmed and does nothing).
+        if (result is WebhookResult.DepositConfirmed or WebhookResult.DepositReheldAndConfirmed or WebhookResult.DepositRepaired)
+        {
+            await expiry.TryCancelAsync(reservationId, cancellationToken);
+        }
 
         // C8 Lab 5: a refund is an external call, so it happens after the commit (Lab 4). Its intent is already stored;
         // if this call fails, Stripe redelivers the event, which lands here as a duplicate and finishes the refund.
