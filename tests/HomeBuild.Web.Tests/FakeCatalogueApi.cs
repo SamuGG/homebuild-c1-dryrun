@@ -89,6 +89,20 @@ internal sealed class FakeCatalogueApi : HttpMessageHandler
                 key = "incoming/t/u/f.pdf", maxBytes = 10485760, contentType = "application/pdf", expiresAt = DateTimeOffset.UtcNow.AddMinutes(5) });
         }
 
+        if (path == "/v2/me/extras")
+        {
+            // C10 Lab 1: Riverside plot 1's kitchens are open (its frame is done).
+            return Json(new[]
+            {
+                new HomeBuild.Web.Api.MyExtras(PlotOne, "Frame", [new(Guid.Parse("0198a000-0000-7000-e000-000000000001"), "Premium kitchen", "kitchen", 6500m, "GBP", "Frame", "FirstFix", "kitchen", 1)]),
+            });
+        }
+
+        if (path.StartsWith("/v2/developments/", StringComparison.Ordinal) && path.EndsWith("/extras", StringComparison.Ordinal))
+        {
+            return Json(new[] { new HomeBuild.Web.Api.Extra(Guid.Parse("0198a000-0000-7000-e000-000000000001"), "Premium kitchen", "kitchen", 6500m, "GBP", "Frame", "FirstFix", "kitchen", 1) });
+        }
+
         if (path == "/v2/me/deposits")
         {
             return Json(Array.Empty<HomeBuild.Web.Api.MyDeposit>()); // C8 Lab 5: no deposits unless a test says so

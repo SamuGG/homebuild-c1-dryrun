@@ -53,6 +53,8 @@ builder.Services.AddExtrasModule();
 builder.Services.AddNotificationsModule();
 // C9 Lab 6: expiry schedules (EventBridge Scheduler) and the scheduled-work queue's consumer.
 HomeBuild.Api.Scheduling.ScheduledWorkServices.AddScheduledWork(builder.Services, builder.Configuration);
+// C10 Lab 1: the homebuild-extras consumer (MilestoneCompleted → Extras' copy of progress).
+builder.Services.AddExtrasConsumer(builder.Configuration);
 var app = builder.Build();
 
 // C8 Lab 6: `dotnet run --project src/HomeBuild.Api -- reconcile --from <date> --to <date>` runs the reconciliation

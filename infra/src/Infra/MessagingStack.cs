@@ -25,10 +25,12 @@ public sealed class MessagingStack : Stack
         // Payments' worker: deposits (its own event, for follow-up work out of the request), stage payments due on a
         // milestone (C7's in-process handler moves here) and expiries (Lab 6 also sends ReservationExpiryDue directly).
         ["payments"] = ["DepositPaid", "MilestoneCompleted", "ReservationExpired"],
-        // The buyer's messages (Lab 7's Lambda): progress, the contract, an expired hold.
-        ["notifications"] = ["MilestoneCompleted", "ContractIssued", "ReservationExpired"],
+        // The buyer's messages (Lab 7's Lambda): progress, the contract, an expired hold; C10: extras now open.
+        ["notifications"] = ["MilestoneCompleted", "ContractIssued", "ReservationExpired", "ExtrasUnlocked"],
         // C16's cache invalidation: availability changes when a hold ends.
         ["cache-invalidation"] = ["ReservationExpired"],
+        // C10 Lab 1: Extras keeps its own copy of each unit's progress (the API consumes this queue).
+        ["extras"] = ["MilestoneCompleted"],
     };
 
     public MessagingStack(Construct scope, string id, IStackProps props) : base(scope, id, props)
@@ -108,6 +110,14 @@ public sealed class MessagingStack : Stack
                 Resources = [dlq.QueueArn],
             }));
             Queues[name] = queue;
+            if (name == "extras")
+            {
+                // Added in C10 Lab 1: its own lab tag, so the cost and teardown queries can tell it apart.
+                foreach (var resource in new IConstruct[] { queue, dlq, worker })
+                {
+                    Amazon.CDK.Tags.Of(resource).Add("lab", "c10-lab1", new TagProps { Priority = 200 }); // above the stack's lab=c9
+                }
+            }
         }
     }
 
@@ -123,6 +133,7 @@ public sealed class MessagingStack : Stack
         ["payments"] = Duration.Minutes(1),
         ["notifications"] = Duration.Minutes(1),
         ["cache-invalidation"] = Duration.Minutes(1),
+        ["extras"] = Duration.Minutes(1),
     };
 
     private static string Pascal(string name) => string.Concat(name.Split('-').Select(p => char.ToUpperInvariant(p[0]) + p[1..]));

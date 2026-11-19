@@ -76,6 +76,10 @@ public sealed class NotificationsFunction(INotificationStore store, TimeProvider
                     string.Create(CultureInfo.InvariantCulture, $"Good news: your home has reached a new stage ({m.Milestone}) on {m.CompletedAt:d MMMM yyyy}."), now, m.Version),
             IntegrationEvents.ContractIssued when Read(record.Body, MessageJson.Default.ContractIssuedMessage) is var c =>
                 new BuyerNotification(messageId, type, c.TenantId, c.UnitId, c.ReservationId, null, "Your contract pack is ready to review in My Home.", now, null),
+            // C10 Lab 1: extras the buyer can now choose (a unit event: no buyer, so stored under the unit).
+            IntegrationEvents.ExtrasUnlocked when Read(record.Body, MessageJson.Default.ExtrasUnlockedMessage) is var x =>
+                new BuyerNotification(messageId, type, x.TenantId, x.UnitId, null, null,
+                    "New extras are open for your home: " + string.Join(", ", x.Extras.Select(e => e.Name)) + ". Choose them in My Home before they close.", now, x.Version),
             IntegrationEvents.ReservationExpired when Read(record.Body, MessageJson.Default.ReservationExpiredMessage) is var e =>
                 new BuyerNotification(messageId, type, e.TenantId, e.UnitId, e.ReservationId, e.BuyerId, "Your reservation hold has ended because the deposit was not paid in time.", now, null),
             _ => throw new InvalidOperationException($"Message {record.MessageId} has type '{type}', which notifications do not handle."),
@@ -101,6 +105,7 @@ public sealed class NotificationsFunction(INotificationStore store, TimeProvider
 [JsonSerializable(typeof(MilestoneCompletedMessage))]
 [JsonSerializable(typeof(ContractIssuedMessage))]
 [JsonSerializable(typeof(ReservationExpiredMessage))]
+[JsonSerializable(typeof(ExtrasUnlockedMessage))]
 [JsonSerializable(typeof(BuyerNotification))]
 public sealed partial class MessageJson : JsonSerializerContext;
 

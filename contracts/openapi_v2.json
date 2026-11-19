@@ -1386,6 +1386,84 @@
         }
       }
     },
+    "/v2/me/extras": {
+      "get": {
+        "tags": [
+          "Extras"
+        ],
+        "summary": "The extras the signed-in buyer can choose now, per home (v2)",
+        "operationId": "ListMyExtras",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MyExtrasResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/developments/{developmentId}/extras": {
+      "get": {
+        "tags": [
+          "Extras"
+        ],
+        "summary": "Every extra of a development with its unlock and close milestones (staff, v2)",
+        "operationId": "ListDevelopmentExtras",
+        "parameters": [
+          {
+            "name": "developmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ExtraResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v2/me/notifications": {
       "get": {
         "tags": [
@@ -2032,6 +2110,63 @@
           }
         }
       },
+      "ExtraResponse": {
+        "required": [
+          "id",
+          "name",
+          "category",
+          "price",
+          "currency",
+          "unlocksAt",
+          "closesAt",
+          "conflictGroup",
+          "maxQuantity"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "price": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "unlocksAt": {
+            "type": "string"
+          },
+          "closesAt": {
+            "type": "string"
+          },
+          "conflictGroup": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "maxQuantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "FloorPlanResponse": {
         "required": [
           "key"
@@ -2222,6 +2357,32 @@
               "string"
             ],
             "format": "date-time"
+          }
+        }
+      },
+      "MyExtrasResponse": {
+        "required": [
+          "unitId",
+          "latestMilestone",
+          "openExtras"
+        ],
+        "type": "object",
+        "properties": {
+          "unitId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "latestMilestone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "openExtras": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExtraResponse"
+            }
           }
         }
       },
@@ -2730,6 +2891,9 @@
     },
     {
       "name": "Construction"
+    },
+    {
+      "name": "Extras"
     },
     {
       "name": "Notifications"

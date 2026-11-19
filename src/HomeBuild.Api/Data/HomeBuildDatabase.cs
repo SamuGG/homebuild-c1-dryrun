@@ -56,6 +56,12 @@ public static class HomeBuildDatabase
             await payments.Database.MigrateAsync(cancellationToken);
         }
 
+        // C10 Lab 1: Extras' catalogue and its copy of build progress (schema extras).
+        await using (var extras = HomeBuild.Api.Modules.Extras.ExtrasModule.CreateDbContext(connectionString))
+        {
+            await extras.Database.MigrateAsync(cancellationToken);
+        }
+
         // C8 Lab 3: idempotency keys, shared HTTP infrastructure (schema idempotency).
         await using var idempotency = HomeBuild.Api.Http.Idempotency.IdempotencyDbContext.Create(connectionString);
         await idempotency.Database.MigrateAsync(cancellationToken);

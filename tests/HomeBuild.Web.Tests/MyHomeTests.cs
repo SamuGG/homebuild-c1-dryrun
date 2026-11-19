@@ -25,6 +25,24 @@ public sealed class MyHomeTests
         Assert.Contains(api.Requests, r => r.RequestUri!.AbsolutePath == "/v2/me/progress");
         Assert.DoesNotContain(api.Requests, r => r.RequestUri!.AbsolutePath.EndsWith("/board", StringComparison.Ordinal));
     }
+
+    // C10 Lab 1: the extras open now for a home are listed under it, with their price and what closes them.
+    [Fact]
+    public async Task My_home_lists_open_extras_per_home()
+    {
+        var api = new FakeCatalogueApi();
+        await using var factory = new WebFactory(api);
+        using var browser = factory.CreateBrowser();
+        await factory.SignInAsync(browser, new TokenSet("access-1", "refresh-1", DateTimeOffset.UtcNow.AddHours(1)), "buyer");
+
+        var html = await browser.GetStringAsync(new Uri("/my-home", UriKind.Relative), TestContext.Current.CancellationToken);
+        var extras = HtmlForm.Parse(html).QuerySelector($"[data-testid=extras-{FakeCatalogueApi.PlotOne}]");
+
+        Assert.NotNull(extras);
+        Assert.Contains("Premium kitchen, £6,500", extras.TextContent, StringComparison.Ordinal);
+        Assert.Contains("until FirstFix completes", extras.TextContent, StringComparison.Ordinal);
+    }
+
     private static readonly Guid Held = Guid.Parse("0198a000-0000-7000-a000-000000000002");
 
     // C8 Lab 1: "Pay deposit" appears for held reservations only, and redirects to the Checkout page the API returns.

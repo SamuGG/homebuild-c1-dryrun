@@ -13,6 +13,7 @@ using HomeBuild.Api.Modules.Sales;
 using HomeBuild.Domain;
 using HomeBuild.Messaging;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 
 namespace HomeBuild.Api.Scheduling;
@@ -181,7 +182,7 @@ internal static class ScheduledWorkServices
         ArgumentNullException.ThrowIfNull(configuration);
         if (configuration[$"{SchedulingOptions.Section}:QueueUrl"] is { Length: > 0 } queueUrl)
         {
-            services.AddSingleton<IAmazonSQS>(_ => new AmazonSQSClient(RegionEndpoint.EUWest2));
+            services.TryAddSingleton<IAmazonSQS>(_ => new AmazonSQSClient(RegionEndpoint.EUWest2));
             var options = configuration.GetSection($"{SchedulingOptions.Section}:Consumer").Get<ConsumerOptions>() ?? new ConsumerOptions { Processors = 2, VisibilityTimeout = TimeSpan.FromMinutes(5) };
             services.AddHostedService(sp => new QueueConsumer(ScheduledWorkHandler.Name, new SqsQueueClient(sp.GetRequiredService<IAmazonSQS>(), queueUrl),
                 sp.GetRequiredService<IServiceScopeFactory>(), options, sp.GetRequiredService<ILogger<QueueConsumer>>()));
