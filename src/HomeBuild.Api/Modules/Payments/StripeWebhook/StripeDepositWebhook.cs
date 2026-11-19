@@ -37,6 +37,12 @@ public enum WebhookResult
     /// deposit is recorded again. The deposit's unique session key keeps it to one row.
     /// </summary>
     DepositRepaired,
+
+    /// <summary>C10 Lab 2: an extras basket's payment recorded (lines that failed revalidation refunded after the commit).</summary>
+    ExtrasPaid,
+
+    /// <summary>C10 Lab 2: an extras basket's Checkout page closed unpaid; the basket can change again.</summary>
+    ExtrasCheckoutExpired,
 }
 
 /// <summary>
@@ -47,11 +53,19 @@ public enum WebhookResult
 /// </summary>
 // The gateway is resolved only when a refund is due: most events need no Stripe call, and a host without a Stripe key
 // (CI, tests) still verifies and records webhooks.
-internal sealed class StripeDepositWebhook(PaymentsDbContext db, IReservationDeposits reservations, IReservationExpirySchedules expiry, IServiceProvider services, RequestTenantContext tenant, TimeProvider time)
+internal sealed class StripeDepositWebhook(PaymentsDbContext db, IReservationDeposits reservations, IReservationExpirySchedules expiry, HomeBuild.Api.Modules.Extras.IExtrasBasketPayments extras, IServiceProvider services, RequestTenantContext tenant, TimeProvider time)
 {
     public async Task<(WebhookResult Result, ReservationId? Reservation)> HandleAsync(Event stripeEvent, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(stripeEvent);
+        // C10 Lab 2: an extras basket's session (its metadata says so); C8's deposit sessions have no kind.
+        if (stripeEvent.Type is EventTypes.CheckoutSessionCompleted or EventTypes.CheckoutSessionExpired
+            && stripeEvent.Data.Object is Session { Metadata: { } metadata } extrasSession
+            && metadata.GetValueOrDefault(StripePaymentGateway.KindMetadata) == StripePaymentGateway.ExtrasKind)
+        {
+            return (await HandleExtrasAsync(stripeEvent, extrasSession, cancellationToken), null);
+        }
+
         if (stripeEvent.Type is not (EventTypes.CheckoutSessionCompleted or EventTypes.CheckoutSessionExpired)
             || stripeEvent.Data.Object is not Session session
             || !Guid.TryParse(session.ClientReferenceId, out var reservationGuid)
@@ -89,6 +103,59 @@ internal sealed class StripeDepositWebhook(PaymentsDbContext db, IReservationDep
         }
 
         return (result, reservation);
+    }
+
+    /// <summary>
+    /// C10 Lab 2: the same shape as a deposit. In one transaction: the event ID first (a duplicate stops there), then
+    /// Extras records the payment, revalidating each line, on this transaction. After the commit, the lines that failed
+    /// are refunded (also when a duplicate arrives, which finishes a refund a crash interrupted).
+    /// </summary>
+    private async Task<WebhookResult> HandleExtrasAsync(Event stripeEvent, Session session, CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParse(session.Metadata.GetValueOrDefault(StripePaymentGateway.BasketMetadata), out var basketId)
+            || !Guid.TryParse(session.Metadata.GetValueOrDefault(StripePaymentGateway.TenantMetadata), out var tenantId))
+        {
+            return WebhookResult.Ignored;
+        }
+
+        tenant.TenantId = tenantId; // from metadata HomeBuild wrote and Stripe signed
+        var result = await db.Database.CreateExecutionStrategy().ExecuteAsync(async ct =>
+        {
+            db.ChangeTracker.Clear();
+            await using var transaction = await db.Database.BeginTransactionAsync(ct);
+            var first = await db.Database.ExecuteSqlAsync(
+                $"INSERT INTO payments.processed_webhook_events (event_id, type, processed_at, tenant_id) VALUES ({stripeEvent.Id}, {stripeEvent.Type}, {time.GetUtcNow()}, {tenantId}) ON CONFLICT (event_id) DO NOTHING",
+                ct);
+            if (first == 0)
+            {
+                await transaction.RollbackAsync(ct);
+                return WebhookResult.Duplicate;
+            }
+
+            WebhookResult outcome;
+            if (stripeEvent.Type == EventTypes.CheckoutSessionCompleted)
+            {
+                var paidAt = new DateTimeOffset(DateTime.SpecifyKind(stripeEvent.Created, DateTimeKind.Utc));
+                var recorded = await extras.ConfirmPaidAsync(basketId, session.Id, session.PaymentIntentId ?? session.Id,
+                    StripeAmounts.FromMinorUnits(session.AmountTotal ?? 0, session.Currency), paidAt, transaction.GetDbTransaction(), ct);
+                outcome = recorded == HomeBuild.Api.Modules.Extras.ExtrasPaymentOutcome.Paid ? WebhookResult.ExtrasPaid : WebhookResult.Duplicate;
+            }
+            else
+            {
+                await extras.ExpireCheckoutAsync(basketId, session.Id, transaction.GetDbTransaction(), ct);
+                outcome = WebhookResult.ExtrasCheckoutExpired;
+            }
+
+            await transaction.CommitAsync(ct);
+            return outcome;
+        }, cancellationToken);
+
+        if (stripeEvent.Type == EventTypes.CheckoutSessionCompleted)
+        {
+            await extras.RefundPendingAsync(basketId, cancellationToken); // external calls after the commit (C8 Lab 4)
+        }
+
+        return result;
     }
 
     /// <summary>Refunds the session's deposit if its refund is recorded as intended but not done; true if it did.</summary>

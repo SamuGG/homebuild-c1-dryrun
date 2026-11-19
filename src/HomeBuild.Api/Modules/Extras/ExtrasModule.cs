@@ -27,6 +27,8 @@ public static class ExtrasModule
             .AddInterceptors(new TenantCommandInterceptor(sp.GetRequiredService<ITenantContext>()), sp.GetRequiredService<OpenTransactions>()));
         // Keyed scoped: the queue consumer resolves one per message, in its own scope.
         services.AddKeyedScoped<IMessageHandler, ExtrasProgressConsumer>(ExtrasProgressConsumer.Name);
+        // C10 Lab 2: Extras' published write for Payments' webhook (inside its transaction).
+        services.AddScoped<IExtrasBasketPayments, EfExtrasBasketPayments>();
         return services;
     }
 
@@ -45,6 +47,7 @@ public static class ExtrasModule
             .WithSummary("Every extra of a development with its unlock and close milestones (staff, v2)")
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .RequireAuthorization(Policies.CanViewExtras);
+        group.MapBasket(); // C10 Lab 2
         return endpoints;
     }
 
@@ -161,6 +164,8 @@ internal sealed class ExtrasDbContext(DbContextOptions<ExtrasDbContext> options,
 
     public DbSet<UnitProgressRow> UnitProgress => Set<UnitProgressRow>();
 
+    public DbSet<BasketRow> Baskets => Set<BasketRow>();
+
     public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
         ChangeTracker.StampTenant(tenant);
@@ -201,8 +206,38 @@ internal sealed class ExtrasDbContext(DbContextOptions<ExtrasDbContext> options,
             progress.HasKey(p => p.UnitId);
             progress.Property(p => p.LatestMilestone).HasConversion<string>().HasMaxLength(40);
         });
+        modelBuilder.Entity<BasketRow>(basket =>
+        {
+            basket.ToTable("baskets");
+            basket.HasKey(b => b.Id);
+            basket.Property(b => b.Id).ValueGeneratedNever(); // set in code (Version 7 GUIDs)
+            basket.HasIndex(b => new { b.BuyerId, b.UnitId });
+            basket.HasIndex(b => b.SessionId).IsUnique().HasFilter("session_id IS NOT NULL");
+            basket.Property(b => b.Status).HasConversion<string>().HasMaxLength(20);
+            basket.Property(b => b.SessionId).HasMaxLength(255);
+            basket.Property(b => b.PaymentIntent).HasMaxLength(255);
+            basket.Property(b => b.ChargedAmount).HasPrecision(12, 2);
+            basket.HasMany(b => b.Lines).WithOne().HasForeignKey(l => l.BasketId).OnDelete(DeleteBehavior.Cascade);
+        });
+        modelBuilder.Entity<BasketLineRow>(line =>
+        {
+            line.ToTable("basket_lines");
+            line.HasKey(l => l.Id);
+            // Set in code: without this, a new line added to a tracked basket has a key, so EF takes it for an
+            // existing row and updates it (DbUpdateConcurrencyException: expected 1 row, affected 0).
+            line.Property(l => l.Id).ValueGeneratedNever();
+            line.Property(l => l.Name).HasMaxLength(100);
+            line.Property(l => l.UnitPrice).HasPrecision(12, 2);
+            line.Property(l => l.Currency).HasMaxLength(3).IsFixedLength();
+            line.Property(l => l.Status).HasConversion<string>().HasMaxLength(20);
+            line.Property(l => l.RefundReason).HasMaxLength(500);
+            line.Property(l => l.RefundReference).HasMaxLength(255);
+            line.Ignore(l => l.Amount);
+        });
         modelBuilder.Entity<ExtraRow>().HasTenant(this);
         modelBuilder.Entity<UnitProgressRow>().HasTenant(this);
+        modelBuilder.Entity<BasketRow>().HasTenant(this);
+        modelBuilder.Entity<BasketLineRow>().HasTenant(this);
         modelBuilder.HasOutbox();
     }
 

@@ -89,6 +89,11 @@ internal sealed class FakeCatalogueApi : HttpMessageHandler
                 key = "incoming/t/u/f.pdf", maxBytes = 10485760, contentType = "application/pdf", expiresAt = DateTimeOffset.UtcNow.AddMinutes(5) });
         }
 
+        if (path == "/v2/me/baskets")
+        {
+            return Json(Array.Empty<HomeBuild.Web.Api.Basket>()); // C10 Lab 2: no basket unless a test says so
+        }
+
         if (path == "/v2/me/extras")
         {
             // C10 Lab 1: Riverside plot 1's kitchens are open (its frame is done).

@@ -30,6 +30,14 @@ internal sealed class FakeGateway : IPaymentGateway
         Checkouts.Add(request);
         return Task.FromResult(new CheckoutSession($"cs_fake_{Checkouts.Count}", new Uri($"https://checkout.example/{Checkouts.Count}"), request.ExpiresAt));
     }
+
+    public List<BasketCheckoutRequest> BasketCheckouts { get; } = [];
+
+    public Task<CheckoutSession> CreateBasketCheckoutSessionAsync(BasketCheckoutRequest request, CancellationToken cancellationToken)
+    {
+        BasketCheckouts.Add(request);
+        return Task.FromResult(new CheckoutSession($"cs_fake_basket_{BasketCheckouts.Count}", new Uri($"https://checkout.example/basket/{BasketCheckouts.Count}"), request.ExpiresAt));
+    }
 }
 
 /// <summary>An in-memory <see cref="IPaymentStore"/>: the core's tests need no database.</summary>

@@ -23,6 +23,152 @@ namespace HomeBuild.Api.Modules.Extras.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("HomeBuild.Api.Modules.Extras.BasketLineRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("AddedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("added_at");
+
+                    b.Property<Guid>("BasketId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("basket_id");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character(3)")
+                        .HasColumnName("currency")
+                        .IsFixedLength();
+
+                    b.Property<Guid>("ExtraId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("extra_id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantity");
+
+                    b.Property<string>("RefundReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("refund_reason");
+
+                    b.Property<string>("RefundReference")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("refund_reference");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("unit_price");
+
+                    b.HasKey("Id")
+                        .HasName("pk_basket_lines");
+
+                    b.HasIndex("BasketId")
+                        .HasDatabaseName("ix_basket_lines_basket_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_basket_lines_tenant_id");
+
+                    b.ToTable("basket_lines", "extras");
+                });
+
+            modelBuilder.Entity("HomeBuild.Api.Modules.Extras.BasketRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("BuyerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("buyer_id");
+
+                    b.Property<decimal?>("ChargedAmount")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("charged_amount");
+
+                    b.Property<int>("CheckoutAttempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("checkout_attempts");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("DevelopmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("development_id");
+
+                    b.Property<DateTimeOffset?>("PaidAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("paid_at");
+
+                    b.Property<string>("PaymentIntent")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("payment_intent");
+
+                    b.Property<string>("SessionId")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("session_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid>("UnitId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("unit_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_baskets");
+
+                    b.HasIndex("SessionId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_baskets_session_id")
+                        .HasFilter("session_id IS NOT NULL");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_baskets_tenant_id");
+
+                    b.HasIndex("BuyerId", "UnitId")
+                        .HasDatabaseName("ix_baskets_buyer_id_unit_id");
+
+                    b.ToTable("baskets", "extras");
+                });
+
             modelBuilder.Entity("HomeBuild.Api.Modules.Extras.ExtraRow", b =>
                 {
                     b.Property<Guid>("Id")
@@ -172,6 +318,21 @@ namespace HomeBuild.Api.Modules.Extras.Migrations
                         .HasFilter("published_at IS NULL");
 
                     b.ToTable("outbox_messages", "extras");
+                });
+
+            modelBuilder.Entity("HomeBuild.Api.Modules.Extras.BasketLineRow", b =>
+                {
+                    b.HasOne("HomeBuild.Api.Modules.Extras.BasketRow", null)
+                        .WithMany("Lines")
+                        .HasForeignKey("BasketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_basket_lines_baskets_basket_id");
+                });
+
+            modelBuilder.Entity("HomeBuild.Api.Modules.Extras.BasketRow", b =>
+                {
+                    b.Navigation("Lines");
                 });
 #pragma warning restore 612, 618
         }

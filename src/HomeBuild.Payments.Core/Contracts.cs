@@ -30,6 +30,12 @@ public interface IPaymentGateway
     Task<CheckoutSession> CreateCheckoutSessionAsync(CheckoutRequest request, CancellationToken cancellationToken);
 
     /// <summary>
+    /// C10 Lab 2: a hosted payment page for several lines (an extras basket), one payment for all of them. The amounts
+    /// are the caller's (the basket's price snapshots); the provider's page shows each line.
+    /// </summary>
+    Task<CheckoutSession> CreateBasketCheckoutSessionAsync(BasketCheckoutRequest request, CancellationToken cancellationToken);
+
+    /// <summary>
     /// C8 Lab 5: refunds a payment in full, once per <paramref name="idempotencyKey"/> (a retry never refunds twice).
     /// Never call it inside a database transaction: record the intent, commit, refund, record the result.
     /// </summary>
@@ -46,6 +52,13 @@ public sealed record GatewayRefund(string Id, string Status);
 public sealed record CheckoutRequest(
     ReservationId ReservationId, Guid TenantId, UnitId UnitId, Money Amount, string Description, Uri SuccessUrl, Uri CancelUrl, DateTimeOffset ExpiresAt,
     string IdempotencyKey);
+
+/// <summary>C10 Lab 2: a basket's payment page. <see cref="BasketId"/> comes back in the webhook (client reference and metadata).</summary>
+public sealed record BasketCheckoutRequest(
+    Guid BasketId, Guid TenantId, UnitId UnitId, IReadOnlyList<CheckoutLine> Lines, Uri SuccessUrl, Uri CancelUrl, DateTimeOffset ExpiresAt, string IdempotencyKey);
+
+/// <summary>One line on the provider's page: what, at what price each, how many.</summary>
+public sealed record CheckoutLine(string Name, Money UnitPrice, int Quantity);
 
 /// <summary>A hosted payment page: send the buyer to <see cref="Url"/>; it stops taking payment at <see cref="ExpiresAt"/>.</summary>
 public sealed record CheckoutSession(string Id, Uri Url, DateTimeOffset ExpiresAt);

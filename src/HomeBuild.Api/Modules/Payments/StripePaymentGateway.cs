@@ -15,6 +15,11 @@ internal sealed class StripePaymentGateway(IStripeClient stripe, HomeBuild.Api.D
     public const string UnitMetadata = "unit_id";
     public const string ReservationMetadata = "reservation_id";
 
+    /// <summary>C10 Lab 2: what the session pays for ("extras"); absent on C8's deposit sessions.</summary>
+    public const string KindMetadata = "kind";
+    public const string BasketMetadata = "basket_id";
+    public const string ExtrasKind = "extras";
+
     public async Task<CheckoutSession> CreateCheckoutSessionAsync(CheckoutRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -41,6 +46,40 @@ internal sealed class StripePaymentGateway(IStripeClient stripe, HomeBuild.Api.D
                 [TenantMetadata] = request.TenantId.ToString(),
                 [UnitMetadata] = request.UnitId.Value.ToString(),
                 [ReservationMetadata] = request.ReservationId.Value.ToString(),
+            },
+            SuccessUrl = request.SuccessUrl.ToString(),
+            CancelUrl = request.CancelUrl.ToString(),
+            ExpiresAt = request.ExpiresAt.UtcDateTime,
+        };
+
+        var session = await new SessionService(stripe).CreateAsync(options, new RequestOptions { IdempotencyKey = request.IdempotencyKey }, cancellationToken);
+        return new CheckoutSession(session.Id, new Uri(session.Url), new DateTimeOffset(DateTime.SpecifyKind(session.ExpiresAt, DateTimeKind.Utc)));
+    }
+
+    public async Task<CheckoutSession> CreateBasketCheckoutSessionAsync(BasketCheckoutRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        transactions?.EnsureNone("Stripe Checkout Session create"); // C8 Lab 4
+        var options = new SessionCreateOptions
+        {
+            Mode = "payment",
+            LineItems = [.. request.Lines.Select(line => new SessionLineItemOptions
+            {
+                Quantity = line.Quantity,
+                PriceData = new SessionLineItemPriceDataOptions
+                {
+                    Currency = StripeAmounts.Currency(line.UnitPrice),
+                    UnitAmount = StripeAmounts.ToMinorUnits(line.UnitPrice),
+                    ProductData = new SessionLineItemPriceDataProductDataOptions { Name = line.Name },
+                },
+            })],
+            ClientReferenceId = request.BasketId.ToString(),
+            Metadata = new Dictionary<string, string>
+            {
+                [KindMetadata] = ExtrasKind,
+                [TenantMetadata] = request.TenantId.ToString(),
+                [UnitMetadata] = request.UnitId.Value.ToString(),
+                [BasketMetadata] = request.BasketId.ToString(),
             },
             SuccessUrl = request.SuccessUrl.ToString(),
             CancelUrl = request.CancelUrl.ToString(),
