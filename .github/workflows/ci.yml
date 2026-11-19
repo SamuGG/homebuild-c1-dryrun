@@ -74,10 +74,15 @@ jobs:
             --self-contained --target-runtime $rid --output artifacts/migrate-contracts --force
           dotnet ef migrations script --idempotent --no-build --configuration Release --project src/HomeBuild.Workers \
             --context ContractsDbContext --output artifacts/migrate-contracts.sql
+          # C9 Lab 5: the notifications consumer's schema, from the same project.
+          dotnet ef migrations bundle --project src/HomeBuild.Workers --context NotificationsDbContext --configuration Release \
+            --self-contained --target-runtime $rid --output artifacts/migrate-notifications --force
+          dotnet ef migrations script --idempotent --no-build --configuration Release --project src/HomeBuild.Workers \
+            --context NotificationsDbContext --output artifacts/migrate-notifications.sql
       - name: Apply each bundle twice to the empty CI database
         run: |
           for run in 1 2; do
-            for name in catalogue sales accounts construction payments idempotency contracts; do
+            for name in catalogue sales accounts construction payments idempotency contracts notifications; do
               echo "::group::run $run: migrate-$name"
               ./artifacts/migrate-$name --connection "$MIGRATIONS_CONNECTION"
               echo "::endgroup::"

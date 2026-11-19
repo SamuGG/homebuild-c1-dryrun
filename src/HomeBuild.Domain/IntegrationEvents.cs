@@ -15,7 +15,8 @@ public static class IntegrationEvents
 
 public sealed record DepositPaidMessage(Guid ReservationId, Guid UnitId, Guid TenantId, decimal Amount, string Currency, string SessionId, DateTimeOffset PaidAt);
 
-public sealed record MilestoneCompletedMessage(Guid UnitId, Guid TenantId, string Milestone, DateOnly CompletedAt);
+/// <param name="Version">The unit's build-progress version after this completion: consumers ignore an event older than the last they applied for the unit (C9 Lab 5).</param>
+public sealed record MilestoneCompletedMessage(Guid UnitId, Guid TenantId, string Milestone, DateOnly CompletedAt, int Version);
 
 public sealed record ReservationExpiredMessage(Guid ReservationId, Guid UnitId, Guid BuyerId, Guid TenantId, DateTimeOffset ExpiredAt);
 

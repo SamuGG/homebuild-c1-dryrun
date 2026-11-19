@@ -12,6 +12,7 @@ using Microsoft.Extensions.Options;
 //   Storage:BucketName           the bucket contract packs go to (contracts/)
 //   Messaging:TopicArn           homebuild-events, for ContractIssued (the relay runs only when it is set)
 //   Workers:Contracts:DeadLetterQueueUrl  homebuild-contracts-dlq, whose depth is logged every DeadLetterCheck (Lab 4)
+//   Workers:Notifications:QueueUrl        homebuild-notifications (Lab 5; the consumer runs only when it is set)
 var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddWorkers(builder.Configuration);
 builder.Build().Run();
@@ -27,6 +28,7 @@ namespace HomeBuild.Workers
             services.AddSingleton(TimeProvider.System);
             // Scoped: one per message (each processor takes its own scope, so its own connection).
             services.AddDbContext<ContractsDbContext>(options => ContractsDbContext.Configure(options, connection));
+            services.AddDbContext<NotificationsDbContext>(options => NotificationsDbContext.Configure(options, connection));
             services.AddOptions<StorageOptions>().BindConfiguration(StorageOptions.Section);
             services.AddOptions<MessagingOptions>().BindConfiguration(MessagingOptions.Section);
             services.AddOptions<ConsumerOptions>().BindConfiguration("Workers:Contracts");
@@ -38,6 +40,7 @@ namespace HomeBuild.Workers
             services.AddScoped<IContractDocuments, S3ContractDocuments>();
             services.AddScoped<IEventPublisher, SnsEventPublisher>();
             services.AddKeyedScoped<IMessageHandler, ContractWorker>(ContractWorker.Name);
+            services.AddKeyedScoped<IMessageHandler, NotificationWorker>(NotificationWorker.Name);
 
             // ContractIssued leaves through the contracts outbox.
             services.AddSingleton<OutboxRelay<ContractsDbContext>>();
@@ -49,6 +52,13 @@ namespace HomeBuild.Workers
                 services.AddSingleton(sp => new QueueConsumer(ContractWorker.Name, sp.GetRequiredService<IQueueClient>(), sp.GetRequiredService<IServiceScopeFactory>(),
                     sp.GetRequiredService<IOptions<ConsumerOptions>>().Value, sp.GetRequiredService<ILogger<QueueConsumer>>()));
                 services.AddHostedService(sp => sp.GetRequiredService<QueueConsumer>());
+            }
+
+            if (configuration["Workers:Notifications:QueueUrl"] is { Length: > 0 } notificationsUrl)
+            {
+                var options = configuration.GetSection("Workers:Notifications").Get<ConsumerOptions>() ?? new ConsumerOptions();
+                services.AddHostedService(sp => new QueueConsumer(NotificationWorker.Name, new SqsQueueClient(sp.GetRequiredService<IAmazonSQS>(), notificationsUrl),
+                    sp.GetRequiredService<IServiceScopeFactory>(), options, sp.GetRequiredService<ILogger<QueueConsumer>>()));
             }
 
             if (configuration["Workers:Contracts:DeadLetterQueueUrl"] is { Length: > 0 } dlqUrl)

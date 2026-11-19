@@ -396,3 +396,7 @@ dotnet_diagnostic.CA2254.severity = error
 # EF Core migrations are scaffolded code (dotnet ef migrations add); analyzers such as CA1861 would fail the build on them.
 [**/Migrations/*.cs]
 generated_code = true
+
+# C9 Lab 5: a second context in one project keeps its migrations in a subfolder (Migrations/Notifications).
+[**/Migrations/**/*.cs]
+generated_code = true

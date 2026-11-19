@@ -27,4 +27,11 @@ Tags.Of(storage).Add("lab", "c5-lab7");
 var messaging = new MessagingStack(app, "HomeBuild-Messaging", new StackProps { Env = env });
 Tags.Of(messaging).Add("lab", "c9");
 
+// C9 Lab 5: the FIFO comparison, deployed only for the measurement (-c orderingLab=true) and destroyed after it.
+if (app.Node.TryGetContext("orderingLab") is "true")
+{
+    var ordering = new OrderingLabStack(app, "HomeBuild-OrderingLab", new StackProps { Env = env });
+    Tags.Of(ordering).Add("lab", "c9-lab5");
+}
+
 app.Synth();

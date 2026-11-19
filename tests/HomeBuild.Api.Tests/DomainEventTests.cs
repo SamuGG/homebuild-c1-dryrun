@@ -96,7 +96,7 @@ public sealed class DomainEventTests(PostgresFixture database) : IAsyncLifetime
     [Fact]
     public async Task Handler_is_idempotent()
     {
-        var milestoneCompleted = new MilestoneCompleted(RiversidePlot2, Milestone.Frame, Today);
+        var milestoneCompleted = new MilestoneCompleted(RiversidePlot2, Milestone.Frame, Today, 2);
         await using var scope = _factory.Services.CreateAsyncScope();
         scope.ServiceProvider.GetRequiredService<RequestTenantContext>().TenantId = TestTenants.Demo;
         // Reserve the unit so Notifications has a buyer to write to.
@@ -106,7 +106,7 @@ public sealed class DomainEventTests(PostgresFixture database) : IAsyncLifetime
             Assert.Equal(HttpStatusCode.Created, (await _client.SendAsync(reserve, Ct)).StatusCode);
         }
 
-        var roof = new MilestoneCompleted(RiversidePlot2, Milestone.Roof, Today);
+        var roof = new MilestoneCompleted(RiversidePlot2, Milestone.Roof, Today, 3);
         var handlers = scope.ServiceProvider.GetServices<IHandleDomainEvent<MilestoneCompleted>>().ToList();
         Assert.Equal(3, handlers.Count); // Payments, Extras, Notifications
         foreach (var handler in handlers)

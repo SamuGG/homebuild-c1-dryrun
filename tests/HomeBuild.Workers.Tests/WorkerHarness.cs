@@ -39,8 +39,16 @@ public sealed class PostgresFixture : IAsyncLifetime
         }
 
         var connection = new Npgsql.NpgsqlConnectionStringBuilder(_container.GetConnectionString()) { Database = name }.ToString();
-        await using var db = ContractsDbContext.Create(connection);
-        await db.Database.MigrateAsync();
+        await using (var db = ContractsDbContext.Create(connection))
+        {
+            await db.Database.MigrateAsync();
+        }
+
+        await using (var notifications = NotificationsDbContext.Create(connection))
+        {
+            await notifications.Database.MigrateAsync();
+        }
+
         return connection;
     }
 }
@@ -67,12 +75,14 @@ internal sealed class WorkerHarness : IAsyncDisposable
 
     public string Connection { get; }
 
-    public static WorkerHarness Create(string connection, ConsumerOptions? options = null, InMemoryDocuments? documents = null, InMemoryQueue? queue = null)
+    public static WorkerHarness Create(string connection, ConsumerOptions? options = null, InMemoryDocuments? documents = null, InMemoryQueue? queue = null,
+        Action<IServiceCollection>? configure = null)
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["ConnectionStrings:HomeBuild"] = connection }).Build();
         var services = new ServiceCollection().AddLogging(l => l.SetMinimumLevel(LogLevel.Warning)).AddWorkers(configuration);
         documents ??= new InMemoryDocuments();
         services.Replace(ServiceDescriptor.Scoped<IContractDocuments>(_ => documents));
+        configure?.Invoke(services); // a later keyed registration wins
         var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });
         queue ??= new InMemoryQueue();
         var consumer = new QueueConsumer(ContractWorker.Name, queue, provider.GetRequiredService<IServiceScopeFactory>(),
@@ -81,8 +91,8 @@ internal sealed class WorkerHarness : IAsyncDisposable
     }
 
     /// <summary>Another consumer on the same queue and database: a second worker, or the same worker restarted.</summary>
-    public QueueConsumer NewConsumer(ConsumerOptions options) =>
-        new(ContractWorker.Name, Queue, Services.GetRequiredService<IServiceScopeFactory>(), options, NullLogger<QueueConsumer>.Instance);
+    public QueueConsumer NewConsumer(ConsumerOptions options, string name = ContractWorker.Name, IQueueClient? queue = null) =>
+        new(name, queue ?? Queue, Services.GetRequiredService<IServiceScopeFactory>(), options, NullLogger<QueueConsumer>.Instance);
 
     public async Task<int> ContractsAsync()
     {

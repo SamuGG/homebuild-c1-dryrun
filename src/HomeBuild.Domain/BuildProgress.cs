@@ -120,6 +120,12 @@ public sealed class BuildProgress : IHasDomainEvents
 
     public DevelopmentId DevelopmentId { get; private set; }
 
+    /// <summary>
+    /// C9 Lab 5: the aggregate's version, one more after every change (a completion, a correction, a note). Each event
+    /// carries the version it produced, so a consumer can tell an older event from a newer one for the same unit.
+    /// </summary>
+    public int Version { get; private set; }
+
     public IReadOnlyList<MilestoneProgress> Milestones => _milestones;
 
     /// <summary>Events recorded since the aggregate was loaded or last saved (C7 Lab 5).</summary>
@@ -183,7 +189,8 @@ public sealed class BuildProgress : IHasDomainEvents
             next.Apply(next.State.Start());
         }
 
-        _events.Add(new MilestoneCompleted(UnitId, milestone, on));
+        Version++;
+        _events.Add(new MilestoneCompleted(UnitId, milestone, on, Version));
         return new MilestoneDone(milestone, on);
     }
 
@@ -212,11 +219,16 @@ public sealed class BuildProgress : IHasDomainEvents
         }
 
         target.Correct(completedOn);
+        Version++;
         return new CompletionCorrected(milestone, completed.On, completedOn, completed.SiteManager);
     }
 
     /// <summary>Records the site team's notes on a milestone (staff-only fields; no rule depends on them).</summary>
-    public void Note(Milestone milestone, string siteNotes, int openDefects) => this[milestone].Note(siteNotes, openDefects);
+    public void Note(Milestone milestone, string siteNotes, int openDefects)
+    {
+        this[milestone].Note(siteNotes, openDefects);
+        Version++;
+    }
 }
 
 public sealed record MilestoneDone(Milestone Milestone, DateOnly On);
