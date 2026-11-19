@@ -52,14 +52,14 @@ internal sealed class ContractWorker(ContractsDbContext db, IContractDocuments d
             return; // not ours (the filter policy should not send it): deleted
         }
 
-        var messageId = message.MessageId ?? throw new InvalidOperationException($"Message {message.ProviderId} has no message_id attribute.");
+        // Bad data is permanent (Lab 4): no retry fixes it, so it goes to the dead-letter queue without back-off.
+        var messageId = message.MessageId ?? throw new PermanentMessageException($"Message {message.ProviderId} has no message_id attribute.");
         if (await db.Set<InboxMessage>().AnyAsync(m => m.Consumer == Name && m.MessageId == messageId, cancellationToken))
         {
             return; // processed before: a duplicate delivery
         }
 
-        var paid = JsonSerializer.Deserialize<DepositPaidMessage>(message.Body, JsonSerializerOptions.Web)
-            ?? throw new InvalidOperationException($"Message {messageId} has no body.");
+        var paid = Parse(messageId, message.Body);
         var key = $"contracts/{paid.TenantId}/{paid.ReservationId}.pdf";
         await documents.PutAsync(key, ContractPdf(paid), cancellationToken);
 
@@ -84,6 +84,29 @@ internal sealed class ContractWorker(ContractsDbContext db, IContractDocuments d
             await db.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);
         }, cancellationToken);
+    }
+
+    /// <summary>The payload, or a permanent failure: unreadable JSON, or no reservation, unit or tenant to issue a contract for.</summary>
+    internal static DepositPaidMessage Parse(Guid messageId, string body)
+    {
+        DepositPaidMessage? paid;
+        try
+        {
+            paid = JsonSerializer.Deserialize<DepositPaidMessage>(body, JsonSerializerOptions.Web);
+        }
+        catch (JsonException e)
+        {
+            throw new PermanentMessageException($"Message {messageId} is not a DepositPaid payload.", e);
+        }
+
+        return paid switch
+        {
+            null => throw new PermanentMessageException($"Message {messageId} has no body."),
+            { ReservationId: var r } when r == Guid.Empty => throw new PermanentMessageException($"Message {messageId} names no reservation."),
+            { UnitId: var u } when u == Guid.Empty => throw new PermanentMessageException($"Message {messageId} names an unknown unit."),
+            { TenantId: var t } when t == Guid.Empty => throw new PermanentMessageException($"Message {messageId} names no tenant."),
+            _ => paid,
+        };
     }
 
     /// <summary>A stub contract pack: a minimal one-page PDF naming the reservation (C10 replaces it with the real pack).</summary>

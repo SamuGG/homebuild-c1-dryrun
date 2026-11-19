@@ -141,6 +141,10 @@ public sealed class ContractWorkerTests(PostgresFixture database)
             Released.Add(message);
             return Task.CompletedTask;
         }
+
+        public Task ChangeVisibilityAsync(QueueMessage message, TimeSpan timeout, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task<int> DepthAsync(CancellationToken cancellationToken) => Task.FromResult(0);
     }
 
     // A burst: the channel bounds what is held in memory and the processors bound the database connections.
@@ -191,14 +195,14 @@ public sealed class ContractWorkerTests(PostgresFixture database)
         Assert.InRange(after - before, long.MinValue, 20 * 1024 * 1024); // flat: no growth with the backlog
     }
 
-    private static async Task RunUntilAsync(WorkerHarness worker, Func<bool> done, TimeSpan? timeout = null)
+    internal static async Task RunUntilAsync(WorkerHarness worker, Func<bool> done, TimeSpan? timeout = null)
     {
         await worker.Consumer.StartAsync(Ct);
         await WaitAsync(done, timeout);
         await worker.Consumer.StopAsync(Ct);
     }
 
-    private static async Task WaitAsync(Func<bool> done, TimeSpan? timeout = null)
+    internal static async Task WaitAsync(Func<bool> done, TimeSpan? timeout = null)
     {
         var until = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(30));
         while (!done())

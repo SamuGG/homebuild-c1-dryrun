@@ -100,6 +100,13 @@ public sealed class MessagingStack : Stack
                 Actions = ["sqs:ReceiveMessage", "sqs:DeleteMessage", "sqs:ChangeMessageVisibility", "sqs:GetQueueAttributes"],
                 Resources = [queue.QueueArn],
             }));
+            // Lab 4: the scheduled dead-letter check reads its DLQ's depth (C14 replaces it with an alarm); no receive.
+            worker.AddToPolicy(new PolicyStatement(new PolicyStatementProps
+            {
+                Sid = "ReadOwnDlqDepth",
+                Actions = ["sqs:GetQueueAttributes"],
+                Resources = [dlq.QueueArn],
+            }));
             Queues[name] = queue;
         }
     }
