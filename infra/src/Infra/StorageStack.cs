@@ -126,6 +126,7 @@ public sealed class StorageStack : Stack
             ],
         }));
 
+        Bucket = bucket;
         _ = new CfnOutput(this, "BucketName", new CfnOutputProps { Value = bucket.BucketName });
         _ = new CfnOutput(this, "UploadRoleArn", new CfnOutputProps { Value = UploadRole.RoleArn });
     }
@@ -133,4 +134,7 @@ public sealed class StorageStack : Stack
     private static readonly string[] ProviderParts = ["Role", "Handler"];
 
     public Role UploadRole { get; }
+
+    /// <summary>C9 Lab 7: the notifications Lambda writes under notifications/ (a cross-stack reference).</summary>
+    public Bucket Bucket { get; }
 }

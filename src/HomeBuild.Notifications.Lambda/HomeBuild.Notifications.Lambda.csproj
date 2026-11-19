@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- C9 Lab 7: the notifications consumer as an AWS Lambda function. .NET 11 has no managed Lambda runtime, so it is
+       its own runtime on provided.al2023: an executable named bootstrap. Native AOT (PublishAot) compiles it for the
+       build machine's OS and architecture, so the AOT build runs in a Linux arm64 container (build/lambda-aot.Dockerfile).
+       Trimming and AOT warnings are errors here like every other warning (Directory.Build.props). -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>bootstrap</AssemblyName>
+    <!-- Only when publishing for a runtime (the container's linux-arm64 publish): set unconditionally, restore adds the
+         build host's native compiler (runtime.osx-arm64.Microsoft.DotNet.ILCompiler on a Mac) to packages.lock.json,
+         and CI's locked restore on Linux then fails. -->
+    <PublishAot Condition="'$(RuntimeIdentifier)' != ''">true</PublishAot>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <StripSymbols>true</StripSymbols>
+    <!-- Analyse for AOT in every build, not only at publish, so the warnings show on a Mac and in CI. -->
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HomeBuild.Domain\HomeBuild.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Amazon.Lambda.Core" />
+    <PackageReference Include="Amazon.Lambda.RuntimeSupport" />
+    <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" />
+    <PackageReference Include="Amazon.Lambda.SQSEvents" />
+    <PackageReference Include="AWSSDK.S3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="HomeBuild.Notifications.Lambda.Tests" />
+  </ItemGroup>
+
+</Project>

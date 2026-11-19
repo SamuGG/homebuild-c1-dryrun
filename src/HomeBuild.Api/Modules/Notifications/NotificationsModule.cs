@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using HomeBuild.Api.Http;
 using HomeBuild.Api.Modules.Sales;
 using HomeBuild.Domain;
 
@@ -18,10 +19,17 @@ public static class NotificationsModule
         services.AddSingleton<BuyerMessages>();
         // Scoped: uses Sales' scoped published reads.
         services.AddScoped<IHandleDomainEvent<MilestoneCompleted>, TellBuyerAboutMilestone>();
+        // C9 Lab 7: My Home reads what the notifications Lambda wrote to S3. Singleton: one SDK client, created on first use.
+        services.AddOptions<NotificationsOptions>().BindConfiguration(NotificationsOptions.Section);
+        services.AddSingleton<INotificationReader, S3NotificationReader>();
         return services;
     }
 
-    public static IEndpointRouteBuilder MapNotificationsModule(this IEndpointRouteBuilder endpoints) => endpoints;
+    public static IEndpointRouteBuilder MapNotificationsModule(this IEndpointRouteBuilder endpoints)
+    {
+        endpoints.MapVersionedGroup().WithTags(Name).MapMyNotifications();
+        return endpoints;
+    }
 }
 
 internal sealed record BuyerMessage(ReservationId ReservationId, UnitId UnitId, Milestone Milestone, string Text);
