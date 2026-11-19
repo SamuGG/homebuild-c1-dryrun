@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- C9 Lab 7: the notifications function's handler, run in process with an in-memory store (CI has no AWS). -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>HomeBuild.Notifications.Lambda.Tests</RootNamespace>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3.mtp-v2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\HomeBuild.Notifications.Lambda\HomeBuild.Notifications.Lambda.csproj" />
+  </ItemGroup>
+
+</Project>

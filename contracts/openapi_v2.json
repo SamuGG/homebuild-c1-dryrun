@@ -1385,6 +1385,40 @@
           }
         }
       }
+    },
+    "/v2/me/notifications": {
+      "get": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "The signed-in buyer's notifications: progress, the contract pack, an ended hold (v2)",
+        "operationId": "ListMyNotifications",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MyNotificationResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2191,6 +2225,36 @@
           }
         }
       },
+      "MyNotificationResponse": {
+        "required": [
+          "id",
+          "type",
+          "unitId",
+          "text",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string"
+          },
+          "unitId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "text": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "OverdueStagePaymentResponse": {
         "required": [
           "unitId",
@@ -2666,6 +2730,9 @@
     },
     {
       "name": "Construction"
+    },
+    {
+      "name": "Notifications"
     },
     {
       "name": "Payments"

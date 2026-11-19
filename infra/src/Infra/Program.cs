@@ -31,6 +31,16 @@ Tags.Of(messaging).Add("lab", "c9");
 var scheduling = new SchedulingStack(app, "HomeBuild-Scheduling", new StackProps { Env = env });
 Tags.Of(scheduling).Add("lab", "c9-lab6");
 
+// C9 Lab 7: the notifications Lambda (destroyed after the lab; C10 Lab 6 recreates it to send email). Needs the zips
+// from scripts/build-notifications-lambda.sh, so it is synthesized only with -c notificationsLambda=true.
+if (app.Node.TryGetContext("notificationsLambda") is "true")
+{
+    var notifications = new NotificationsLambdaStack(app, "HomeBuild-Notifications", new StackProps { Env = env }, storage.Bucket,
+        artifacts: System.IO.Path.GetFullPath("../artifacts"), partialBatch: app.Node.TryGetContext("partialBatch") is not "false",
+        batchingWindowSeconds: int.TryParse(app.Node.TryGetContext("batchingWindow") as string, out var window) ? window : null);
+    Tags.Of(notifications).Add("lab", "c9-lab7");
+}
+
 // C9 Lab 5: the FIFO comparison, deployed only for the measurement (-c orderingLab=true) and destroyed after it.
 if (app.Node.TryGetContext("orderingLab") is "true")
 {
