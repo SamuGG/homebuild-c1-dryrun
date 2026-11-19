@@ -40,6 +40,15 @@
           "AWSSDK.Core": "[4.1.1.1, 5.0.0)"
         }
       },
+      "AWSSDK.Scheduler": {
+        "type": "Direct",
+        "requested": "[4.1.1.2, )",
+        "resolved": "4.1.1.2",
+        "contentHash": "koNEr8geJ6uZZFo8Qg3o6yOHj/Ij6Hw/J3Kob/eAxufxrhk9+qp6EixudHDDmsoOSaoTKKJ8w2+W6dqWGHDgeA==",
+        "dependencies": {
+          "AWSSDK.Core": "[4.1.1.1, 5.0.0)"
+        }
+      },
       "AWSSDK.SecurityToken": {
         "type": "Direct",
         "requested": "[4.1.0.2, )",
