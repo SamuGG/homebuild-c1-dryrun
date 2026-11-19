@@ -26,6 +26,14 @@ public sealed record Extra(Guid Id, string Name, string Category, decimal Price,
 /// <summary>C10 Lab 1: the extras open now for one of the buyer's homes, from Extras' own copy of its progress.</summary>
 public sealed record MyExtras(Guid UnitId, string? LatestMilestone, IReadOnlyList<Extra> OpenExtras);
 
+/// <summary>C10 Lab 2: a basket line with its snapshot price; Status: in-basket, paid, refund-pending, refunded.</summary>
+public sealed record BasketLine(Guid Id, Guid ExtraId, string Name, decimal UnitPrice, string Currency, int Quantity, string Status, string? Reason);
+
+/// <summary>C10 Lab 2: Status open, confirming (Stripe has not confirmed the payment yet) or paid.</summary>
+public sealed record Basket(Guid Id, Guid UnitId, string Status, IReadOnlyList<BasketLine> Lines, decimal Total, string Currency, DateTimeOffset? PaidAt);
+
+public sealed record BasketCheckout(string SessionId, Uri Url, DateTimeOffset ExpiresAt);
+
 public sealed record DepositSession(string SessionId, Uri Url, DateTimeOffset ExpiresAt);
 
 /// <summary>C8 Lab 5: a deposit and what happened to it (paid, refund-pending, refunded), with the reason.</summary>
@@ -59,6 +67,30 @@ public sealed class HomeApiClient(HttpClient http)
     /// <summary>C10 Lab 1: every extra of a development with its window (staff).</summary>
     public async Task<IReadOnlyList<Extra>> GetDevelopmentExtrasAsync(Guid developmentId, CancellationToken cancellationToken = default) =>
         await http.GetFromJsonAsync<List<Extra>>($"developments/{developmentId}/extras", cancellationToken) ?? [];
+
+    /// <summary>C10 Lab 2: the buyer's baskets and orders.</summary>
+    public async Task<IReadOnlyList<Basket>> GetMyBasketsAsync(CancellationToken cancellationToken = default) =>
+        await http.GetFromJsonAsync<List<Basket>>("me/baskets", cancellationToken) ?? [];
+
+    /// <summary>C10 Lab 2: adds an open extra to the basket for a home, or the API's problem (409 conflict, 422 closed or over the limit).</summary>
+    public async Task<ApiResult<bool>> AddExtraAsync(Guid unitId, Guid extraId, CancellationToken cancellationToken = default)
+    {
+        using var response = await http.PostAsJsonAsync("me/basket/lines", new { unitId, extraId, quantity = 1 }, cancellationToken);
+        return response.IsSuccessStatusCode ? new(true, null) : new(false, await ApiProblem.ReadAsync(response, cancellationToken));
+    }
+
+    /// <summary>C10 Lab 2: revalidates the basket and opens a Stripe Checkout page for it: the URL, or the API's problem.</summary>
+    public async Task<ApiResult<Uri>> StartBasketCheckoutAsync(Guid unitId, Guid idempotencyKey, CancellationToken cancellationToken = default)
+    {
+        using var response = await PostIdempotentAsync("me/basket/checkout", JsonContent.Create(new { unitId }), idempotencyKey, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            return new(null, await ApiProblem.ReadAsync(response, cancellationToken));
+        }
+
+        var session = await response.Content.ReadFromJsonAsync<BasketCheckout>(cancellationToken);
+        return new(session!.Url, null);
+    }
 
     /// <summary>The signed-in buyer's homes and simplified progress (the buyer DTO; no internal fields).</summary>
     public async Task<MyProgress> GetMyProgressAsync(CancellationToken cancellationToken = default) =>

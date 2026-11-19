@@ -12,6 +12,7 @@ public static class IntegrationEvents
     public const string ReservationExpired = nameof(ReservationExpired);
     public const string ContractIssued = nameof(ContractIssued);
     public const string ExtrasUnlocked = nameof(ExtrasUnlocked);
+    public const string ExtrasPaid = nameof(ExtrasPaid);
 }
 
 public sealed record DepositPaidMessage(Guid ReservationId, Guid UnitId, Guid TenantId, decimal Amount, string Currency, string SessionId, DateTimeOffset PaidAt);
@@ -30,3 +31,9 @@ public sealed record ExtrasUnlockedMessage(Guid UnitId, Guid TenantId, Guid Deve
 
 /// <param name="ClosesAt">The milestone whose completion closes the extra again.</param>
 public sealed record UnlockedExtra(Guid ExtraId, string Name, decimal Price, string Currency, string ClosesAt);
+
+/// <summary>C10 Lab 2: a basket of extras was paid; <see cref="Extras"/> holds only the lines kept (refunded ones are left out).</summary>
+public sealed record ExtrasPaidMessage(Guid BasketId, Guid UnitId, Guid TenantId, Guid BuyerId, IReadOnlyList<PaidExtra> Extras, decimal Total, string Currency, DateTimeOffset PaidAt);
+
+/// <param name="UnitPrice">The price when the buyer added it (the basket's snapshot).</param>
+public sealed record PaidExtra(Guid LineId, Guid ExtraId, string Name, decimal UnitPrice, string Currency, int Quantity);

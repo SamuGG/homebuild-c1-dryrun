@@ -43,6 +43,39 @@ public sealed class MyHomeTests
         Assert.Contains("until FirstFix completes", extras.TextContent, StringComparison.Ordinal);
     }
 
+    // C10 Lab 2: a paid basket waiting for Stripe's webhook says "confirming", never "paid"; a paid one with a refunded
+    // line says why.
+    [Theory]
+    [InlineData("confirming", "Extras: payment received, confirming…")]
+    [InlineData("paid", "Extras: paid")]
+    public async Task My_home_shows_extras_confirming_until_the_webhook_then_paid(string status, string heading)
+    {
+        var basket = Guid.Parse("0198a000-0000-7000-b000-000000000001");
+        var api = new FakeCatalogueApi
+        {
+            Respond = r => r.RequestUri!.AbsolutePath == "/v2/me/baskets"
+                ? FakeCatalogueApi.Json(new[]
+                {
+                    new HomeBuild.Web.Api.Basket(basket, FakeCatalogueApi.PlotOne, status,
+                    [
+                        new(Guid.NewGuid(), Guid.NewGuid(), "Premium kitchen", 6500m, "GBP", 1, status == "paid" ? "paid" : "in-basket", null),
+                        new(Guid.NewGuid(), Guid.NewGuid(), "Solar panels", 5800m, "GBP", 1, status == "paid" ? "refunded" : "in-basket", status == "paid" ? "Solar panels closed when Roof was completed. Its payment is refunded in full." : null),
+                    ], 6500m, "GBP", null),
+                })
+                : null,
+        };
+        await using var factory = new WebFactory(api);
+        using var browser = factory.CreateBrowser();
+        await factory.SignInAsync(browser, new TokenSet("access-1", "refresh-1", DateTimeOffset.UtcNow.AddHours(1)), "buyer");
+
+        var html = await browser.GetStringAsync(new Uri("/my-home", UriKind.Relative), TestContext.Current.CancellationToken);
+        var section = HtmlForm.Parse(html).QuerySelector($"[data-testid=basket-{basket}]")!;
+
+        Assert.Equal(heading, section.QuerySelector("h3")!.TextContent);
+        Assert.Equal(status == "paid", section.TextContent.Contains("refunded: Solar panels closed when Roof was completed.", StringComparison.Ordinal));
+        Assert.Null(section.QuerySelector($"[data-testid=pay-extras-{basket}]")); // nothing to pay
+    }
+
     private static readonly Guid Held = Guid.Parse("0198a000-0000-7000-a000-000000000002");
 
     // C8 Lab 1: "Pay deposit" appears for held reservations only, and redirects to the Checkout page the API returns.
