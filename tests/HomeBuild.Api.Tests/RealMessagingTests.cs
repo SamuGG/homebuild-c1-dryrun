@@ -42,7 +42,7 @@ public sealed class RealMessagingTests(PostgresFixture database)
 
         await using (var db = ConstructionModule.CreateDbContext(api.ConnectionString, TestTenants.Demo))
         {
-            var m = OutboxMessage.For(IntegrationEvents.MilestoneCompleted, new MilestoneCompletedMessage(Guid.NewGuid(), TestTenants.Demo, "Roof", DateOnly.FromDateTime(at.UtcDateTime)), TestTenants.Demo, at);
+            var m = OutboxMessage.For(IntegrationEvents.MilestoneCompleted, new MilestoneCompletedMessage(Guid.NewGuid(), TestTenants.Demo, "Roof", DateOnly.FromDateTime(at.UtcDateTime), 3), TestTenants.Demo, at);
             db.Set<OutboxMessage>().Add(m);
             await db.SaveChangesAsync(ct);
             ids[m.Type] = m.Id;

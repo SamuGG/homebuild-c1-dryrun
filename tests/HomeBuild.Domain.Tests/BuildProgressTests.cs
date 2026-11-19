@@ -21,6 +21,23 @@ public class BuildProgressTests
         Assert.All(progress.Milestones, m => Assert.Equal(MilestoneStatus.Completed, m.Status));
     }
 
+    // C9 Lab 5: every change moves the version on; each MilestoneCompleted carries the version it produced; a refused
+    // change leaves it where it was.
+    [Fact]
+    public void Each_change_increments_the_version_and_events_carry_it()
+    {
+        var progress = ABuildProgress().Build();
+        var start = progress.Version;
+
+        progress.Complete(Milestone.Foundations, SiteManager, progress[Milestone.Foundations].PlannedOn);
+        progress.Note(Milestone.Frame, "Scaffold up", 0);
+        progress.Complete(Milestone.Frame, SiteManager, progress[Milestone.Frame].PlannedOn);
+        progress.Complete(Milestone.FirstFix, SiteManager, progress[Milestone.FirstFix].PlannedOn); // out of order: refused
+
+        Assert.Equal(start + 3, progress.Version);
+        Assert.Equal([start + 1, start + 3], progress.DomainEvents.OfType<MilestoneCompleted>().Select(e => e.Version));
+    }
+
     [Fact]
     public void Milestone_out_of_order_is_rejected_and_changes_nothing()
     {

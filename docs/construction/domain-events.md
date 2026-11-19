@@ -40,3 +40,20 @@ What this closes, window by window:
 | New: the relay crashes after publishing, before marking | A **duplicate**, never a loss: the rows stay unpublished and go out again; consumers deduplicate by message ID (Lab 3's inbox). |
 
 The windows close only for work that reads the queue. In Lab 2 the three in-process handlers above (`RecordStagePaymentDue`, `UnlockExtrasOnFrame`, `TellBuyerAboutMilestone`) still run after the commit as well, because no consumer reads their queues yet; each moves off in-process dispatch when its queue's consumer exists (notifications: Lab 7's Lambda).
+
+## C9 Lab 5: ordering
+
+SNS and the standard SQS queues do not keep order, so a consumer can receive two events in either order. Order matters only per aggregate, never globally:
+
+| Event | Order matters? | Relative to what | How it is handled |
+| --- | --- | --- | --- |
+| `MilestoneCompleted` | Yes | Per unit (its `BuildProgress`) | Carries the unit's `Version` (one more after each change to the aggregate). Each consumer records the last version it applied per unit (`aggregate_versions`) and ignores an older or equal one. Swapped, a buyer would read "foundations" after "frame", and a stage payment could be raised for a milestone the unit has already passed. |
+| `DepositPaid` | No | Per reservation, once | One per reservation; the inbox absorbs duplicates. Against `ReservationExpired` for the same reservation, the reservation's state decides (C8's late-payment re-hold or refund), not the order of arrival. |
+| `ReservationExpired` | No | Per reservation, once | As above: one per reservation, the state decides. |
+| `ContractIssued` | No | Per reservation, once | One per reservation (the contract worker's inbox and the one-contract key). |
+
+A gap (version 3 after 1) does not matter to any consumer today: each event carries everything its consumer needs, so a consumer applies the newest and ignores the rest. A consumer that needs every step in turn (a running total, say) would park an event until the missing version arrives instead.
+
+Ignoring has a cost the notifications consumer shows: a buyer whose "foundations" event arrives after "frame" never gets the foundations message (19 of 32 shuffled events were ignored in `Events_for_different_units_process_in_parallel`). That is acceptable for progress updates, where the newer message says more.
+
+FIFO queues with a message group per unit would keep the order in transport instead. The comparison (throughput, the deduplication window, a poison message blocking its group) is in the C9 Lab 5 PR; HomeBuild keeps standard queues and versions.

@@ -21,4 +21,5 @@ public interface IHandleDomainEvent<in TEvent>
 }
 
 /// <summary>A unit's milestone completed (C7 Lab 5). Payments, Extras and Notifications react to it.</summary>
-public sealed record MilestoneCompleted(UnitId UnitId, Milestone Milestone, DateOnly CompletedAt) : IDomainEvent;
+/// <param name="Version">The unit's <see cref="BuildProgress.Version"/> after this completion (C9 Lab 5).</param>
+public sealed record MilestoneCompleted(UnitId UnitId, Milestone Milestone, DateOnly CompletedAt, int Version) : IDomainEvent;

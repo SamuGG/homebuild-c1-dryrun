@@ -62,7 +62,7 @@ internal sealed class ConstructionDbContext(DbContextOptions<ConstructionDbConte
             foreach (var completed in entry.Entity.DomainEvents.OfType<MilestoneCompleted>())
             {
                 Set<OutboxMessage>().Add(OutboxMessage.For(IntegrationEvents.MilestoneCompleted,
-                    new MilestoneCompletedMessage(completed.UnitId.Value, tenantId, completed.Milestone.ToString(), completed.CompletedAt),
+                    new MilestoneCompletedMessage(completed.UnitId.Value, tenantId, completed.Milestone.ToString(), completed.CompletedAt, completed.Version),
                     tenantId, DateTimeOffset.UtcNow));
             }
         }
@@ -97,7 +97,9 @@ internal sealed class ConstructionDbContext(DbContextOptions<ConstructionDbConte
             progress.Navigation(p => p.Milestones).UsePropertyAccessMode(PropertyAccessMode.Field);
             // The aggregate is one row, so xmin versions the whole aggregate: two concurrent changes to any of its
             // milestones conflict (optimistic concurrency, as for Sales' units).
-            progress.Property<uint>("Version").IsRowVersion();
+            progress.Property<uint>("RowVersion").IsRowVersion();
+            // C9 Lab 5: the domain version events carry (xmin is a transaction ID, unknown until the save commits).
+            progress.Property(p => p.Version);
             progress.Ignore(p => p.DomainEvents); // dispatched after commit, never stored (C9's outbox will store them)
         });
 
