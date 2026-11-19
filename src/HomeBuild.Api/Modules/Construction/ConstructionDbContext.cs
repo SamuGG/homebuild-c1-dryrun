@@ -62,7 +62,7 @@ internal sealed class ConstructionDbContext(DbContextOptions<ConstructionDbConte
             foreach (var completed in entry.Entity.DomainEvents.OfType<MilestoneCompleted>())
             {
                 Set<OutboxMessage>().Add(OutboxMessage.For(IntegrationEvents.MilestoneCompleted,
-                    new MilestoneCompletedMessage(completed.UnitId.Value, tenantId, completed.Milestone.ToString(), completed.CompletedAt, completed.Version),
+                    new MilestoneCompletedMessage(completed.UnitId.Value, tenantId, completed.Milestone.ToString(), completed.CompletedAt, completed.Version, entry.Entity.DevelopmentId.Value),
                     tenantId, DateTimeOffset.UtcNow));
             }
         }

@@ -53,6 +53,19 @@ else if (DepositReturn == "cancelled")
                             <span class="text-sm">@home.Progress.StepsDone of @home.Progress.StepsTotal steps done@(home.Progress.NextStep is { } next ? $"; next: {next}" : "")</span>
                         </p>
                         <p class="mt-3"><a class="@Styles.Link" href="my-home/reservations/@home.ReservationId">Reservation details</a></p>
+                        @* C10 Lab 1: extras open now, from Extras' copy of this home's progress (it can lag the board by a message). *@
+                        @if (extras.FirstOrDefault(x => x.UnitId == home.UnitId) is { OpenExtras.Count: > 0 } open)
+                        {
+                            <div class="mt-3" data-testid="extras-@home.UnitId">
+                                <h3 class="font-semibold">Extras you can choose now</h3>
+                                <ul class="list-disc pl-6">
+                                    @foreach (var extra in open.OpenExtras)
+                                    {
+                                        <li>@extra.Name, @extra.Price.ToString("C0", System.Globalization.CultureInfo.GetCultureInfo("en-GB")) <span class="text-sm">(until @extra.ClosesAt completes)</span></li>
+                                    }
+                                </ul>
+                            </div>
+                        }
                         @foreach (var refund in deposits.Where(d => d.ReservationId == home.ReservationId && d.Status != "paid"))
                         {
                             @* C8 Lab 5: a late payment that could not be kept, and why. *@
@@ -90,6 +103,7 @@ else if (DepositReturn == "cancelled")
     private MyProgress? progress;
     private string? payProblem;
     private IReadOnlyList<MyDeposit> deposits = [];
+    private IReadOnlyList<MyExtras> extras = [];
 
     [SupplyParameterFromForm(Name = "idempotency-key")]
     private Guid? PayKey { get; set; } // C8 Lab 3: from the form that was rendered, so a double click sends one key
@@ -103,6 +117,7 @@ else if (DepositReturn == "cancelled")
         me = await Api.GetMeAsync();
         progress = user!.IsInRole("buyer") ? await Api.GetMyProgressAsync() : new MyProgress([]);
         deposits = user.IsInRole("buyer") ? await Api.GetMyDepositsAsync() : [];
+        extras = user.IsInRole("buyer") ? await Api.GetMyExtrasAsync() : [];
     }
 
     private async Task PayDepositAsync(Guid reservationId)

@@ -20,6 +20,12 @@ public sealed record BuyerHome(Guid ReservationId, Guid UnitId, string PlotNumbe
 
 public sealed record MyProgress(IReadOnlyList<BuyerHome> Homes);
 
+/// <summary>C10 Lab 1: an extra and its window (unlock and close milestones).</summary>
+public sealed record Extra(Guid Id, string Name, string Category, decimal Price, string Currency, string UnlocksAt, string ClosesAt, string? ConflictGroup, int MaxQuantity);
+
+/// <summary>C10 Lab 1: the extras open now for one of the buyer's homes, from Extras' own copy of its progress.</summary>
+public sealed record MyExtras(Guid UnitId, string? LatestMilestone, IReadOnlyList<Extra> OpenExtras);
+
 public sealed record DepositSession(string SessionId, Uri Url, DateTimeOffset ExpiresAt);
 
 /// <summary>C8 Lab 5: a deposit and what happened to it (paid, refund-pending, refunded), with the reason.</summary>
@@ -45,6 +51,14 @@ public sealed class HomeApiClient(HttpClient http)
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<Board>(cancellationToken);
     }
+
+    /// <summary>C10 Lab 1: the extras the signed-in buyer can choose now, per home.</summary>
+    public async Task<IReadOnlyList<MyExtras>> GetMyExtrasAsync(CancellationToken cancellationToken = default) =>
+        await http.GetFromJsonAsync<List<MyExtras>>("me/extras", cancellationToken) ?? [];
+
+    /// <summary>C10 Lab 1: every extra of a development with its window (staff).</summary>
+    public async Task<IReadOnlyList<Extra>> GetDevelopmentExtrasAsync(Guid developmentId, CancellationToken cancellationToken = default) =>
+        await http.GetFromJsonAsync<List<Extra>>($"developments/{developmentId}/extras", cancellationToken) ?? [];
 
     /// <summary>The signed-in buyer's homes and simplified progress (the buyer DTO; no internal fields).</summary>
     public async Task<MyProgress> GetMyProgressAsync(CancellationToken cancellationToken = default) =>

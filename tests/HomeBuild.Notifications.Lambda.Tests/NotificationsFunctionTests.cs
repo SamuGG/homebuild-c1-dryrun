@@ -73,6 +73,26 @@ public sealed class NotificationsFunctionTests
         Assert.Equal($"notifications/{Tenant}/{buyer}/{messageId}.json", Assert.Single(store.Objects).Key);
     }
 
+    // C10 Lab 1: extras now open are a unit event (no buyer), so they go under the unit.
+    [Fact]
+    public async Task Extras_unlocked_is_written_under_the_unit()
+    {
+        var store = new MemoryStore();
+        var function = new NotificationsFunction(store, TimeProvider.System, partialBatchResponses: true);
+        var unit = Guid.NewGuid();
+        var messageId = Guid.NewGuid();
+        var body = JsonSerializer.Serialize(new ExtrasUnlockedMessage(unit, Tenant, Guid.NewGuid(), "Frame",
+            [new(Guid.NewGuid(), "Premium kitchen", 6500m, "GBP", "FirstFix"), new(Guid.NewGuid(), "Smart home package", 2400m, "GBP", "FirstFix")], DateTimeOffset.UtcNow, 2),
+            MessageJson.Default.ExtrasUnlockedMessage);
+
+        var response = await function.HandleAsync(new SQSEvent { Records = [Record(IntegrationEvents.ExtrasUnlocked, body, messageId)] }, new Context());
+
+        Assert.Empty(response.BatchItemFailures);
+        var (key, json) = Assert.Single(store.Objects);
+        Assert.Equal($"notifications/{Tenant}/units/{unit}/{messageId}.json", key);
+        Assert.StartsWith("New extras are open for your home: Premium kitchen, Smart home package.", JsonSerializer.Deserialize(json, MessageJson.Default.BuyerNotification)!.Text, StringComparison.Ordinal);
+    }
+
     private static readonly string[] Milestones = ["Foundations", "Frame", "Roof", "FirstFix", "Plastering", "SecondFix", "UtilitiesConnected", "PracticalCompletion", "Foundations"];
 
     private static SQSEvent.SQSMessage Milestone(Guid unit, int version, Guid? messageId = null) =>

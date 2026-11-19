@@ -41,3 +41,8 @@ internal sealed class PaymentsDesignTimeFactory : IDesignTimeDbContextFactory<Pa
 {
     public PaymentsDbContext CreateDbContext(string[] args) => PaymentsModule.CreateDbContext(DesignTime.ConnectionString);
 }
+
+internal sealed class ExtrasDesignTimeFactory : IDesignTimeDbContextFactory<HomeBuild.Api.Modules.Extras.ExtrasDbContext>
+{
+    public HomeBuild.Api.Modules.Extras.ExtrasDbContext CreateDbContext(string[] args) => HomeBuild.Api.Modules.Extras.ExtrasModule.CreateDbContext(DesignTime.ConnectionString);
+}

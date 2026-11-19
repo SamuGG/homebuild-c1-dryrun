@@ -1,0 +1,52 @@
+@page "/staff/developments/{DevelopmentId:guid}/extras"
+@attribute [Authorize(Roles = "admin,sales-agent,site-manager")]
+@inject CatalogueClient Catalogue
+@inject HomeApiClient Api
+@inject NavigationManager Navigation
+
+@* C10 Lab 1: every extra of a development and the milestones that open and close it (staff DTO). Static SSR. *@
+@if (development is not null)
+{
+    <PageTitle>Extras, @development.Name · HomeBuild</PageTitle>
+    <p class="mb-2"><a class="@Styles.Link" href="developments/@development.Id">@development.Name</a></p>
+    <h1 class="mb-6 text-3xl font-bold">Extras</h1>
+    <table class="w-full text-left" data-testid="extras">
+        <thead>
+            <tr><th scope="col">Extra</th><th scope="col">Category</th><th scope="col">Price</th><th scope="col">Opens when</th><th scope="col">Closes when</th><th scope="col">Excludes</th><th scope="col">Up to</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var extra in extras)
+            {
+                <tr>
+                    <td>@extra.Name</td>
+                    <td>@extra.Category</td>
+                    <td>@extra.Price.ToString("C0", System.Globalization.CultureInfo.GetCultureInfo("en-GB"))</td>
+                    <td>@extra.UnlocksAt completes</td>
+                    <td>@extra.ClosesAt completes</td>
+                    <td>@(extra.ConflictGroup is { } group ? $"other {group} extras" : "")</td>
+                    <td>@extra.MaxQuantity</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    [Parameter]
+    public Guid DevelopmentId { get; set; }
+
+    private Development? development;
+    private IReadOnlyList<Extra> extras = [];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        development = await Catalogue.GetDevelopmentAsync(DevelopmentId);
+        if (development is null)
+        {
+            Navigation.NotFound();
+            return;
+        }
+
+        extras = await Api.GetDevelopmentExtrasAsync(DevelopmentId);
+    }
+}

@@ -31,6 +31,7 @@ public static class Policies
     public const string CanWorkOnSite = nameof(CanWorkOnSite);
     public const string CanReviewStagePayments = nameof(CanReviewStagePayments);
     public const string CanCorrectMilestones = nameof(CanCorrectMilestones);
+    public const string CanViewExtras = nameof(CanViewExtras);
 
     public static IServiceCollection AddHomeBuildPolicies(this IServiceCollection services)
     {
@@ -45,6 +46,8 @@ public static class Policies
             .AddPolicy(CanPayDeposits, p => p.RequireRole(Roles.Buyer))
             .AddPolicy(CanViewBuildBoard, p => p.RequireRole(Roles.SiteManager, Roles.Admin))
             .AddPolicy(CanReadOwnProgress, p => p.RequireRole(Roles.Buyer))
+            // C10 Lab 1: staff see every extra and its window (sales agents sell them, site managers fit them).
+            .AddPolicy(CanViewExtras, p => p.RequireRole(Roles.Admin, Roles.SalesAgent, Roles.SiteManager))
             // C7 Lab 4: the role says a site manager may try; the assignment check (SiteAssignmentHandler) says on which development.
             .AddPolicy(CanWorkOnSite, p => p.RequireRole(Roles.SiteManager))
             .AddPolicy(CanCorrectMilestones, p => p.RequireRole(Roles.Admin))

@@ -21,12 +21,13 @@ namespace Infra;
 public sealed class NotificationsLambdaStack : Stack
 #pragma warning restore CA1711
 {
-    public NotificationsLambdaStack(Construct scope, string id, IStackProps props, IBucket bucket, string artifacts, bool partialBatch, int? batchingWindowSeconds = null) : base(scope, id, props)
+    public NotificationsLambdaStack(Construct scope, string id, IStackProps props, IBucket bucket, string artifacts, bool partialBatch, int? batchingWindowSeconds = null, bool withJit = false) : base(scope, id, props)
     {
         // By name, not a cross-stack reference: the messaging stack stays unchanged.
         var queue = Queue.FromQueueArn(this, "NotificationsQueue", $"arn:{Aws.PARTITION}:sqs:{Region}:{Account}:homebuild-notifications");
 
-        foreach (var (kind, name) in new[] { ("aot", "homebuild-notifications"), ("jit", "homebuild-notifications-jit") })
+        // The JIT twin only for the cold-start comparison (C9 Lab 7): -c jit=true.
+        foreach (var (kind, name) in new[] { ("aot", "homebuild-notifications"), ("jit", "homebuild-notifications-jit") }.Where(f => withJit || f.Item1 == "aot"))
         {
             var logs = new LogGroup(this, $"{kind}Logs", new LogGroupProps
             {

@@ -4,7 +4,6 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using HomeBuild.Api.Http;
 using HomeBuild.Api.Modules.Construction;
-using HomeBuild.Api.Modules.Extras;
 using HomeBuild.Api.Modules.Notifications;
 using HomeBuild.Api.Modules.Payments;
 using HomeBuild.Domain;
@@ -13,7 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace HomeBuild.Api.Tests;
 
-/// <summary>C7 Lab 5: MilestoneCompleted, dispatched after commit to Payments, Extras and Notifications.</summary>
+/// <summary>C7 Lab 5: MilestoneCompleted, dispatched after commit to Payments and Notifications (C10 Lab 1 moved Extras to its queue).</summary>
 [Collection(IntegrationDatabase.Name)]
 public sealed class DomainEventTests(PostgresFixture database) : IAsyncLifetime
 {
@@ -108,7 +107,7 @@ public sealed class DomainEventTests(PostgresFixture database) : IAsyncLifetime
 
         var roof = new MilestoneCompleted(RiversidePlot2, Milestone.Roof, Today, 3);
         var handlers = scope.ServiceProvider.GetServices<IHandleDomainEvent<MilestoneCompleted>>().ToList();
-        Assert.Equal(3, handlers.Count); // Payments, Extras, Notifications
+        Assert.Equal(2, handlers.Count); // Payments, Notifications (Extras consumes homebuild-extras since C10 Lab 1)
         foreach (var handler in handlers)
         {
             foreach (var e in new[] { milestoneCompleted, roof, milestoneCompleted, roof })
@@ -118,7 +117,6 @@ public sealed class DomainEventTests(PostgresFixture database) : IAsyncLifetime
         }
 
         Assert.Single(await StagePaymentsAsync(RiversidePlot2)); // roof; frame has no stage in a fixed schedule
-        Assert.NotNull(_factory.Services.GetRequiredService<ExtrasLedger>().For(RiversidePlot2));
         Assert.Equal(2, _factory.Services.GetRequiredService<BuyerMessages>().For(RiversidePlot2).Count); // frame and roof, once each
     }
 

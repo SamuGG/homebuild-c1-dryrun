@@ -37,8 +37,10 @@ if (app.Node.TryGetContext("notificationsLambda") is "true")
 {
     var notifications = new NotificationsLambdaStack(app, "HomeBuild-Notifications", new StackProps { Env = env }, storage.Bucket,
         artifacts: System.IO.Path.GetFullPath("../artifacts"), partialBatch: app.Node.TryGetContext("partialBatch") is not "false",
-        batchingWindowSeconds: int.TryParse(app.Node.TryGetContext("batchingWindow") as string, out var window) ? window : null);
-    Tags.Of(notifications).Add("lab", "c9-lab7");
+        batchingWindowSeconds: int.TryParse(app.Node.TryGetContext("batchingWindow") as string, out var window) ? window : null,
+        withJit: app.Node.TryGetContext("jit") is "true");
+    // Built in C9 Lab 7, destroyed, redeployed in C10 Lab 1 (ExtrasUnlocked; Lab 6 adds email).
+    Tags.Of(notifications).Add("lab", "c10-lab1");
 }
 
 // C9 Lab 5: the FIFO comparison, deployed only for the measurement (-c orderingLab=true) and destroyed after it.
