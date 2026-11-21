@@ -20,6 +20,7 @@ internal static class OutboxServices
         AddRelay<PaymentsDbContext>(services);
         AddRelay<SalesDbContext>(services);
         AddRelay<HomeBuild.Api.Modules.Extras.ExtrasDbContext>(services); // C10 Lab 1: ExtrasUnlocked
+        AddRelay<HomeBuild.Api.Modules.Aftercare.AftercareDbContext>(services); // C10 Lab 4: HandoverCompleted
         return services;
     }
 

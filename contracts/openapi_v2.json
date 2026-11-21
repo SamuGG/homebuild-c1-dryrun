@@ -1761,6 +1761,367 @@
           }
         }
       }
+    },
+    "/v2/units/{unitId}/handover": {
+      "put": {
+        "tags": [
+          "Aftercare"
+        ],
+        "summary": "Record the handover checklist; when it is complete, the defects period starts (Aftercare, v2)",
+        "operationId": "RecordHandover",
+        "parameters": [
+          {
+            "name": "unitId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HandoverRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HandoverPackResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/me/handover": {
+      "get": {
+        "tags": [
+          "Aftercare"
+        ],
+        "summary": "The handover packs of the buyer's homes (v2)",
+        "operationId": "MyHandoverPacks",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HandoverPackResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/me/snags": {
+      "post": {
+        "tags": [
+          "Aftercare"
+        ],
+        "summary": "Draft a snag on one of the buyer's homes (v2)",
+        "operationId": "DraftSnag",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewSnagRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyerSnagResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Aftercare"
+        ],
+        "summary": "The buyer's snags with their timelines, without Aftercare's internal notes (v2)",
+        "operationId": "MySnags",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BuyerSnagResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/units/{unitId}/snags": {
+      "post": {
+        "tags": [
+          "Aftercare"
+        ],
+        "summary": "Record a snag before handover (Aftercare, v2)",
+        "operationId": "RecordSnagBeforeHandover",
+        "parameters": [
+          {
+            "name": "unitId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewSnagRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffSnagResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/snags": {
+      "get": {
+        "tags": [
+          "Aftercare"
+        ],
+        "summary": "Every snag with its full timeline (Aftercare, v2)",
+        "operationId": "ListSnags",
+        "parameters": [
+          {
+            "name": "unitId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StaffSnagResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/snags/{id}/{action}": {
+      "post": {
+        "tags": [
+          "Aftercare"
+        ],
+        "summary": "Move a snag: report, confirm, dispute (buyer); acknowledge, schedule, fix, close (Aftercare) (v2)",
+        "operationId": "ActOnSnag",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "action",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/SnagActionRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/BuyerSnagResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/StaffSnagResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/snags/{id}/comments": {
+      "post": {
+        "tags": [
+          "Aftercare"
+        ],
+        "summary": "Comment on a snag (buyer or Aftercare, v2)",
+        "operationId": "CommentOnSnag",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SnagTextRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/v2/snags/{id}/notes": {
+      "post": {
+        "tags": [
+          "Aftercare"
+        ],
+        "summary": "An internal note the buyer never sees (Aftercare, v2)",
+        "operationId": "NoteOnSnag",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SnagTextRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2108,6 +2469,61 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/BuyerHome"
+            }
+          }
+        }
+      },
+      "BuyerSnagResponse": {
+        "required": [
+          "id",
+          "unitId",
+          "area",
+          "description",
+          "severity",
+          "state",
+          "subcontractor",
+          "visitOn",
+          "timeline"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "unitId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "area": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "subcontractor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "visitOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "timeline": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SnagEntryResponse"
             }
           }
         }
@@ -2674,6 +3090,80 @@
           }
         }
       },
+      "HandoverPackResponse": {
+        "required": [
+          "unitId",
+          "keysHandedOver",
+          "meterReadings",
+          "warrantiesIssued",
+          "completedAt",
+          "defectsEndOn",
+          "documents"
+        ],
+        "type": "object",
+        "properties": {
+          "unitId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "keysHandedOver": {
+            "type": "boolean"
+          },
+          "meterReadings": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "warrantiesIssued": {
+            "type": "boolean"
+          },
+          "completedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "defectsEndOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "HandoverRequest": {
+        "required": [
+          "keysHandedOver",
+          "meterReadings",
+          "warrantiesIssued"
+        ],
+        "type": "object",
+        "properties": {
+          "keysHandedOver": {
+            "type": "boolean"
+          },
+          "meterReadings": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "warrantiesIssued": {
+            "type": "boolean"
+          }
+        }
+      },
       "HttpValidationProblemDetails": {
         "type": "object",
         "properties": {
@@ -2909,6 +3399,35 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "NewSnagRequest": {
+        "required": [
+          "unitId",
+          "area",
+          "description",
+          "severity"
+        ],
+        "type": "object",
+        "properties": {
+          "unitId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "area": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "severity": {
+            "pattern": "^(Minor|Major|Urgent)$",
+            "type": "string"
           }
         }
       },
@@ -3156,6 +3675,195 @@
           }
         }
       },
+      "SnagActionRequest": {
+        "required": [
+          "subcontractor",
+          "visitOn",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "subcontractor": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "visitOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SnagEntryResponse": {
+        "required": [
+          "kind",
+          "actor",
+          "at",
+          "text",
+          "from",
+          "to"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "text": {
+            "type": "string"
+          },
+          "from": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "to": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SnagTextRequest": {
+        "required": [
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          }
+        }
+      },
+      "StaffSnagEntryResponse": {
+        "required": [
+          "kind",
+          "actor",
+          "actorId",
+          "at",
+          "text",
+          "from",
+          "to",
+          "internal"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "actorId": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "text": {
+            "type": "string"
+          },
+          "from": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "to": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "internal": {
+            "type": "boolean"
+          }
+        }
+      },
+      "StaffSnagResponse": {
+        "required": [
+          "id",
+          "unitId",
+          "area",
+          "description",
+          "severity",
+          "state",
+          "subcontractor",
+          "visitOn",
+          "beforeHandover",
+          "timeline"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "unitId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "area": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "subcontractor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "visitOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "beforeHandover": {
+            "type": "boolean"
+          },
+          "timeline": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StaffSnagEntryResponse"
+            }
+          }
+        }
+      },
       "UnitPage": {
         "required": [
           "items",
@@ -3381,6 +4089,9 @@
   "tags": [
     {
       "name": "Accounts"
+    },
+    {
+      "name": "Aftercare"
     },
     {
       "name": "Catalogue"

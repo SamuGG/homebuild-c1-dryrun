@@ -37,6 +37,14 @@ public sealed record Basket(Guid Id, Guid UnitId, string Status, IReadOnlyList<B
 
 public sealed record BasketCheckout(string SessionId, Uri Url, DateTimeOffset ExpiresAt);
 
+/// <summary>C10 Lab 4: the handover pack in My Home.</summary>
+public sealed record HandoverPack(Guid UnitId, bool KeysHandedOver, string? MeterReadings, bool WarrantiesIssued, DateTimeOffset? CompletedAt, DateOnly? DefectsEndOn, IReadOnlyList<string> Documents);
+
+public sealed record SnagEntry(string Kind, string Actor, DateTimeOffset At, string Text, string? From, string? To, bool Internal = false);
+
+/// <summary>C10 Lab 4: a snag (the buyer's DTO has no internal notes; Aftercare's has them, flagged Internal).</summary>
+public sealed record Snag(Guid Id, Guid UnitId, string Area, string Description, string Severity, string State, string? Subcontractor, DateOnly? VisitOn, IReadOnlyList<SnagEntry> Timeline);
+
 public sealed record DepositSession(string SessionId, Uri Url, DateTimeOffset ExpiresAt);
 
 /// <summary>C8 Lab 5: a deposit and what happened to it (paid, refund-pending, refunded), with the reason.</summary>
@@ -70,6 +78,40 @@ public sealed class HomeApiClient(HttpClient http)
     /// <summary>C10 Lab 1: every extra of a development with its window (staff).</summary>
     public async Task<IReadOnlyList<Extra>> GetDevelopmentExtrasAsync(Guid developmentId, CancellationToken cancellationToken = default) =>
         await http.GetFromJsonAsync<List<Extra>>($"developments/{developmentId}/extras", cancellationToken) ?? [];
+
+    /// <summary>C10 Lab 4: the buyer's handover packs.</summary>
+    public async Task<IReadOnlyList<HandoverPack>> GetMyHandoverAsync(CancellationToken cancellationToken = default) =>
+        await http.GetFromJsonAsync<List<HandoverPack>>("me/handover", cancellationToken) ?? [];
+
+    /// <summary>C10 Lab 4: the buyer's snags (buyer DTO).</summary>
+    public async Task<IReadOnlyList<Snag>> GetMySnagsAsync(CancellationToken cancellationToken = default) =>
+        await http.GetFromJsonAsync<List<Snag>>("me/snags", cancellationToken) ?? [];
+
+    /// <summary>C10 Lab 4: every snag (Aftercare's DTO).</summary>
+    public async Task<IReadOnlyList<Snag>> GetSnagsAsync(CancellationToken cancellationToken = default) =>
+        await http.GetFromJsonAsync<List<Snag>>("snags", cancellationToken) ?? [];
+
+    public async Task<ApiResult<bool>> DraftSnagAsync(Guid unitId, string area, string description, string severity, CancellationToken cancellationToken = default) =>
+        await PostAsync("me/snags", new { unitId, area, description, severity }, cancellationToken);
+
+    /// <summary>C10 Lab 4: report, acknowledge, schedule, fix, confirm, dispute or close; the API refuses what the lifecycle does not allow (409).</summary>
+    public async Task<ApiResult<bool>> ActOnSnagAsync(Guid id, string action, string? subcontractor = null, DateOnly? visitOn = null, string? reason = null, CancellationToken cancellationToken = default) =>
+        await PostAsync($"snags/{id}/{action}", new { subcontractor, visitOn, reason }, cancellationToken);
+
+    public async Task<ApiResult<bool>> NoteOnSnagAsync(Guid id, string text, CancellationToken cancellationToken = default) =>
+        await PostAsync($"snags/{id}/notes", new { text }, cancellationToken);
+
+    public async Task<ApiResult<bool>> RecordHandoverAsync(Guid unitId, bool keys, string? meterReadings, bool warranties, CancellationToken cancellationToken = default)
+    {
+        using var response = await http.PutAsJsonAsync($"units/{unitId}/handover", new { keysHandedOver = keys, meterReadings, warrantiesIssued = warranties }, cancellationToken);
+        return response.IsSuccessStatusCode ? new(true, null) : new(false, await ApiProblem.ReadAsync(response, cancellationToken));
+    }
+
+    private async Task<ApiResult<bool>> PostAsync(string path, object body, CancellationToken cancellationToken)
+    {
+        using var response = await http.PostAsJsonAsync(path, body, cancellationToken);
+        return response.IsSuccessStatusCode ? new(true, null) : new(false, await ApiProblem.ReadAsync(response, cancellationToken));
+    }
 
     /// <summary>C10 Lab 3: a development's change orders (staff board).</summary>
     public async Task<IReadOnlyList<ChangeOrder>> GetChangeOrdersAsync(Guid developmentId, CancellationToken cancellationToken = default) =>

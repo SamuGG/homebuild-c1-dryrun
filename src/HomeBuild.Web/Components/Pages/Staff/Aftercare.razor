@@ -1,0 +1,109 @@
+@page "/staff/aftercare"
+@attribute [Authorize(Roles = "aftercare")]
+@inject HomeApiClient Api
+@inject NavigationManager Navigation
+
+@* C10 Lab 4: Aftercare's view (staff DTO: internal notes included). Static SSR with one form per action. *@
+<PageTitle>Aftercare · HomeBuild</PageTitle>
+<h1 class="mb-6 text-3xl font-bold">Aftercare</h1>
+
+@if (problem is not null)
+{
+    <p class="mb-4 text-danger-600" role="alert" data-testid="aftercare-problem">@problem</p>
+}
+
+<h2 class="mb-3 text-xl font-semibold">Snags</h2>
+<ul class="grid gap-3" data-testid="staff-snags">
+    @foreach (var snag in snags)
+    {
+        <li data-testid="staff-snag-@snag.Id">
+            <Card Title="@($"{snag.Area}: {snag.Description} ({snag.Severity})")">
+                <p><Badge Text="@snag.State" Variant="BadgeVariant.Neutral" /> @(snag.State == "Scheduled" ? $"Visit by {snag.Subcontractor} on {snag.VisitOn:d MMMM yyyy}" : "")</p>
+                <ol class="mt-2 text-sm">
+                    @foreach (var entry in snag.Timeline)
+                    {
+                        <li class="@(entry.Internal ? "italic" : "")">@entry.At.ToString("d MMM, HH:mm", System.Globalization.CultureInfo.GetCultureInfo("en-GB")) · @entry.Actor@(entry.Internal ? " (internal)" : ""): @entry.Text</li>
+                    }
+                </ol>
+                @foreach (var action in ActionsFor(snag.State))
+                {
+                    <form method="post" @formname="@($"{action}-{snag.Id}")" @onsubmit="() => ActAsync(snag.Id, action)" class="mt-2 inline-flex gap-2">
+                        <AntiforgeryToken />
+                        @if (action == "schedule")
+                        {
+                            <label for="sub-@snag.Id">Subcontractor</label><input id="sub-@snag.Id" name="subcontractor" class="border" required />
+                            <label for="visit-@snag.Id">Visit</label><input id="visit-@snag.Id" name="visit-on" type="date" class="border" required />
+                        }
+                        <Button Type="submit">@Label(action)</Button>
+                    </form>
+                }
+                <form method="post" @formname="@($"note-{snag.Id}")" @onsubmit="() => NoteAsync(snag.Id)" class="mt-2 inline-flex gap-2">
+                    <AntiforgeryToken />
+                    <label for="note-@snag.Id">Internal note</label><input id="note-@snag.Id" name="note" class="border" required />
+                    <Button Type="submit">Add note</Button>
+                </form>
+            </Card>
+        </li>
+    }
+</ul>
+
+<h2 class="mb-3 mt-8 text-xl font-semibold">Handover</h2>
+<form method="post" @formname="handover" @onsubmit="HandoverAsync" class="grid max-w-md gap-2" data-testid="handover-form">
+    <AntiforgeryToken />
+    <label for="handover-unit">Unit ID</label><input id="handover-unit" name="handover-unit" class="border" required />
+    <label><input type="checkbox" name="keys" value="true" /> Keys handed over</label>
+    <label for="meters">Meter readings</label><input id="meters" name="meters" class="border" />
+    <label><input type="checkbox" name="warranties" value="true" /> Warranties issued</label>
+    <Button Type="submit">Save checklist</Button>
+</form>
+
+@code {
+    private IReadOnlyList<Snag> snags = [];
+    private string? problem;
+
+    [SupplyParameterFromForm(Name = "subcontractor")] private string? Subcontractor { get; set; }
+    [SupplyParameterFromForm(Name = "visit-on")] private DateOnly? VisitOn { get; set; }
+    [SupplyParameterFromForm(Name = "note")] private string? Note { get; set; }
+    [SupplyParameterFromForm(Name = "handover-unit")] private Guid? HandoverUnit { get; set; }
+    [SupplyParameterFromForm(Name = "keys")] private bool Keys { get; set; }
+    [SupplyParameterFromForm(Name = "meters")] private string? Meters { get; set; }
+    [SupplyParameterFromForm(Name = "warranties")] private bool Warranties { get; set; }
+
+    protected override async Task OnInitializedAsync() => snags = await Api.GetSnagsAsync();
+
+    /// <summary>Aftercare's actions from each state (the lifecycle table's Aftercare rows); the API has the last word.</summary>
+    private static string[] ActionsFor(string state) => state switch
+    {
+        "Reported" => ["acknowledge"],
+        "Acknowledged" or "Disputed" => ["schedule"],
+        "Scheduled" => ["fix"],
+        "Confirmed" => ["close"],
+        _ => [],
+    };
+
+    private static string Label(string action) => action switch
+    {
+        "acknowledge" => "Acknowledge",
+        "schedule" => "Schedule visit",
+        "fix" => "Mark fixed",
+        _ => "Close",
+    };
+
+    private async Task ActAsync(Guid id, string action) =>
+        Done(await Api.ActOnSnagAsync(id, action, Subcontractor, VisitOn));
+
+    private async Task NoteAsync(Guid id) => Done(await Api.NoteOnSnagAsync(id, Note ?? ""));
+
+    private async Task HandoverAsync() => Done(await Api.RecordHandoverAsync(HandoverUnit ?? Guid.Empty, Keys, Meters, Warranties));
+
+    private void Done(ApiResult<bool> result)
+    {
+        if (result.Succeeded)
+        {
+            Navigation.NavigateTo("staff/aftercare");
+            return;
+        }
+
+        problem = result.Problem!.Detail ?? result.Problem.Title;
+    }
+}

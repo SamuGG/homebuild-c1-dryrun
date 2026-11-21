@@ -13,8 +13,9 @@ flowchart LR
     Sales["Sales<br/>availability, reservations, deposits"]
     Construction["Construction<br/>BuildProgress, milestones, site diary, audit"]
     Payments["Payments<br/>stage payments due, overdue (ports and adapters)"]
-    Extras["Extras<br/>extras unlocked (stub until C10)"]
-    Notifications["Notifications<br/>buyer messages (stub until C10)"]
+    Extras["Extras<br/>catalogue, open windows (own copy of progress), basket, orders"]
+    Aftercare["Aftercare<br/>handover, snags (two-party lifecycle)"]
+    Notifications["Notifications<br/>My Home notifications (read from S3)"]
   end
 
   core["HomeBuild.Payments.Core<br/>use cases and ports"]
@@ -25,6 +26,8 @@ flowchart LR
   web -- "HTTPS, JSON" --> Construction
   web -- "HTTPS, JSON" --> Payments
   web -- "HTTPS, JSON (who am I)" --> Accounts
+  web -- "HTTPS, JSON" --> Extras
+  web -- "HTTPS, JSON" --> Aftercare
 
   Catalogue -- "IUnitAvailability" --> Sales
   Sales -- "ICatalogueQueries" --> Catalogue
@@ -32,10 +35,15 @@ flowchart LR
   Construction -- "IUnitAvailability" --> Sales
   Payments -- "ICatalogueQueries (unit price, schedule)" --> Catalogue
   Notifications -- "IUnitAvailability (current buyer)" --> Sales
+  Extras -- "IUnitAvailability (buyer's homes)" --> Sales
+  Extras -- "IChangeOrderStatus" --> Construction
+  Payments -- "IExtrasBasketPayments (webhook)" --> Extras
+  Aftercare -- "IUnitAvailability, IReservationReader" --> Sales
 
   Construction -. "MilestoneCompleted" .-> Payments
-  Construction -. "MilestoneCompleted" .-> Extras
+  Construction -. "MilestoneCompleted (C9 queue)" .-> Extras
   Construction -. "MilestoneCompleted" .-> Notifications
+  Extras -. "ExtrasPaid (C10 queue)" .-> Construction
 
   Payments --> core
   core --> domain

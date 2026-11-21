@@ -8,6 +8,7 @@ using HomeBuild.Api.Modules.Sales;
 using HomeBuild.Api.Modules.Payments;
 using HomeBuild.Api.Modules.Extras;
 using HomeBuild.Api.Modules.Notifications;
+using HomeBuild.Api.Modules.Aftercare;
 
 var builder = WebApplication.CreateBuilder(args);
 // The API takes small JSON bodies only; Kestrel's default 30 MB limit let a 2 MB reservation body through
@@ -51,6 +52,7 @@ builder.Services.AddConstructionModule();
 builder.Services.AddPaymentsModule();
 builder.Services.AddExtrasModule();
 builder.Services.AddNotificationsModule();
+builder.Services.AddAftercareModule(); // C10 Lab 4
 // C9 Lab 6: expiry schedules (EventBridge Scheduler) and the scheduled-work queue's consumer.
 HomeBuild.Api.Scheduling.ScheduledWorkServices.AddScheduledWork(builder.Services, builder.Configuration);
 // C10 Lab 1: the homebuild-extras consumer (MilestoneCompleted → Extras' copy of progress).
@@ -99,6 +101,7 @@ app.MapConstructionModule();
 app.MapPaymentsModule();
 app.MapExtrasModule();
 app.MapNotificationsModule();
+app.MapAftercareModule(); // C10 Lab 4
 #if DEBUG
 // C10 Lab 3: test-only consumer control (pause/resume), Debug builds in Development only; absent from Release builds.
 if (app.Environment.IsDevelopment())

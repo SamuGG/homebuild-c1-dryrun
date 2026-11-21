@@ -14,6 +14,7 @@ public static class IntegrationEvents
     public const string ExtrasUnlocked = nameof(ExtrasUnlocked);
     public const string ExtrasPaid = nameof(ExtrasPaid);
     public const string ChangeOrderCreated = nameof(ChangeOrderCreated);
+    public const string HandoverCompleted = nameof(HandoverCompleted);
 }
 
 public sealed record DepositPaidMessage(Guid ReservationId, Guid UnitId, Guid TenantId, decimal Amount, string Currency, string SessionId, DateTimeOffset PaidAt);
@@ -42,3 +43,6 @@ public sealed record PaidExtra(Guid LineId, Guid ExtraId, string Name, decimal U
 
 /// <summary>C10 Lab 3: Construction created a change order for a paid extra (one per paid basket line).</summary>
 public sealed record ChangeOrderCreatedMessage(Guid ChangeOrderId, Guid BasketLineId, Guid UnitId, Guid TenantId, string ExtraName, int Quantity, string FitBy, DateTimeOffset CreatedAt);
+
+/// <summary>C10 Lab 4: a home was handed over; its defects period runs until <see cref="DefectsEndOn"/> (inclusive).</summary>
+public sealed record HandoverCompletedMessage(Guid UnitId, Guid TenantId, Guid BuyerId, DateTimeOffset CompletedAt, DateOnly DefectsEndOn);
