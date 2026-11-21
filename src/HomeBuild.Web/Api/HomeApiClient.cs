@@ -43,6 +43,9 @@ public sealed record HandoverPack(Guid UnitId, bool KeysHandedOver, string? Mete
 public sealed record SnagEntry(string Kind, string Actor, DateTimeOffset At, string Text, string? From, string? To, bool Internal = false);
 
 /// <summary>C10 Lab 4: a snag (the buyer's DTO has no internal notes; Aftercare's has them, flagged Internal).</summary>
+/// <summary>C10 Lab 5: a snag photo as a CloudFront signed URL (works until ExpiresAt).</summary>
+public sealed record SnagPhoto(string Key, string AddedBy, DateTimeOffset AddedAt, Uri Url, DateTimeOffset ExpiresAt);
+
 public sealed record Snag(Guid Id, Guid UnitId, string Area, string Description, string Severity, string State, string? Subcontractor, DateOnly? VisitOn, IReadOnlyList<SnagEntry> Timeline);
 
 public sealed record DepositSession(string SessionId, Uri Url, DateTimeOffset ExpiresAt);
@@ -97,6 +100,25 @@ public sealed class HomeApiClient(HttpClient http)
     /// <summary>C10 Lab 4: report, acknowledge, schedule, fix, confirm, dispute or close; the API refuses what the lifecycle does not allow (409).</summary>
     public async Task<ApiResult<bool>> ActOnSnagAsync(Guid id, string action, string? subcontractor = null, DateOnly? visitOn = null, string? reason = null, CancellationToken cancellationToken = default) =>
         await PostAsync($"snags/{id}/{action}", new { subcontractor, visitOn, reason }, cancellationToken);
+
+    /// <summary>C10 Lab 5: a pre-signed POST for a snag photo (the API's JSON, passed through to the browser).</summary>
+    public async Task<ApiResult<System.Text.Json.JsonElement>> StartSnagPhotoUploadAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        using var response = await http.PostAsync(new Uri($"snags/{id}/photos/uploads", UriKind.Relative), null, cancellationToken);
+        return response.IsSuccessStatusCode
+            ? new(await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>(cancellationToken), null)
+            : new(default, await ApiProblem.ReadAsync(response, cancellationToken));
+    }
+
+    public async Task<ApiResult<bool>> AddSnagPhotoAsync(Guid id, string key, CancellationToken cancellationToken = default) =>
+        await PostAsync($"snags/{id}/photos", new { key }, cancellationToken);
+
+    /// <summary>C10 Lab 5: the snag's photos as signed URLs; none when CloudFront is not configured (503).</summary>
+    public async Task<IReadOnlyList<SnagPhoto>> GetSnagPhotosAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        using var response = await http.GetAsync(new Uri($"snags/{id}/photos", UriKind.Relative), cancellationToken);
+        return response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<List<SnagPhoto>>(cancellationToken) ?? [] : [];
+    }
 
     public async Task<ApiResult<bool>> NoteOnSnagAsync(Guid id, string text, CancellationToken cancellationToken = default) =>
         await PostAsync($"snags/{id}/notes", new { text }, cancellationToken);

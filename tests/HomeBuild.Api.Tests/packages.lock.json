@@ -97,6 +97,14 @@
           "AWSSDK.Core": "[4.0.3.17, 5.0.0)"
         }
       },
+      "AWSSDK.CloudFront": {
+        "type": "Transitive",
+        "resolved": "4.1.0.2",
+        "contentHash": "RGgIhX6Tq6gDYZMbnHsHQqFHplU4T2GwwfBCHVvyiHVEm1r1vRUZugA/9saQWoFaae51LS+AZkae1M93QtWQWg==",
+        "dependencies": {
+          "AWSSDK.Core": "[4.1.1.1, 5.0.0)"
+        }
+      },
       "AWSSDK.Core": {
         "type": "Transitive",
         "resolved": "4.1.1.1",
@@ -438,6 +446,7 @@
       "homebuild.api": {
         "type": "Project",
         "dependencies": {
+          "AWSSDK.Extensions.CloudFront.Signers": "[4.1.0.2, )",
           "AWSSDK.S3": "[4.1.1, )",
           "AWSSDK.Scheduler": "[4.1.1.2, )",
           "AWSSDK.SecurityToken": "[4.1.0.2, )",
@@ -495,6 +504,16 @@
         "contentHash": "Tv1megkpUy+3FN9yfVJKIcYMLXTe5CPs4zftBxGaZhADJe6h9CJZ2Okh5cG4PoE7wzHTef+AK++8IuZta3Ppog==",
         "dependencies": {
           "Asp.Versioning.Mvc": "10.2.1"
+        }
+      },
+      "AWSSDK.Extensions.CloudFront.Signers": {
+        "type": "CentralTransitive",
+        "requested": "[4.1.0.2, )",
+        "resolved": "4.1.0.2",
+        "contentHash": "5/WFhKkN0RQoI7yMIMI4B77wevBQ6/avDinik3X+INDHWaTshiqqPq1JerGdEaC8WM3CVn9ttQlS8g5CKDuzjw==",
+        "dependencies": {
+          "AWSSDK.CloudFront": "4.1.0.2",
+          "AWSSDK.Core": "4.1.1.1"
         }
       },
       "AWSSDK.S3": {

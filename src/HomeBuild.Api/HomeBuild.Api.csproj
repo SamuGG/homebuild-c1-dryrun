@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="Amazon.Extensions.Configuration.SystemsManager" />
+    <PackageReference Include="AWSSDK.Extensions.CloudFront.Signers" />
     <PackageReference Include="AWSSDK.S3" />
     <PackageReference Include="AWSSDK.Scheduler" />
     <PackageReference Include="AWSSDK.SecurityToken" />

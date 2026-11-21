@@ -1,0 +1,36 @@
+info:
+  name: Victim drafts a snag (buyer 2)
+  type: http
+  seq: 23
+
+http:
+  method: POST
+  url: "{{baseUrlV2}}/me/snags"
+  headers:
+    - name: Authorization
+      value: Bearer {{buyer2Token}}
+  body:
+    type: json
+    data: |-
+      {
+        "unitId": "{{riversidePlot3}}",
+        "area": "Bathroom",
+        "description": "Cracked tile",
+        "severity": "Minor"
+      }
+
+runtime:
+  scripts:
+    - type: after-response
+      code: bru.setVar("victimSnag", res.body.id);
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "201"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

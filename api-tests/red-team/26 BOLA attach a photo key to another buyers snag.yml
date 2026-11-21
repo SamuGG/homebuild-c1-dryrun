@@ -1,0 +1,30 @@
+info:
+  name: BOLA attach a photo key to another buyers snag
+  type: http
+  seq: 26
+
+http:
+  method: POST
+  url: "{{baseUrlV2}}/snags/{{victimSnag}}/photos"
+  headers:
+    - name: Authorization
+      value: Bearer {{accessToken}}
+  body:
+    type: json
+    data: |-
+      {
+        "key": "snags/{{tenantId}}/{{victimSnag}}/0198a000-0000-7000-8000-0000000000ff"
+      }
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "404"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

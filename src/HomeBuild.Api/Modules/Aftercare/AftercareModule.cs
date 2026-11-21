@@ -35,6 +35,9 @@ public static class AftercareModule
         services.AddOptions<AftercareOptions>().BindConfiguration(AftercareOptions.Section).ValidateDataAnnotations().ValidateOnStart();
         services.AddDbContext<AftercareDbContext>((sp, options) => Configure(options, HomeBuildDatabase.ConnectionString(sp))
             .AddInterceptors(new TenantCommandInterceptor(sp.GetRequiredService<ITenantContext>()), sp.GetRequiredService<OpenTransactions>()));
+        // C10 Lab 5: snag photos (S3 upload, CloudFront signed URLs). Singleton: one S3 client, created on first use.
+        services.AddOptions<CloudFrontOptions>().BindConfiguration(CloudFrontOptions.Section);
+        services.AddSingleton<SnagPhotoStorage>();
         return services;
     }
 
@@ -43,6 +46,7 @@ public static class AftercareModule
         var group = endpoints.MapVersionedGroup().WithTags(Name);
         group.MapHandover();
         group.MapSnags();
+        group.MapSnagPhotos(); // C10 Lab 5
         return endpoints;
     }
 
@@ -379,7 +383,25 @@ internal static class SnagEndpoints
         return TypedResults.NoContent();
     }
 
-    private static async Task<(Snag Snag, SnagActor Actor, string ActorId)?> LoadAsync(AftercareDbContext db, IUnitAvailability sales, Guid id, HttpContext http, CancellationToken cancellationToken)
+    private static Task<(Snag Snag, SnagActor Actor, string ActorId)?> LoadAsync(AftercareDbContext db, IUnitAvailability sales, Guid id, HttpContext http, CancellationToken cancellationToken) =>
+        SnagAccess.LoadAsync(db, sales, id, http, cancellationToken);
+
+    private static Task<bool> OwnsAsync(IUnitAvailability sales, BuyerId buyer, UnitId unitId, CancellationToken cancellationToken) =>
+        SnagAccess.OwnsAsync(sales, buyer, unitId, cancellationToken);
+
+    private static BuyerSnagResponse ForBuyer(Snag s) => new(s.Id, s.UnitId.Value, s.Area, s.Description, s.Severity.ToString(), s.State.Name,
+        (s.State as SnagState.Scheduled)?.Subcontractor, (s.State as SnagState.Scheduled)?.VisitOn,
+        [.. s.Timeline.Where(e => !e.IsInternal).OrderBy(e => e.At).Select(e => new SnagEntryResponse(e.Kind.ToString(), e.Actor.ToString(), e.At, e.Text, e.From, e.To))]);
+
+    private static StaffSnagResponse ForStaff(Snag s) => new(s.Id, s.UnitId.Value, s.Area, s.Description, s.Severity.ToString(), s.State.Name,
+        (s.State as SnagState.Scheduled)?.Subcontractor, (s.State as SnagState.Scheduled)?.VisitOn, s.BeforeHandover,
+        [.. s.Timeline.OrderBy(e => e.At).Select(e => new StaffSnagEntryResponse(e.Kind.ToString(), e.Actor.ToString(), e.ActorId, e.At, e.Text, e.From, e.To, e.IsInternal))]);
+}
+
+/// <summary>Who may see and act on a snag: Aftercare, or the buyer of its home. Anyone else: null (answered as 404).</summary>
+internal static class SnagAccess
+{
+    public static async Task<(Snag Snag, SnagActor Actor, string ActorId)?> LoadAsync(AftercareDbContext db, IUnitAvailability sales, Guid id, HttpContext http, CancellationToken cancellationToken)
     {
         if (await db.Snags.SingleOrDefaultAsync(s => s.Id == id, cancellationToken) is not { } snag)
         {
@@ -397,14 +419,6 @@ internal static class SnagEndpoints
             : null;
     }
 
-    private static async Task<bool> OwnsAsync(IUnitAvailability sales, BuyerId buyer, UnitId unitId, CancellationToken cancellationToken) =>
+    public static async Task<bool> OwnsAsync(IUnitAvailability sales, BuyerId buyer, UnitId unitId, CancellationToken cancellationToken) =>
         (await sales.ReservationsOfAsync(buyer, cancellationToken)).Any(r => r.UnitId == unitId && r.State is nameof(Held) or nameof(Confirmed));
-
-    private static BuyerSnagResponse ForBuyer(Snag s) => new(s.Id, s.UnitId.Value, s.Area, s.Description, s.Severity.ToString(), s.State.Name,
-        (s.State as SnagState.Scheduled)?.Subcontractor, (s.State as SnagState.Scheduled)?.VisitOn,
-        [.. s.Timeline.Where(e => !e.IsInternal).OrderBy(e => e.At).Select(e => new SnagEntryResponse(e.Kind.ToString(), e.Actor.ToString(), e.At, e.Text, e.From, e.To))]);
-
-    private static StaffSnagResponse ForStaff(Snag s) => new(s.Id, s.UnitId.Value, s.Area, s.Description, s.Severity.ToString(), s.State.Name,
-        (s.State as SnagState.Scheduled)?.Subcontractor, (s.State as SnagState.Scheduled)?.VisitOn, s.BeforeHandover,
-        [.. s.Timeline.OrderBy(e => e.At).Select(e => new StaffSnagEntryResponse(e.Kind.ToString(), e.Actor.ToString(), e.ActorId, e.At, e.Text, e.From, e.To, e.IsInternal))]);
 }

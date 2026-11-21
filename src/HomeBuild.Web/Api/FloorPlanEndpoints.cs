@@ -43,4 +43,38 @@ public static class FloorPlanEndpoints
         });
         return endpoints;
     }
+
+    /// <summary>C10 Lab 5: the same two relayed calls for a snag photo (the snag's buyer or Aftercare; the API checks which snag).</summary>
+    public static IEndpointRouteBuilder MapSnagPhotoEndpoints(this IEndpointRouteBuilder endpoints)
+    {
+        var group = endpoints.MapGroup("/snags/{id:guid}/photo")
+            .RequireAuthorization(policy => policy.RequireRole("buyer", "aftercare"))
+            .AddEndpointFilter(async (context, next) =>
+            {
+                try
+                {
+                    await context.HttpContext.RequestServices.GetRequiredService<IAntiforgery>().ValidateRequestAsync(context.HttpContext);
+                }
+                catch (AntiforgeryValidationException)
+                {
+                    return Results.BadRequest();
+                }
+
+                return await next(context);
+            });
+
+        group.MapPost("/ticket", async (Guid id, HomeApiClient api, CancellationToken cancellationToken) =>
+            await api.StartSnagPhotoUploadAsync(id, cancellationToken) is { Succeeded: true } ticket
+                ? Results.Json(ticket.Value)
+                : Results.StatusCode(StatusCodes.Status502BadGateway));
+
+        group.MapPost("/complete", async (Guid id, CompleteRequest request, HomeApiClient api, CancellationToken cancellationToken) =>
+        {
+            var result = await api.AddSnagPhotoAsync(id, request.Key, cancellationToken);
+            return result.Succeeded
+                ? Results.Json(new { key = request.Key })
+                : Results.Problem(title: result.Problem!.Title, detail: result.Problem.Detail, statusCode: result.Problem.Status);
+        });
+        return endpoints;
+    }
 }

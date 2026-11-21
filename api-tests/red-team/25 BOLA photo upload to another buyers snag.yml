@@ -1,0 +1,24 @@
+info:
+  name: BOLA photo upload to another buyers snag
+  type: http
+  seq: 25
+
+http:
+  method: POST
+  url: "{{baseUrlV2}}/snags/{{victimSnag}}/photos/uploads"
+  headers:
+    - name: Authorization
+      value: Bearer {{accessToken}}
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "404"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

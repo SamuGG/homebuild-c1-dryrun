@@ -148,6 +148,39 @@ public sealed class MyHomeTests
         Assert.Contains("Aftercare: Fix", card.TextContent, StringComparison.Ordinal);
     }
 
+    // C10 Lab 5: a photo entry shows as an image with the signed URL the API issued for it (never the S3 key), and an
+    // open snag offers the upload control, which posts through this site's relay.
+    [Fact]
+    public async Task My_home_shows_snag_photos_with_signed_urls()
+    {
+        var snag = Guid.Parse("0198a000-0000-7000-d000-000000000003");
+        var key = $"snags/0198a000-0000-7000-8000-00000000000a/{snag}/0198a000-0000-7000-d000-0000000000aa";
+        var signed = new Uri($"https://d111111abcdef8.cloudfront.net/{key}?Expires=1795000000&Signature=abc~&Key-Pair-Id=K2TEST");
+        var api = new FakeCatalogueApi
+        {
+            Respond = r => r.RequestUri!.AbsolutePath switch
+            {
+                "/v2/me/snags" => FakeCatalogueApi.Json(new[]
+                {
+                    new HomeBuild.Web.Api.Snag(snag, FakeCatalogueApi.PlotOne, "Kitchen", "Crack in the ceiling", "Minor", "Reported", null, null,
+                        [new("Photo", "Buyer", DateTimeOffset.UtcNow, key, null, null)]),
+                }),
+                var path when path == $"/v2/snags/{snag}/photos" => FakeCatalogueApi.Json(new[] { new HomeBuild.Web.Api.SnagPhoto(key, "Buyer", DateTimeOffset.UtcNow, signed, DateTimeOffset.UtcNow.AddMinutes(10)) }),
+                _ => null,
+            },
+        };
+        await using var factory = new WebFactory(api);
+        using var browser = factory.CreateBrowser();
+        await factory.SignInAsync(browser, new TokenSet("access-1", "refresh-1", DateTimeOffset.UtcNow.AddHours(1)), "buyer");
+
+        var card = HtmlForm.Parse(await browser.GetStringAsync(new Uri("/my-home", UriKind.Relative), TestContext.Current.CancellationToken))
+            .QuerySelector($"[data-testid=snag-{snag}]")!;
+
+        Assert.Equal(signed.ToString(), card.QuerySelector("[data-testid=snag-photo]")!.GetAttribute("src"));
+        Assert.Contains("You added a photo", card.TextContent, StringComparison.Ordinal);
+        Assert.Equal($"snags/{snag}/photo/ticket", card.QuerySelector("snag-photo-upload")!.GetAttribute("data-ticket"));
+    }
+
     // C10 Lab 4: Aftercare sees internal notes (flagged) and the next action for each snag.
     [Fact]
     public async Task Aftercare_page_lists_snags_with_internal_notes_and_next_actions()

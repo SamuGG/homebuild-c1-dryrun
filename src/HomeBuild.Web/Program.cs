@@ -47,6 +47,7 @@ app.UseAntiforgery();
 app.MapStaticAssets();
 app.MapAccountEndpoints();
 app.MapFloorPlanEndpoints();
+app.MapSnagPhotoEndpoints();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
