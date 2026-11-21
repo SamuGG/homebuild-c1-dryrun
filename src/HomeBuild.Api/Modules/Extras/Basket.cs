@@ -150,17 +150,35 @@ internal static class BasketRules
     public static bool IsConflict(string problem) => problem.Contains("cannot be combined", StringComparison.Ordinal);
 }
 
-internal sealed record BasketLineResponse(Guid Id, Guid ExtraId, string Name, decimal UnitPrice, string Currency, int Quantity, string Status, string? Reason);
+/// <param name="State">C10 Lab 3: what the buyer may be told, and only once the system has reached it: "In basket",
+/// "Payment confirming", "Paid", "Ordered on site" (a change order exists), "Fitted", or "Refunded".</param>
+internal sealed record BasketLineResponse(Guid Id, Guid ExtraId, string Name, decimal UnitPrice, string Currency, int Quantity, string Status, string? Reason, string State);
 
 /// <param name="Status">open, confirming (a Checkout page is open or Stripe has not confirmed yet) or paid.</param>
 internal sealed record BasketResponse(Guid Id, Guid UnitId, string Status, IReadOnlyList<BasketLineResponse> Lines, decimal Total, string Currency, DateTimeOffset? PaidAt)
 {
-    public static BasketResponse From(BasketRow b) => new(b.Id, b.UnitId.Value,
+    public static BasketResponse From(BasketRow b) => From(b, new Dictionary<Guid, HomeBuild.Api.Modules.Construction.ChangeOrderStatus>());
+
+    public static BasketResponse From(BasketRow b, IReadOnlyDictionary<Guid, HomeBuild.Api.Modules.Construction.ChangeOrderStatus> changeOrders) => new(b.Id, b.UnitId.Value,
         b.Status switch { BasketStatus.Open => "open", BasketStatus.CheckingOut => "confirming", _ => "paid" },
         [.. b.Lines.OrderBy(l => l.AddedAt).Select(l => new BasketLineResponse(l.Id, l.ExtraId, l.Name, l.UnitPrice, l.Currency, l.Quantity,
-            l.Status switch { BasketLineStatus.InBasket => "in-basket", BasketLineStatus.Paid => "paid", BasketLineStatus.RefundPending => "refund-pending", _ => "refunded" }, l.RefundReason))],
+            l.Status switch { BasketLineStatus.InBasket => "in-basket", BasketLineStatus.Paid => "paid", BasketLineStatus.RefundPending => "refund-pending", _ => "refunded" }, l.RefundReason,
+            StateOf(b, l, changeOrders)))],
         b.Lines.Where(l => l.Status is BasketLineStatus.InBasket or BasketLineStatus.Paid).Sum(l => l.Amount),
         b.Lines.FirstOrDefault()?.Currency ?? "GBP", b.PaidAt);
+
+    /// <summary>
+    /// Each state comes from an event that has been processed: the payment webhook (Paid), the change-order worker
+    /// (Ordered on site), the site manager (Fitted). Nothing is shown ahead of the system.
+    /// </summary>
+    private static string StateOf(BasketRow b, BasketLineRow l, IReadOnlyDictionary<Guid, HomeBuild.Api.Modules.Construction.ChangeOrderStatus> changeOrders) => (b.Status, l.Status) switch
+    {
+        (BasketStatus.Open, _) => "In basket",
+        (BasketStatus.CheckingOut, _) => "Payment confirming",
+        (_, BasketLineStatus.RefundPending or BasketLineStatus.Refunded) => "Refunded",
+        _ when changeOrders.TryGetValue(l.Id, out var order) => order == HomeBuild.Api.Modules.Construction.ChangeOrderStatus.Fitted ? "Fitted" : "Ordered on site",
+        _ => "Paid",
+    };
 }
 
 internal sealed record AddExtraRequest(Guid UnitId, Guid ExtraId, int Quantity = 1);
@@ -189,15 +207,19 @@ internal static class BasketEndpoints
             .RequireAuthorization(Policies.CanReadOwnProgress);
     }
 
-    private static async Task<Results<Ok<List<BasketResponse>>, ForbidHttpResult>> ListAsync(ExtrasDbContext db, HttpContext http, CancellationToken cancellationToken)
+    private static async Task<Results<Ok<List<BasketResponse>>, ForbidHttpResult>> ListAsync(
+        ExtrasDbContext db, HomeBuild.Api.Modules.Construction.IChangeOrderStatus changeOrders, HttpContext http, CancellationToken cancellationToken)
     {
         if (http.User.CallerBuyerId() is not { } buyer)
         {
             return TypedResults.Forbid();
         }
 
-        var baskets = await db.Baskets.AsNoTracking().Include(b => b.Lines).Where(b => b.BuyerId == buyer).OrderByDescending(b => b.CreatedAt).ToListAsync(cancellationToken);
-        return TypedResults.Ok(baskets.Where(b => b.Lines.Count > 0).Select(BasketResponse.From).ToList());
+        var baskets = (await db.Baskets.AsNoTracking().Include(b => b.Lines).Where(b => b.BuyerId == buyer).OrderByDescending(b => b.CreatedAt).ToListAsync(cancellationToken))
+            .Where(b => b.Lines.Count > 0).ToList();
+        // C10 Lab 3: Construction's published read says which paid lines have a change order yet.
+        var orders = await changeOrders.ForBasketLinesAsync([.. baskets.Where(b => b.Status == BasketStatus.Paid).SelectMany(b => b.Lines).Select(l => l.Id)], cancellationToken);
+        return TypedResults.Ok(baskets.Select(b => BasketResponse.From(b, orders)).ToList());
     }
 
     private static async Task<Results<Ok<BasketResponse>, NotFound, ForbidHttpResult, ProblemHttpResult>> AddAsync(
@@ -387,7 +409,8 @@ internal sealed class EfExtrasBasketPayments(ExtrasDbContext db, IServiceProvide
         // Revalidate at the moment money moved: an extra may have closed (a milestone completed), or another basket for
         // the home been paid, since the Checkout page opened. Amounts are the lines' snapshots, never today's catalogue.
         var progress = await db.UnitProgress.AsNoTracking().SingleOrDefaultAsync(p => p.UnitId == basket.UnitId, cancellationToken);
-        var checks = BasketRules.Check(basket.Lines, await BasketEndpoints.CatalogueAsync(db, basket.DevelopmentId, cancellationToken), progress?.LatestMilestone,
+        var catalogue = await BasketEndpoints.CatalogueAsync(db, basket.DevelopmentId, cancellationToken);
+        var checks = BasketRules.Check(basket.Lines, catalogue, progress?.LatestMilestone,
             await BasketEndpoints.BoughtAsync(db, basket.UnitId, basket.Id, cancellationToken));
         foreach (var (line, problem) in checks)
         {
@@ -405,7 +428,7 @@ internal sealed class EfExtrasBasketPayments(ExtrasDbContext db, IServiceProvide
         {
             db.Set<OutboxMessage>().Add(OutboxMessage.For(IntegrationEvents.ExtrasPaid,
                 new ExtrasPaidMessage(basket.Id, basket.UnitId.Value, db.CurrentTenantId, basket.BuyerId.Value,
-                    [.. paid.Select(l => new PaidExtra(l.Id, l.ExtraId, l.Name, l.UnitPrice, l.Currency, l.Quantity))], paid.Sum(l => l.Amount), paid[0].Currency, paidAt),
+                    [.. paid.Select(l => new PaidExtra(l.Id, l.ExtraId, l.Name, l.UnitPrice, l.Currency, l.Quantity, catalogue[l.ExtraId].ClosesAt.ToString()))], paid.Sum(l => l.Amount), paid[0].Currency, paidAt),
                 db.CurrentTenantId, time.GetUtcNow()));
         }
 

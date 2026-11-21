@@ -76,6 +76,47 @@ public sealed class MyHomeTests
         Assert.Null(section.QuerySelector($"[data-testid=pay-extras-{basket}]")); // nothing to pay
     }
 
+    // C10 Lab 3: the staff board (C5's island) lists change orders with the next action for the site manager.
+    [Fact]
+    public async Task Board_lists_change_orders_to_acknowledge()
+    {
+        var api = new FakeCatalogueApi();
+        await using var factory = new WebFactory(api);
+        using var browser = factory.CreateBrowser();
+        await factory.SignInAsync(browser, new TokenSet("access-1", "refresh-1", DateTimeOffset.UtcNow.AddHours(1)), "site-manager");
+
+        var html = await browser.GetStringAsync(new Uri($"/staff/developments/{FakeCatalogueApi.Riverside}/board", UriKind.Relative), TestContext.Current.CancellationToken);
+        var order = HtmlForm.Parse(html).QuerySelector("[data-testid=change-order-0198a000-0000-7000-c000-000000000001]");
+
+        Assert.NotNull(order);
+        Assert.Contains("Plot P1: Premium kitchen × 1, fit by FirstFix", order.TextContent, StringComparison.Ordinal);
+        Assert.Contains("Acknowledge", order.TextContent, StringComparison.Ordinal);
+    }
+
+    // C10 Lab 3: each paid extra shows the state the system has reached.
+    [Fact]
+    public async Task My_home_shows_each_extras_state()
+    {
+        var line = Guid.Parse("0198a000-0000-7000-b000-000000000011");
+        var api = new FakeCatalogueApi
+        {
+            Respond = r => r.RequestUri!.AbsolutePath == "/v2/me/baskets"
+                ? FakeCatalogueApi.Json(new[]
+                {
+                    new HomeBuild.Web.Api.Basket(Guid.NewGuid(), FakeCatalogueApi.PlotOne, "paid",
+                        [new(line, Guid.NewGuid(), "Premium kitchen", 6500m, "GBP", 1, "paid", null, "Ordered on site")], 6500m, "GBP", DateTimeOffset.UtcNow),
+                })
+                : null,
+        };
+        await using var factory = new WebFactory(api);
+        using var browser = factory.CreateBrowser();
+        await factory.SignInAsync(browser, new TokenSet("access-1", "refresh-1", DateTimeOffset.UtcNow.AddHours(1)), "buyer");
+
+        var html = await browser.GetStringAsync(new Uri("/my-home", UriKind.Relative), TestContext.Current.CancellationToken);
+
+        Assert.Equal("Ordered on site", HtmlForm.Parse(html).QuerySelector($"[data-testid=line-{line}] [data-testid=state]")!.TextContent);
+    }
+
     private static readonly Guid Held = Guid.Parse("0198a000-0000-7000-a000-000000000002");
 
     // C8 Lab 1: "Pay deposit" appears for held reservations only, and redirects to the Checkout page the API returns.

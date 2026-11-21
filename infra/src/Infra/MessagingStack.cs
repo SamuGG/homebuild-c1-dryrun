@@ -31,6 +31,8 @@ public sealed class MessagingStack : Stack
         ["cache-invalidation"] = ["ReservationExpired"],
         // C10 Lab 1: Extras keeps its own copy of each unit's progress (the API consumes this queue).
         ["extras"] = ["MilestoneCompleted"],
+        // C10 Lab 3: the change-order worker (the API consumes this queue).
+        ["change-orders"] = ["ExtrasPaid"],
     };
 
     public MessagingStack(Construct scope, string id, IStackProps props) : base(scope, id, props)
@@ -110,12 +112,12 @@ public sealed class MessagingStack : Stack
                 Resources = [dlq.QueueArn],
             }));
             Queues[name] = queue;
-            if (name == "extras")
+            if (name is "extras" or "change-orders")
             {
-                // Added in C10 Lab 1: its own lab tag, so the cost and teardown queries can tell it apart.
+                // Added in C10: their own lab tag, so the cost and teardown queries can tell them apart.
                 foreach (var resource in new IConstruct[] { queue, dlq, worker })
                 {
-                    Amazon.CDK.Tags.Of(resource).Add("lab", "c10-lab1", new TagProps { Priority = 200 }); // above the stack's lab=c9
+                    Amazon.CDK.Tags.Of(resource).Add("lab", name == "extras" ? "c10-lab1" : "c10-lab3", new TagProps { Priority = 200 }); // above the stack's lab=c9
                 }
             }
         }
@@ -134,6 +136,7 @@ public sealed class MessagingStack : Stack
         ["notifications"] = Duration.Minutes(1),
         ["cache-invalidation"] = Duration.Minutes(1),
         ["extras"] = Duration.Minutes(1),
+        ["change-orders"] = Duration.Minutes(1),
     };
 
     private static string Pascal(string name) => string.Concat(name.Split('-').Select(p => char.ToUpperInvariant(p[0]) + p[1..]));

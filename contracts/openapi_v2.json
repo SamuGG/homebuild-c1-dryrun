@@ -1264,6 +1264,110 @@
         }
       }
     },
+    "/v2/developments/{developmentId}/change-orders": {
+      "get": {
+        "tags": [
+          "Construction"
+        ],
+        "summary": "A development's change orders from paid extras (site manager, admin; v2)",
+        "operationId": "ListChangeOrders",
+        "parameters": [
+          {
+            "name": "developmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ChangeOrderResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/change-orders/{id}/acknowledgement": {
+      "post": {
+        "tags": [
+          "Construction"
+        ],
+        "summary": "Acknowledge a change order (a site manager assigned to its development, v2)",
+        "operationId": "AcknowledgeChangeOrder",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangeOrderResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/v2/change-orders/{id}/fitting": {
+      "post": {
+        "tags": [
+          "Construction"
+        ],
+        "summary": "Record a change order as fitted (a site manager assigned to its development, v2)",
+        "operationId": "MarkChangeOrderFitted",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangeOrderResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
     "/v2/stage-payments/overdue": {
       "get": {
         "tags": [
@@ -1729,7 +1833,8 @@
           "currency",
           "quantity",
           "status",
-          "reason"
+          "reason",
+          "state"
         ],
         "type": "object",
         "properties": {
@@ -1771,6 +1876,9 @@
               "null",
               "string"
             ]
+          },
+          "state": {
+            "type": "string"
           }
         }
       },
@@ -2001,6 +2109,72 @@
             "items": {
               "$ref": "#/components/schemas/BuyerHome"
             }
+          }
+        }
+      },
+      "ChangeOrderResponse": {
+        "required": [
+          "id",
+          "unitId",
+          "extraName",
+          "quantity",
+          "fitBy",
+          "status",
+          "createdAt",
+          "acknowledgedBy",
+          "acknowledgedAt",
+          "fittedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "unitId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "extraName": {
+            "type": "string"
+          },
+          "quantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "fitBy": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "acknowledgedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "acknowledgedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "fittedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },

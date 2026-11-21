@@ -55,6 +55,8 @@ builder.Services.AddNotificationsModule();
 HomeBuild.Api.Scheduling.ScheduledWorkServices.AddScheduledWork(builder.Services, builder.Configuration);
 // C10 Lab 1: the homebuild-extras consumer (MilestoneCompleted → Extras' copy of progress).
 builder.Services.AddExtrasConsumer(builder.Configuration);
+// C10 Lab 3: the change-order worker (ExtrasPaid → Construction's change orders).
+HomeBuild.Api.Modules.Construction.ChangeOrderServices.AddChangeOrderConsumer(builder.Services, builder.Configuration);
 var app = builder.Build();
 
 // C8 Lab 6: `dotnet run --project src/HomeBuild.Api -- reconcile --from <date> --to <date>` runs the reconciliation
@@ -97,5 +99,12 @@ app.MapConstructionModule();
 app.MapPaymentsModule();
 app.MapExtrasModule();
 app.MapNotificationsModule();
+#if DEBUG
+// C10 Lab 3: test-only consumer control (pause/resume), Debug builds in Development only; absent from Release builds.
+if (app.Environment.IsDevelopment())
+{
+    HomeBuild.Api.Modules.Construction.ChangeOrderServices.MapConsumerControl(app);
+}
+#endif
 
 app.Run();
