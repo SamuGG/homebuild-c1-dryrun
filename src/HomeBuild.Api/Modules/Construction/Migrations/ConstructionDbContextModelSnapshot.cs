@@ -23,6 +23,87 @@ namespace HomeBuild.Api.Modules.Construction.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("HomeBuild.Api.Modules.Construction.ChangeOrderRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("AcknowledgedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("acknowledged_at");
+
+                    b.Property<string>("AcknowledgedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("acknowledged_by");
+
+                    b.Property<Guid>("BasketLineId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("basket_line_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("DevelopmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("development_id");
+
+                    b.Property<Guid>("ExtraId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("extra_id");
+
+                    b.Property<string>("ExtraName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("extra_name");
+
+                    b.Property<string>("FitBy")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("fit_by");
+
+                    b.Property<DateTimeOffset?>("FittedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fitted_at");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantity");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid>("UnitId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("unit_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_change_orders");
+
+                    b.HasIndex("BasketLineId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_change_orders_basket_line_id");
+
+                    b.HasIndex("DevelopmentId")
+                        .HasDatabaseName("ix_change_orders_development_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_change_orders_tenant_id");
+
+                    b.ToTable("change_orders", "construction");
+                });
+
             modelBuilder.Entity("HomeBuild.Api.Modules.Construction.MilestoneAudit", b =>
                 {
                     b.Property<Guid>("Id")

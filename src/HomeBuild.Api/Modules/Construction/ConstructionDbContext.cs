@@ -25,6 +25,9 @@ internal sealed class ConstructionDbContext(DbContextOptions<ConstructionDbConte
 
     public DbSet<BuildProgress> BuildProgress => Set<BuildProgress>();
 
+    /// <summary>C10 Lab 3: change orders from paid extras.</summary>
+    internal DbSet<ChangeOrderRow> ChangeOrders => Set<ChangeOrderRow>();
+
     public DbSet<DiaryEntry> DiaryEntries => Set<DiaryEntry>();
 
     public DbSet<SiteAssignment> SiteAssignments => Set<SiteAssignment>();
@@ -134,6 +137,19 @@ internal sealed class ConstructionDbContext(DbContextOptions<ConstructionDbConte
             audit.HasIndex(a => new { a.UnitId, a.At });
         });
 
+        modelBuilder.Entity<ChangeOrderRow>(order =>
+        {
+            order.ToTable("change_orders");
+            order.HasKey(c => c.Id);
+            order.Property(c => c.Id).ValueGeneratedNever();
+            order.HasIndex(c => c.BasketLineId).IsUnique(); // one change order per paid line: the idempotency key
+            order.HasIndex(c => c.DevelopmentId);
+            order.Property(c => c.ExtraName).HasMaxLength(100);
+            order.Property(c => c.FitBy).HasConversion<string>().HasMaxLength(40);
+            order.Property(c => c.Status).HasConversion<string>().HasMaxLength(20);
+            order.Property(c => c.AcknowledgedBy).HasMaxLength(100);
+        });
+        modelBuilder.Entity<ChangeOrderRow>().HasTenant(this);
         modelBuilder.Entity<BuildProgress>().HasTenant(this);
         modelBuilder.HasOutbox(); // C9 Lab 2
         modelBuilder.Entity<DiaryEntry>().HasTenant(this);

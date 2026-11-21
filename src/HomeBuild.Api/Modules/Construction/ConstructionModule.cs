@@ -28,6 +28,9 @@ public static class ConstructionModule
         services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, SiteAssignmentHandler>();
         // Singleton: the S3 client is thread-safe and created once.
         services.AddSingleton<DiaryPhotoStorage>();
+        // C10 Lab 3: the change-order worker (homebuild-change-orders) and Construction's published read for My Home.
+        services.AddKeyedScoped<HomeBuild.Messaging.IMessageHandler, ChangeOrdersConsumer>(ChangeOrdersConsumer.Name);
+        services.AddScoped<IChangeOrderStatus, EfChangeOrderStatus>();
         return services;
     }
 
@@ -50,6 +53,7 @@ public static class ConstructionModule
         group.MapGetBoard();
         group.MapGetBuyerProgress();
         group.MapSiteActions();
+        group.MapChangeOrders(); // C10 Lab 3
         return endpoints;
     }
 }

@@ -13,6 +13,7 @@ public static class IntegrationEvents
     public const string ContractIssued = nameof(ContractIssued);
     public const string ExtrasUnlocked = nameof(ExtrasUnlocked);
     public const string ExtrasPaid = nameof(ExtrasPaid);
+    public const string ChangeOrderCreated = nameof(ChangeOrderCreated);
 }
 
 public sealed record DepositPaidMessage(Guid ReservationId, Guid UnitId, Guid TenantId, decimal Amount, string Currency, string SessionId, DateTimeOffset PaidAt);
@@ -36,4 +37,8 @@ public sealed record UnlockedExtra(Guid ExtraId, string Name, decimal Price, str
 public sealed record ExtrasPaidMessage(Guid BasketId, Guid UnitId, Guid TenantId, Guid BuyerId, IReadOnlyList<PaidExtra> Extras, decimal Total, string Currency, DateTimeOffset PaidAt);
 
 /// <param name="UnitPrice">The price when the buyer added it (the basket's snapshot).</param>
-public sealed record PaidExtra(Guid LineId, Guid ExtraId, string Name, decimal UnitPrice, string Currency, int Quantity);
+/// <param name="FitBy">The milestone by which it must be fitted (the extra's close milestone; C10 Lab 3).</param>
+public sealed record PaidExtra(Guid LineId, Guid ExtraId, string Name, decimal UnitPrice, string Currency, int Quantity, string FitBy = "PracticalCompletion");
+
+/// <summary>C10 Lab 3: Construction created a change order for a paid extra (one per paid basket line).</summary>
+public sealed record ChangeOrderCreatedMessage(Guid ChangeOrderId, Guid BasketLineId, Guid UnitId, Guid TenantId, string ExtraName, int Quantity, string FitBy, DateTimeOffset CreatedAt);

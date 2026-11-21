@@ -69,6 +69,36 @@ else
             </EmptyContent>
         </DataTable>
     </div>
+
+    @* C10 Lab 3: change orders from paid extras; the site manager acknowledges each, then records it fitted. *@
+    <h2 class="mb-2 mt-6 text-xl font-semibold">Change orders</h2>
+    @if (changeProblem is not null)
+    {
+        <p class="text-danger-600" role="alert">@changeProblem</p>
+    }
+    @if (ChangeOrders is { Count: > 0 })
+    {
+        <ul class="grid gap-2" data-testid="change-orders">
+            @foreach (var order in ChangeOrders)
+            {
+                <li data-testid="change-order-@order.Id">
+                    Plot @(Data.Rows.FirstOrDefault(r => r.UnitId == order.UnitId)?.PlotNumber ?? "?"): @order.ExtraName × @order.Quantity, fit by @order.FitBy · <Badge Text="@order.Status" Variant="@(order.Status == "Fitted" ? BadgeVariant.Success : BadgeVariant.Warning)" />
+                    @if (order.Status == "Created")
+                    {
+                        <Button OnClick='() => MoveAsync(order.Id, "acknowledgement")'>Acknowledge</Button>
+                    }
+                    else if (order.Status == "Acknowledged")
+                    {
+                        <Button OnClick='() => MoveAsync(order.Id, "fitting")'>Mark fitted</Button>
+                    }
+                </li>
+            }
+        </ul>
+    }
+    else
+    {
+        <p data-testid="no-change-orders">No change orders.</p>
+    }
 }
 </div>
 
@@ -87,6 +117,11 @@ else
     [PersistentState(AllowUpdates = true)]
     public string? PlotSearch { get; set; }
 
+    [PersistentState(AllowUpdates = true)]
+    public IReadOnlyList<ChangeOrder>? ChangeOrders { get; set; }
+
+    private string? changeProblem;
+
     private IReadOnlyList<BoardRow> Rows => [.. Data!.Rows
         .Where(r => string.IsNullOrEmpty(Stage) || (r.CurrentStage ?? Finished) == Stage)
         .Where(r => r.PlotNumber.Contains((PlotSearch ?? "").Trim(), StringComparison.OrdinalIgnoreCase))];
@@ -97,7 +132,15 @@ else
         if (Data?.DevelopmentId != DevelopmentId)
         {
             Data = await Api.GetBoardAsync(DevelopmentId);
+            ChangeOrders = Data is null ? [] : await Api.GetChangeOrdersAsync(DevelopmentId);
         }
+    }
+
+    private async Task MoveAsync(Guid id, string step)
+    {
+        var moved = await Api.MoveChangeOrderAsync(id, step);
+        changeProblem = moved.Succeeded ? null : moved.Problem!.Detail ?? moved.Problem.Title;
+        ChangeOrders = await Api.GetChangeOrdersAsync(DevelopmentId);
     }
 
     private static string Label(string status) => status switch

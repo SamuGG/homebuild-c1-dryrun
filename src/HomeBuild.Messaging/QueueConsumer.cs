@@ -143,7 +143,7 @@ public sealed class SqsQueueClient(IAmazonSQS sqs, string queueUrl) : IQueueClie
 /// <see cref="PermanentMessageException"/> releases it at once. Either way the queue's redrive policy moves it to the
 /// dead-letter queue after maxReceiveCount receives, and the other messages keep flowing meanwhile.
 /// </summary>
-public sealed partial class QueueConsumer(string name, IQueueClient queue, IServiceScopeFactory scopes, ConsumerOptions options, ILogger<QueueConsumer> logger)
+public sealed partial class QueueConsumer(string name, IQueueClient queue, IServiceScopeFactory scopes, ConsumerOptions options, ILogger<QueueConsumer> logger, ConsumerPauses? pauses = null)
     : BackgroundService
 {
     private int _inFlight;
@@ -175,6 +175,13 @@ public sealed partial class QueueConsumer(string name, IQueueClient queue, IServ
         {
             while (!stoppingToken.IsCancellationRequested)
             {
+                // C10 Lab 3: a paused consumer receives nothing; its messages wait in the queue (a test of pending states).
+                if (pauses?.IsPaused(name) == true)
+                {
+                    await Task.Delay(TimeSpan.FromMilliseconds(250), stoppingToken).ContinueWith(_ => { }, TaskScheduler.Default);
+                    continue;
+                }
+
                 // Not cancelled by shutdown: cancelling a long poll only abandons it on this side, and SQS still hands
                 // the poll whatever arrives before its wait ends, hidden for the visibility timeout (C9 Lab 3's burst:
                 // 10 messages lost for 5 minutes). The wait bounds it (20 s, inside the host's shutdown timeout).
@@ -340,4 +347,19 @@ public sealed partial class QueueConsumer(string name, IQueueClient queue, IServ
 
     [LoggerMessage(EventId = 1704, Level = LogLevel.Warning, Message = "Consumer {Consumer} could not change visibility of message {MessageId}")]
     private static partial void ExtendFailed(ILogger logger, Exception exception, string consumer, string messageId);
+}
+
+/// <summary>
+/// C10 Lab 3: consumers that are told to stop receiving for a while, by name. Only development builds expose a way to
+/// set it (a test-only endpoint); in production nothing pauses a consumer.
+/// </summary>
+public sealed class ConsumerPauses
+{
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, bool> _paused = new();
+
+    public bool IsPaused(string consumer) => _paused.GetValueOrDefault(consumer);
+
+    public void Pause(string consumer) => _paused[consumer] = true;
+
+    public void Resume(string consumer) => _paused[consumer] = false;
 }

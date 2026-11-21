@@ -27,7 +27,10 @@ public sealed record Extra(Guid Id, string Name, string Category, decimal Price,
 public sealed record MyExtras(Guid UnitId, string? LatestMilestone, IReadOnlyList<Extra> OpenExtras);
 
 /// <summary>C10 Lab 2: a basket line with its snapshot price; Status: in-basket, paid, refund-pending, refunded.</summary>
-public sealed record BasketLine(Guid Id, Guid ExtraId, string Name, decimal UnitPrice, string Currency, int Quantity, string Status, string? Reason);
+public sealed record BasketLine(Guid Id, Guid ExtraId, string Name, decimal UnitPrice, string Currency, int Quantity, string Status, string? Reason, string State = "");
+
+/// <summary>C10 Lab 3: the staff DTO of a change order (site managers see who acknowledged it; buyers never do).</summary>
+public sealed record ChangeOrder(Guid Id, Guid UnitId, string ExtraName, int Quantity, string FitBy, string Status, DateTimeOffset CreatedAt, string? AcknowledgedBy, DateTimeOffset? AcknowledgedAt, DateTimeOffset? FittedAt);
 
 /// <summary>C10 Lab 2: Status open, confirming (Stripe has not confirmed the payment yet) or paid.</summary>
 public sealed record Basket(Guid Id, Guid UnitId, string Status, IReadOnlyList<BasketLine> Lines, decimal Total, string Currency, DateTimeOffset? PaidAt);
@@ -67,6 +70,17 @@ public sealed class HomeApiClient(HttpClient http)
     /// <summary>C10 Lab 1: every extra of a development with its window (staff).</summary>
     public async Task<IReadOnlyList<Extra>> GetDevelopmentExtrasAsync(Guid developmentId, CancellationToken cancellationToken = default) =>
         await http.GetFromJsonAsync<List<Extra>>($"developments/{developmentId}/extras", cancellationToken) ?? [];
+
+    /// <summary>C10 Lab 3: a development's change orders (staff board).</summary>
+    public async Task<IReadOnlyList<ChangeOrder>> GetChangeOrdersAsync(Guid developmentId, CancellationToken cancellationToken = default) =>
+        await http.GetFromJsonAsync<List<ChangeOrder>>($"developments/{developmentId}/change-orders", cancellationToken) ?? [];
+
+    /// <summary>C10 Lab 3: acknowledge ("acknowledgement") or record as fitted ("fitting"); the API's problem on 403/409.</summary>
+    public async Task<ApiResult<bool>> MoveChangeOrderAsync(Guid id, string step, CancellationToken cancellationToken = default)
+    {
+        using var response = await http.PostAsync(new Uri($"change-orders/{id}/{step}", UriKind.Relative), null, cancellationToken);
+        return response.IsSuccessStatusCode ? new(true, null) : new(false, await ApiProblem.ReadAsync(response, cancellationToken));
+    }
 
     /// <summary>C10 Lab 2: the buyer's baskets and orders.</summary>
     public async Task<IReadOnlyList<Basket>> GetMyBasketsAsync(CancellationToken cancellationToken = default) =>

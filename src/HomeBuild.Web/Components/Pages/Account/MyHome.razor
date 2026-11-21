@@ -91,7 +91,8 @@ else if (DepositReturn == "cancelled")
                                 <ul class="list-disc pl-6">
                                     @foreach (var line in b.Lines)
                                     {
-                                        <li>@line.Name × @line.Quantity, @((line.UnitPrice * line.Quantity).ToString("C0", System.Globalization.CultureInfo.GetCultureInfo("en-GB")))@(line.Status is "refunded" or "refund-pending" ? $" (refunded: {line.Reason})" : "")</li>
+                                        @* C10 Lab 3: each line's state, as far as the system has got: never ahead of it. *@
+                                        <li data-testid="line-@line.Id">@line.Name × @line.Quantity, @((line.UnitPrice * line.Quantity).ToString("C0", System.Globalization.CultureInfo.GetCultureInfo("en-GB"))) · <span data-testid="state">@line.State</span>@(line.Status is "refunded" or "refund-pending" ? $" (refunded: {line.Reason})" : "")</li>
                                     }
                                 </ul>
                                 <p>Total @b.Total.ToString("C0", System.Globalization.CultureInfo.GetCultureInfo("en-GB"))</p>

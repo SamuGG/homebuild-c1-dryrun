@@ -103,6 +103,12 @@ internal sealed class FakeCatalogueApi : HttpMessageHandler
             });
         }
 
+        if (path.StartsWith("/v2/developments/", StringComparison.Ordinal) && path.EndsWith("/change-orders", StringComparison.Ordinal))
+        {
+            // C10 Lab 3: one change order waiting for the site manager on plot 1.
+            return Json(new[] { new HomeBuild.Web.Api.ChangeOrder(Guid.Parse("0198a000-0000-7000-c000-000000000001"), PlotOne, "Premium kitchen", 1, "FirstFix", "Created", DateTimeOffset.UtcNow, null, null, null) });
+        }
+
         if (path.StartsWith("/v2/developments/", StringComparison.Ordinal) && path.EndsWith("/extras", StringComparison.Ordinal))
         {
             return Json(new[] { new HomeBuild.Web.Api.Extra(Guid.Parse("0198a000-0000-7000-e000-000000000001"), "Premium kitchen", "kitchen", 6500m, "GBP", "Frame", "FirstFix", "kitchen", 1) });
