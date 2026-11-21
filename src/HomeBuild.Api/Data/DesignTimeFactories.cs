@@ -46,3 +46,8 @@ internal sealed class ExtrasDesignTimeFactory : IDesignTimeDbContextFactory<Home
 {
     public HomeBuild.Api.Modules.Extras.ExtrasDbContext CreateDbContext(string[] args) => HomeBuild.Api.Modules.Extras.ExtrasModule.CreateDbContext(DesignTime.ConnectionString);
 }
+
+internal sealed class AftercareDesignTimeFactory : IDesignTimeDbContextFactory<HomeBuild.Api.Modules.Aftercare.AftercareDbContext>
+{
+    public HomeBuild.Api.Modules.Aftercare.AftercareDbContext CreateDbContext(string[] args) => HomeBuild.Api.Modules.Aftercare.AftercareModule.CreateDbContext(DesignTime.ConnectionString);
+}

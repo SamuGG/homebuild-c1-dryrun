@@ -62,6 +62,12 @@ public static class HomeBuildDatabase
             await extras.Database.MigrateAsync(cancellationToken);
         }
 
+        // C10 Lab 4: Aftercare's handovers and snags (schema aftercare).
+        await using (var aftercare = HomeBuild.Api.Modules.Aftercare.AftercareModule.CreateDbContext(connectionString))
+        {
+            await aftercare.Database.MigrateAsync(cancellationToken);
+        }
+
         // C8 Lab 3: idempotency keys, shared HTTP infrastructure (schema idempotency).
         await using var idempotency = HomeBuild.Api.Http.Idempotency.IdempotencyDbContext.Create(connectionString);
         await idempotency.Database.MigrateAsync(cancellationToken);

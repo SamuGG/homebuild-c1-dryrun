@@ -117,6 +117,64 @@ public sealed class MyHomeTests
         Assert.Equal("Ordered on site", HtmlForm.Parse(html).QuerySelector($"[data-testid=line-{line}] [data-testid=state]")!.TextContent);
     }
 
+    // C10 Lab 4: a fixed snag offers the buyer "confirm" and "dispute"; the handover pack shows the defects period.
+    [Fact]
+    public async Task My_home_shows_the_handover_pack_and_lets_the_buyer_confirm_or_dispute_a_fix()
+    {
+        var snag = Guid.Parse("0198a000-0000-7000-d000-000000000001");
+        var api = new FakeCatalogueApi
+        {
+            Respond = r => r.RequestUri!.AbsolutePath switch
+            {
+                "/v2/me/handover" => FakeCatalogueApi.Json(new[] { new HomeBuild.Web.Api.HandoverPack(FakeCatalogueApi.PlotOne, true, "Gas 12", true, new DateTimeOffset(2026, 11, 21, 10, 0, 0, TimeSpan.Zero), new DateOnly(2028, 11, 20), ["Home warranty certificate"]) }),
+                "/v2/me/snags" => FakeCatalogueApi.Json(new[]
+                {
+                    new HomeBuild.Web.Api.Snag(snag, FakeCatalogueApi.PlotOne, "Kitchen", "Crack in the ceiling", "Minor", "Fixed", null, null,
+                        [new("Transition", "Aftercare", DateTimeOffset.UtcNow, "Fix", "Scheduled", "Fixed")]),
+                }),
+                _ => null,
+            },
+        };
+        await using var factory = new WebFactory(api);
+        using var browser = factory.CreateBrowser();
+        await factory.SignInAsync(browser, new TokenSet("access-1", "refresh-1", DateTimeOffset.UtcNow.AddHours(1)), "buyer");
+
+        var page = HtmlForm.Parse(await browser.GetStringAsync(new Uri("/my-home", UriKind.Relative), TestContext.Current.CancellationToken));
+
+        Assert.Contains("Defects are covered until 20 November 2028", page.QuerySelector($"[data-testid=handover-{FakeCatalogueApi.PlotOne}]")!.TextContent, StringComparison.Ordinal);
+        var card = page.QuerySelector($"[data-testid=snag-{snag}]")!;
+        Assert.Contains("Confirm it is fixed", card.TextContent, StringComparison.Ordinal);
+        Assert.Contains("Dispute", card.TextContent, StringComparison.Ordinal);
+        Assert.Contains("Aftercare: Fix", card.TextContent, StringComparison.Ordinal);
+    }
+
+    // C10 Lab 4: Aftercare sees internal notes (flagged) and the next action for each snag.
+    [Fact]
+    public async Task Aftercare_page_lists_snags_with_internal_notes_and_next_actions()
+    {
+        var snag = Guid.Parse("0198a000-0000-7000-d000-000000000002");
+        var api = new FakeCatalogueApi
+        {
+            Respond = r => r.RequestUri!.AbsolutePath == "/v2/snags"
+                ? FakeCatalogueApi.Json(new[]
+                {
+                    new HomeBuild.Web.Api.Snag(snag, FakeCatalogueApi.PlotOne, "Hall", "Door sticks", "Minor", "Reported", null, null,
+                        [new("InternalNote", "Aftercare", DateTimeOffset.UtcNow, "Recharge the joiner", null, null, true)]),
+                })
+                : null,
+        };
+        await using var factory = new WebFactory(api);
+        using var browser = factory.CreateBrowser();
+        await factory.SignInAsync(browser, new TokenSet("access-1", "refresh-1", DateTimeOffset.UtcNow.AddHours(1)), "aftercare");
+
+        var card = HtmlForm.Parse(await browser.GetStringAsync(new Uri("/staff/aftercare", UriKind.Relative), TestContext.Current.CancellationToken))
+            .QuerySelector($"[data-testid=staff-snag-{snag}]")!;
+
+        Assert.Contains("Aftercare (internal): Recharge the joiner", card.TextContent, StringComparison.Ordinal);
+        Assert.Contains("Acknowledge", card.TextContent, StringComparison.Ordinal);
+        Assert.DoesNotContain("Mark fixed", card.TextContent, StringComparison.Ordinal);
+    }
+
     private static readonly Guid Held = Guid.Parse("0198a000-0000-7000-a000-000000000002");
 
     // C8 Lab 1: "Pay deposit" appears for held reservations only, and redirects to the Checkout page the API returns.

@@ -32,6 +32,8 @@ public static class Policies
     public const string CanReviewStagePayments = nameof(CanReviewStagePayments);
     public const string CanCorrectMilestones = nameof(CanCorrectMilestones);
     public const string CanViewExtras = nameof(CanViewExtras);
+    public const string CanManageAftercare = nameof(CanManageAftercare);
+    public const string CanActOnSnags = nameof(CanActOnSnags);
 
     public static IServiceCollection AddHomeBuildPolicies(this IServiceCollection services)
     {
@@ -48,6 +50,9 @@ public static class Policies
             .AddPolicy(CanReadOwnProgress, p => p.RequireRole(Roles.Buyer))
             // C10 Lab 1: staff see every extra and its window (sales agents sell them, site managers fit them).
             .AddPolicy(CanViewExtras, p => p.RequireRole(Roles.Admin, Roles.SalesAgent, Roles.SiteManager))
+            // C10 Lab 4: Aftercare runs handovers and snags; buyers act on their own snags (the endpoint checks ownership).
+            .AddPolicy(CanManageAftercare, p => p.RequireRole(Roles.Aftercare))
+            .AddPolicy(CanActOnSnags, p => p.RequireRole(Roles.Aftercare, Roles.Buyer))
             // C7 Lab 4: the role says a site manager may try; the assignment check (SiteAssignmentHandler) says on which development.
             .AddPolicy(CanWorkOnSite, p => p.RequireRole(Roles.SiteManager))
             .AddPolicy(CanCorrectMilestones, p => p.RequireRole(Roles.Admin))

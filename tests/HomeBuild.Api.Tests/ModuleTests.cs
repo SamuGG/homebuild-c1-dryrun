@@ -27,7 +27,8 @@ public sealed class ModuleTests
             var tags = e.Metadata.GetOrderedMetadata<ITagsMetadata>().SelectMany(t => t.Tags);
             Assert.True(
                 tags.Any(t => t is CatalogueModule.Name or Modules.Sales.SalesModule.Name or Modules.Accounts.AccountsModule.Name or Modules.Construction.ConstructionModule.Name
-                    or Modules.Payments.PaymentsModule.Name or Modules.Extras.ExtrasModule.Name or Modules.Notifications.NotificationsModule.Name),
+                    or Modules.Payments.PaymentsModule.Name or Modules.Extras.ExtrasModule.Name or Modules.Notifications.NotificationsModule.Name
+                    or Modules.Aftercare.AftercareModule.Name),
                 $"{e.RoutePattern.RawText} is not mapped through a module route group");
         });
     }

@@ -39,7 +39,7 @@ public sealed partial class RenderModeAuditTests
         // 3. Runtime: render every routable page as a user with every role; only the board page has a circuit marker.
         await using var factory = new WebFactory(new FakeCatalogueApi());
         using var browser = factory.CreateBrowser();
-        await factory.SignInAsync(browser, new TokenSet("access-1", "refresh-1", DateTimeOffset.UtcNow.AddHours(1)), "buyer", "admin", "site-manager");
+        await factory.SignInAsync(browser, new TokenSet("access-1", "refresh-1", DateTimeOffset.UtcNow.AddHours(1)), "buyer", "admin", "site-manager", "aftercare"); // C10 Lab 4: + Aftercare's page
         var markers = new Dictionary<string, int>();
         foreach (var route in RoutablePages().Where(r => r != "/dev/components"))
         {

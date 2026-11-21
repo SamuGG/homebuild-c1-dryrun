@@ -131,7 +131,62 @@ else if (DepositReturn == "cancelled")
     }
 
     <h2 class="mb-3 mt-8 text-xl font-semibold">Documents</h2>
-    <p data-testid="documents">Your contract, warranty and floor plans will appear here.</p>
+    @* C10 Lab 4: the handover pack, once Aftercare has completed the handover. *@
+    @if (handovers.Count == 0)
+    {
+        <p data-testid="documents">Your contract, warranty and floor plans will appear here.</p>
+    }
+    @foreach (var pack in handovers)
+    {
+        <div class="mb-3" data-testid="handover-@pack.UnitId">
+            <p>Handed over on @pack.CompletedAt?.ToString("d MMMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("en-GB")). Defects are covered until <strong>@pack.DefectsEndOn?.ToString("d MMMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("en-GB"))</strong>.</p>
+            <ul class="list-disc pl-6">@foreach (var document in pack.Documents) { <li>@document</li> }</ul>
+        </div>
+    }
+
+    @* C10 Lab 4: snags. The buyer drafts, reports, confirms a fix or disputes it; Aftercare does the rest. *@
+    <h2 class="mb-3 mt-8 text-xl font-semibold">Snags</h2>
+    <ul class="grid gap-3" data-testid="snags">
+        @foreach (var snag in snags)
+        {
+            <li data-testid="snag-@snag.Id">
+                <Card Title="@($"{snag.Area}: {snag.Description}")">
+                    <p><Badge Text="@snag.State" Variant="BadgeVariant.Neutral" /> @(snag.State == "Scheduled" ? $"Visit by {snag.Subcontractor} on {snag.VisitOn:d MMMM yyyy}" : "")</p>
+                    <ol class="mt-2 text-sm" data-testid="timeline">
+                        @foreach (var entry in snag.Timeline)
+                        {
+                            <li>@entry.At.ToString("d MMM, HH:mm", System.Globalization.CultureInfo.GetCultureInfo("en-GB")) · @(entry.Actor == "Buyer" ? "You" : "Aftercare"): @entry.Text</li>
+                        }
+                    </ol>
+                    @if (snag.State == "Draft")
+                    {
+                        <form method="post" @formname="@($"report-{snag.Id}")" @onsubmit='() => SnagAsync(snag.Id, "report")'><AntiforgeryToken /><Button Type="submit">Report to Aftercare</Button></form>
+                    }
+                    else if (snag.State == "Fixed")
+                    {
+                        <form method="post" @formname="@($"confirm-{snag.Id}")" @onsubmit='() => SnagAsync(snag.Id, "confirm")' class="inline"><AntiforgeryToken /><Button Type="submit">Confirm it is fixed</Button></form>
+                        <form method="post" @formname="@($"dispute-{snag.Id}")" @onsubmit='() => SnagAsync(snag.Id, "dispute")' class="inline">
+                            <AntiforgeryToken />
+                            <label for="reason-@snag.Id">Why not?</label> <input id="reason-@snag.Id" name="reason" class="border" />
+                            <Button Type="submit">Dispute</Button>
+                        </form>
+                    }
+                </Card>
+            </li>
+        }
+    </ul>
+    @if (progress.Homes.Count > 0)
+    {
+        <form method="post" @formname="new-snag" @onsubmit="DraftSnagAsync" class="mt-4 grid max-w-md gap-2" data-testid="new-snag">
+            <AntiforgeryToken />
+            <input type="hidden" name="snag-unit" value="@progress.Homes[0].UnitId" />
+            <label for="snag-area">Where</label><input id="snag-area" name="snag-area" class="border" required />
+            <label for="snag-description">What is wrong</label><input id="snag-description" name="snag-description" class="border" required />
+            <label for="snag-severity">How serious</label>
+            <select id="snag-severity" name="snag-severity" class="border"><option>Minor</option><option>Major</option><option>Urgent</option></select>
+            <Button Type="submit">Save as draft</Button>
+        </form>
+    }
 }
 
 @code {
@@ -145,6 +200,23 @@ else if (DepositReturn == "cancelled")
     private IReadOnlyList<MyDeposit> deposits = [];
     private IReadOnlyList<MyExtras> extras = [];
     private IReadOnlyList<Basket> baskets = [];
+    private IReadOnlyList<HandoverPack> handovers = [];
+    private IReadOnlyList<Snag> snags = [];
+
+    [SupplyParameterFromForm(Name = "reason")]
+    private string? DisputeReason { get; set; }
+
+    [SupplyParameterFromForm(Name = "snag-unit")]
+    private Guid? SnagUnit { get; set; }
+
+    [SupplyParameterFromForm(Name = "snag-area")]
+    private string? SnagArea { get; set; }
+
+    [SupplyParameterFromForm(Name = "snag-description")]
+    private string? SnagDescription { get; set; }
+
+    [SupplyParameterFromForm(Name = "snag-severity")]
+    private string? SnagSeverity { get; set; }
 
     [SupplyParameterFromForm(Name = "idempotency-key")]
     private Guid? PayKey { get; set; } // C8 Lab 3: from the form that was rendered, so a double click sends one key
@@ -163,6 +235,32 @@ else if (DepositReturn == "cancelled")
         deposits = user.IsInRole("buyer") ? await Api.GetMyDepositsAsync() : [];
         extras = user.IsInRole("buyer") ? await Api.GetMyExtrasAsync() : [];
         baskets = user.IsInRole("buyer") ? await Api.GetMyBasketsAsync() : [];
+        handovers = user.IsInRole("buyer") ? await Api.GetMyHandoverAsync() : [];
+        snags = user.IsInRole("buyer") ? await Api.GetMySnagsAsync() : [];
+    }
+
+    private async Task SnagAsync(Guid id, string action)
+    {
+        var done = await Api.ActOnSnagAsync(id, action, reason: action == "dispute" ? DisputeReason : null);
+        if (done.Succeeded)
+        {
+            Navigation.NavigateTo("my-home");
+            return;
+        }
+
+        payProblem = done.Problem!.Detail ?? done.Problem.Title;
+    }
+
+    private async Task DraftSnagAsync()
+    {
+        var done = await Api.DraftSnagAsync(SnagUnit ?? Guid.Empty, SnagArea ?? "", SnagDescription ?? "", SnagSeverity ?? "Minor");
+        if (done.Succeeded)
+        {
+            Navigation.NavigateTo("my-home");
+            return;
+        }
+
+        payProblem = done.Problem!.Detail ?? done.Problem.Title;
     }
 
     private async Task AddExtraAsync(Guid unitId, Guid extraId)
