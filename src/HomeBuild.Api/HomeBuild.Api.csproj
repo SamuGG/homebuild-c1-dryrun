@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <ItemGroup>
+    <ProjectReference Include="..\HomeBuild.ServiceDefaults\HomeBuild.ServiceDefaults.csproj" />
     <ProjectReference Include="..\HomeBuild.Domain\HomeBuild.Domain.csproj" />
     <!-- C7 Lab 5: the host wires Payments' core (use cases and ports) to adapters it owns. Never the infrastructure project's internals. -->
     <ProjectReference Include="..\HomeBuild.Payments.Core\HomeBuild.Payments.Core.csproj" />

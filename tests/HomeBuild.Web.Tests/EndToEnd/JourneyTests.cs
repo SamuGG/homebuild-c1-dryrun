@@ -160,7 +160,7 @@ internal static class LocalData
     /// <summary>C8 Lab 3: how many reservations the unit has in the local database.</summary>
     public static async Task<int> ReservationCountAsync(string unitId)
     {
-        using var psql = Process.Start(new ProcessStartInfo("docker", ["compose", "exec", "-T", "postgres", "psql", "-q", "-t", "-A", "-U", "homebuild", "-d", "homebuild",
+        using var psql = Process.Start(new ProcessStartInfo(Path.Combine(RepoRoot(), "scripts", "local-psql.sh"), ["-q", "-t", "-A", 
             "-c", $"SELECT count(*) FROM sales.reservations WHERE unit_id = '{unitId}';"])
         {
             WorkingDirectory = RepoRoot(),
@@ -174,7 +174,7 @@ internal static class LocalData
     public static async Task MakeAvailableAsync(string unitId)
     {
         var sql = $"DELETE FROM sales.reservations WHERE unit_id = '{unitId}'; UPDATE sales.units SET status = 'Available' WHERE id = '{unitId}';";
-        using var psql = Process.Start(new ProcessStartInfo("docker", ["compose", "exec", "-T", "postgres", "psql", "-q", "-v", "ON_ERROR_STOP=1", "-U", "homebuild", "-d", "homebuild", "-c", sql])
+        using var psql = Process.Start(new ProcessStartInfo(Path.Combine(RepoRoot(), "scripts", "local-psql.sh"), ["-q", "-v", "ON_ERROR_STOP=1", "-c", sql])
         {
             WorkingDirectory = RepoRoot(),
             RedirectStandardError = true,

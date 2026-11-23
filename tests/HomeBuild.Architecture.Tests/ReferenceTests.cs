@@ -21,12 +21,14 @@ public sealed class ReferenceTests
             ["HomeBuild.Domain", "HomeBuild.Payments.Core"], ["Microsoft.EntityFrameworkCore", "Microsoft.Extensions.", "Npgsql"]),
         // C7 Lab 5: the API hosts Payments' core (use cases, ports) and owns its adapters; never Payments.Infrastructure.
         // C9 Lab 3: it shares the outbox, relay and publisher with the worker host through HomeBuild.Messaging.
-        new(typeof(HomeBuild.Api.Modules.Catalogue.CatalogueModule).Assembly, ["HomeBuild.Domain", "HomeBuild.Messaging", "HomeBuild.Payments.Core"], ["*"]),
+        // C11 Lab 4: the hosts also use Aspire's service defaults (OpenTelemetry, health checks, service discovery).
+        new(typeof(HomeBuild.Api.Modules.Catalogue.CatalogueModule).Assembly, ["HomeBuild.Domain", "HomeBuild.Messaging", "HomeBuild.Payments.Core", "HomeBuild.ServiceDefaults"], ["*"]),
         // C9 Lab 3: messaging plumbing only, no HomeBuild code: EF Core, the AWS SDK and the hosting abstractions.
         new(typeof(HomeBuild.Messaging.OutboxMessage).Assembly, [], ["Microsoft.EntityFrameworkCore", "Microsoft.Extensions.", "AWSSDK.", "Microsoft.AspNetCore"]),
         // C9 Lab 3: the worker host reads messages (Domain's contracts), never the API's modules.
-        new(typeof(HomeBuild.Workers.ContractsDbContext).Assembly, ["HomeBuild.Domain", "HomeBuild.Messaging"], ["*"]),
-        new(typeof(HomeBuild.Web.Components.App).Assembly, [], ["Microsoft.AspNetCore", "Microsoft.Extensions.", "Microsoft.IdentityModel.", "Microsoft.JSInterop"]),
+        new(typeof(HomeBuild.Workers.ContractsDbContext).Assembly, ["HomeBuild.Domain", "HomeBuild.Messaging", "HomeBuild.ServiceDefaults"], ["*"]),
+        // C11 Lab 4: and the Valkey (Redis protocol) distributed cache for the token store.
+        new(typeof(HomeBuild.Web.Components.App).Assembly, ["HomeBuild.ServiceDefaults"], ["Microsoft.AspNetCore", "Microsoft.Extensions.", "Microsoft.IdentityModel.", "Microsoft.JSInterop", "Aspire.StackExchange.Redis", "StackExchange.Redis"]),
     ];
 
     public static TheoryData<string> Assemblies => [.. Rules.Select(r => r.Assembly.GetName().Name!)];

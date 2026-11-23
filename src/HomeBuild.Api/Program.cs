@@ -68,8 +68,9 @@ if (builder.Environment.IsDevelopment())
 }
 #endif
 
-// C11 Lab 1: a liveness endpoint for the container image ("does the process answer?"); no checks yet (Lab 6 adds them).
-builder.Services.AddHealthChecks();
+// C11 Lab 4: Aspire's service defaults (OpenTelemetry, health checks, service discovery, resilience). /alive is the
+// liveness endpoint the container image (Lab 1) and the AppHost check.
+builder.AddServiceDefaults();
 
 var app = builder.Build();
 
@@ -100,7 +101,7 @@ app.UseMiddleware<TenantMiddleware>();
 // 8. Idempotency keys (C8 Lab 3): after the tenant, so 400/401/403 answers are never stored; it needs the caller.
 app.UseMiddleware<IdempotencyMiddleware>();
 
-app.MapHealthChecks("/alive").AllowAnonymous().WithMetadata(new TenantNotRequiredAttribute()); // C11 Lab 1
+app.MapDefaultEndpoints(e => e.AllowAnonymous().WithMetadata(new TenantNotRequiredAttribute())); // C11 Labs 1 and 4
 
 // The OpenAPI document is published only in Development and in CI, where Bruno and reviewers use it.
 if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("CI"))

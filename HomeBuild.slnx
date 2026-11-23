@@ -1,12 +1,14 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/HomeBuild.Api/HomeBuild.Api.csproj" />
+    <Project Path="src/HomeBuild.AppHost/HomeBuild.AppHost.csproj" />
     <Project Path="src/HomeBuild.Domain/HomeBuild.Domain.csproj" />
     <Project Path="src/HomeBuild.Generators/HomeBuild.Generators.csproj" />
     <Project Path="src/HomeBuild.Messaging/HomeBuild.Messaging.csproj" />
     <Project Path="src/HomeBuild.Notifications.Lambda/HomeBuild.Notifications.Lambda.csproj" />
     <Project Path="src/HomeBuild.Payments.Core/HomeBuild.Payments.Core.csproj" />
     <Project Path="src/HomeBuild.Payments.Infrastructure/HomeBuild.Payments.Infrastructure.csproj" />
+    <Project Path="src/HomeBuild.ServiceDefaults/HomeBuild.ServiceDefaults.csproj" />
     <Project Path="src/HomeBuild.Web/HomeBuild.Web.csproj" />
     <Project Path="src/HomeBuild.Workers/HomeBuild.Workers.csproj" />
   </Folder>
