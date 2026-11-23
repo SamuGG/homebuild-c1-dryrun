@@ -19,6 +19,16 @@ public sealed class AftercareOptions
     /// <summary>The defects period after handover, in months (default two years).</summary>
     [Range(1, 120)]
     public int DefectsPeriodMonths { get; set; } = 24;
+
+    /// <summary>C10 Lab 6: a reported snag not acknowledged within this many working days reminds Aftercare.</summary>
+    [Range(1, 30)]
+    public int AcknowledgeWithinWorkingDays { get; set; } = 2;
+
+    /// <summary>C10 Lab 6: the local time (Europe/London) the day before a visit when the buyer is reminded.</summary>
+    public TimeOnly VisitReminderAt { get; set; } = new(9, 0);
+
+    /// <summary>C10 Lab 6: bank holidays (not working days), e.g. "2026-12-25". Configuration, not code.</summary>
+    public IList<DateOnly> BankHolidays { get; } = [];
 }
 
 /// <summary>
@@ -38,6 +48,12 @@ public static class AftercareModule
         // C10 Lab 5: snag photos (S3 upload, CloudFront signed URLs). Singleton: one S3 client, created on first use.
         services.AddOptions<CloudFrontOptions>().BindConfiguration(CloudFrontOptions.Section);
         services.AddSingleton<SnagPhotoStorage>();
+        // C10 Lab 6: working days, reminder schedules (best effort after the commit) and the cut-off.
+        services.AddSingleton(sp => new WorkingCalendar(sp.GetRequiredService<IOptions<AftercareOptions>>().Value.BankHolidays, WorkingCalendar.London));
+        services.AddScoped<ISnagSchedules>(sp => sp.GetRequiredService<IOptions<HomeBuild.Api.Scheduling.SchedulingOptions>>().Value.CreatesSchedules
+            ? ActivatorUtilities.CreateInstance<EventBridgeSnagSchedules>(sp)
+            : new NoSnagSchedules());
+        services.AddScoped<SnagReminders>();
         return services;
     }
 
@@ -294,8 +310,8 @@ internal static class SnagEndpoints
             .WithSummary("An internal note the buyer never sees (Aftercare, v2)").RequireAuthorization(Policies.CanManageAftercare);
     }
 
-    private static async Task<Results<Created<BuyerSnagResponse>, NotFound, ForbidHttpResult>> CreateAsync(
-        NewSnagRequest request, AftercareDbContext db, IUnitAvailability sales, TimeProvider time, HttpContext http, CancellationToken cancellationToken)
+    private static async Task<Results<Created<BuyerSnagResponse>, NotFound, ForbidHttpResult, ProblemHttpResult>> CreateAsync(
+        NewSnagRequest request, AftercareDbContext db, IUnitAvailability sales, WorkingCalendar calendar, TimeProvider time, HttpContext http, CancellationToken cancellationToken)
     {
         if (http.User.CallerBuyerId() is not { } buyer)
         {
@@ -308,6 +324,14 @@ internal static class SnagEndpoints
             return TypedResults.NotFound();
         }
 
+        // C10 Lab 6: after the defects period (its last day, in the home's time zone), snags are no longer accepted.
+        if (await db.Handovers.AsNoTracking().FirstOrDefaultAsync(h => h.UnitId == unitId, cancellationToken) is { DefectsEndOn: { } endOn }
+            && calendar.Today(time) > endOn)
+        {
+            return TypedResults.Problem(Problems.Business(http, "defects-period-ended", "Defects period has ended", StatusCodes.Status422UnprocessableEntity,
+                string.Create(System.Globalization.CultureInfo.GetCultureInfo("en-GB"), $"The defects period for this home ended on {endOn:d MMMM yyyy}. Please raise a maintenance request instead.")));
+        }
+
         var snag = Snag.Draft(unitId, request.Area, request.Description, Enum.Parse<SnagSeverity>(request.Severity), buyer.Value.ToString(), time.GetUtcNow());
         db.Snags.Add(snag);
         await db.SaveChangesAsync(cancellationToken);
@@ -315,11 +339,12 @@ internal static class SnagEndpoints
     }
 
     private static async Task<Results<Created<StaffSnagResponse>, ProblemHttpResult>> RecordAsync(
-        UnitId unitId, NewSnagRequest request, AftercareDbContext db, TimeProvider time, HttpContext http, CancellationToken cancellationToken)
+        UnitId unitId, NewSnagRequest request, AftercareDbContext db, SnagReminders reminders, TimeProvider time, HttpContext http, CancellationToken cancellationToken)
     {
         var snag = Snag.RecordedBeforeHandover(unitId, request.Area, request.Description, Enum.Parse<SnagSeverity>(request.Severity), http.User.FindFirst("sub")?.Value ?? "staff", time.GetUtcNow());
         db.Snags.Add(snag);
         await db.SaveChangesAsync(cancellationToken);
+        await reminders.AfterTransitionAsync(snag, new SnagState.Draft(), db.CurrentTenantId, cancellationToken); // it starts reported
         return TypedResults.Created($"/v2/snags/{snag.Id}", ForStaff(snag));
     }
 
@@ -341,7 +366,7 @@ internal static class SnagEndpoints
 
     /// <summary>The actor comes from the caller's role; a buyer must own the snag's home. The lifecycle table decides the rest.</summary>
     private static async Task<Results<Ok<BuyerSnagResponse>, Ok<StaffSnagResponse>, NotFound, ProblemHttpResult>> ActAsync(
-        Guid id, string action, SnagActionRequest? request, AftercareDbContext db, IUnitAvailability sales, TimeProvider time, HttpContext http, CancellationToken cancellationToken)
+        Guid id, string action, SnagActionRequest? request, AftercareDbContext db, IUnitAvailability sales, SnagReminders reminders, TimeProvider time, HttpContext http, CancellationToken cancellationToken)
     {
         if (!Enum.TryParse<SnagAction>(action, ignoreCase: true, out var snagAction) || await LoadAsync(db, sales, id, http, cancellationToken) is not { } loaded)
         {
@@ -349,6 +374,7 @@ internal static class SnagEndpoints
         }
 
         var (snag, actor, actorId) = loaded;
+        var before = snag.State;
         var result = snag.Act(snagAction, actor, actorId, new SnagActionDetails(request?.Subcontractor, request?.VisitOn, request?.Reason), time.GetUtcNow());
         if (result.Value is SnagRefused refused)
         {
@@ -356,6 +382,7 @@ internal static class SnagEndpoints
         }
 
         await db.SaveChangesAsync(cancellationToken);
+        await reminders.AfterTransitionAsync(snag, before, db.CurrentTenantId, cancellationToken); // after the commit (C8 Lab 4)
         return actor == SnagActor.Buyer ? TypedResults.Ok(ForBuyer(snag)) : TypedResults.Ok(ForStaff(snag));
     }
 

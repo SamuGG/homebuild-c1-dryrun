@@ -14,6 +14,7 @@
     <PackageVersion Include="AWSSDK.S3" Version="4.1.1" />
     <PackageVersion Include="AWSSDK.Scheduler" Version="4.1.1.2" />
     <PackageVersion Include="AWSSDK.SecurityToken" Version="4.1.0.2" />
+    <PackageVersion Include="AWSSDK.SimpleEmailV2" Version="4.1.1" />
     <PackageVersion Include="AWSSDK.SimpleNotificationService" Version="4.1.0.1" />
     <PackageVersion Include="AWSSDK.SQS" Version="4.1.0.2" />
     <PackageVersion Include="Constructs" Version="10.8.1" />
