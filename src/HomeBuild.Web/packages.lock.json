@@ -79,6 +79,8 @@
           "Microsoft.IdentityModel.Tokens": "8.19.2"
         }
       }
-    }
+    },
+    "net11.0/linux-arm64": {},
+    "net11.0/linux-x64": {}
   }
 }

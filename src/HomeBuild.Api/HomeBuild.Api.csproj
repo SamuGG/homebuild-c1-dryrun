@@ -39,6 +39,9 @@
     <!-- Build-time OpenAPI document, committed as a snapshot reviewers can diff. -->
     <!-- The API contract, committed and diffed in CI (C6 Lab 2): any change is a reviewed diff in the PR. -->
     <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)/../../contracts</OpenApiDocumentsDirectory>
+    <!-- C11 Lab 3: the snapshot comes from the normal build; the per-platform builds of a multi-platform image publish
+         cannot run the document tool (it looks for the assembly outside the platform's folder). -->
+    <OpenApiGenerateDocuments Condition="'$(RuntimeIdentifier)' != ''">false</OpenApiGenerateDocuments>
     <OpenApiGenerateDocumentsOptions>--file-name openapi</OpenApiGenerateDocumentsOptions>
     <!-- Asp.Versioning 10.2 analyzers ask for Asp.Versioning.OpenApi (AddApiVersioning().AddOpenApi(),
          MapOpenApi().WithDocumentPerVersion()). That package needs Microsoft.OpenApi < 3.0 and cannot restore
@@ -48,6 +51,10 @@
     <NoWarn>$(NoWarn);AV0029;AV0030</NoWarn>
     <UserSecretsId>027b04ea-0e16-497b-a8a8-7da1ad7477ff</UserSecretsId>
       <ContainerRepository>homebuild-api</ContainerRepository> <!-- C11 Lab 1 -->
+    <!-- C11 Lab 3: one multi-platform image (an image index) for arm64 (Mac, CI, Graviton) and amd64. Restore needs
+         both runtimes, so they are in the lock file too. -->
+    <RuntimeIdentifiers>linux-arm64;linux-x64</RuntimeIdentifiers>
+    <ContainerRuntimeIdentifiers>linux-arm64;linux-x64</ContainerRuntimeIdentifiers>
   </PropertyGroup>
 
   <ItemGroup>
