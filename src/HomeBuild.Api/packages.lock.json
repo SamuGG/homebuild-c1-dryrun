@@ -507,6 +507,8 @@
         "resolved": "11.0.0",
         "contentHash": "ozQ8GJcEAiW6XSKz2RUpdJDvM4l380BdHx/MRB7QJHL2cTH/0js7f/cisCaYMrZvVUj4/HIW80UjXxI+ikQQzQ=="
       }
-    }
+    },
+    "net11.0/linux-arm64": {},
+    "net11.0/linux-x64": {}
   }
 }
