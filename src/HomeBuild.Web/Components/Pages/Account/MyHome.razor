@@ -203,7 +203,21 @@ else if (DepositReturn == "cancelled")
     {
         <form method="post" @formname="new-snag" @onsubmit="DraftSnagAsync" class="mt-4 grid max-w-md gap-2" data-testid="new-snag">
             <AntiforgeryToken />
-            <input type="hidden" name="snag-unit" value="@progress.Homes[0].UnitId" />
+            @if (progress.Homes.Count == 1)
+            {
+                <input type="hidden" name="snag-unit" value="@progress.Homes[0].UnitId" />
+            }
+            else
+            {
+                @* C10 Lab 7: a buyer with more than one home says which one the snag is in. *@
+                <label for="snag-unit">Which home</label>
+                <select id="snag-unit" name="snag-unit" class="border">
+                    @foreach (var home in progress.Homes)
+                    {
+                        <option value="@home.UnitId">@home.DevelopmentName, plot @home.PlotNumber</option>
+                    }
+                </select>
+            }
             <label for="snag-area">Where</label><input id="snag-area" name="snag-area" class="border" required />
             <label for="snag-description">What is wrong</label><input id="snag-description" name="snag-description" class="border" required />
             <label for="snag-severity">How serious</label>

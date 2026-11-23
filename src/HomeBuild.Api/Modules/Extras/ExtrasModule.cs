@@ -59,7 +59,8 @@ public static class ExtrasModule
         {
             services.TryAddSingleton<Amazon.SQS.IAmazonSQS>(_ => new Amazon.SQS.AmazonSQSClient(Amazon.RegionEndpoint.EUWest2));
             var options = configuration.GetSection("Extras:Consumer").Get<ConsumerOptions>() ?? new ConsumerOptions { Processors = 2, VisibilityTimeout = TimeSpan.FromMinutes(1) };
-            services.AddHostedService(sp => new QueueConsumer(ExtrasProgressConsumer.Name, new SqsQueueClient(sp.GetRequiredService<Amazon.SQS.IAmazonSQS>(), queueUrl),
+            // AddSingleton, not AddHostedService: that adds through TryAddEnumerable, one per implementation type, so a second QueueConsumer in the host was dropped (C10 Lab 7).
+            services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(sp => new QueueConsumer(ExtrasProgressConsumer.Name, new SqsQueueClient(sp.GetRequiredService<Amazon.SQS.IAmazonSQS>(), queueUrl),
                 sp.GetRequiredService<IServiceScopeFactory>(), options, sp.GetRequiredService<ILogger<QueueConsumer>>()));
         }
 

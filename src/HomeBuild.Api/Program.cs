@@ -59,6 +59,15 @@ HomeBuild.Api.Scheduling.ScheduledWorkServices.AddScheduledWork(builder.Services
 builder.Services.AddExtrasConsumer(builder.Configuration);
 // C10 Lab 3: the change-order worker (ExtrasPaid → Construction's change orders).
 HomeBuild.Api.Modules.Construction.ChangeOrderServices.AddChangeOrderConsumer(builder.Services, builder.Configuration);
+#if DEBUG
+// C10 Lab 7: test-only clock (Debug builds in Development only; absent from Release builds). Registered last, so it
+// replaces the TimeProvider.System the modules registered.
+if (builder.Environment.IsDevelopment())
+{
+    HomeBuild.Api.Testing.DevClockEndpoints.AddDevClock(builder.Services);
+}
+#endif
+
 var app = builder.Build();
 
 // C8 Lab 6: `dotnet run --project src/HomeBuild.Api -- reconcile --from <date> --to <date>` runs the reconciliation
@@ -107,6 +116,7 @@ app.MapAftercareModule(); // C10 Lab 4
 if (app.Environment.IsDevelopment())
 {
     HomeBuild.Api.Modules.Construction.ChangeOrderServices.MapConsumerControl(app);
+    HomeBuild.Api.Testing.DevClockEndpoints.MapDevClock(app); // C10 Lab 7
 }
 #endif
 
