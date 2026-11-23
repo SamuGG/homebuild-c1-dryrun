@@ -35,6 +35,35 @@
           "YamlDotNet": "18.1.0"
         }
       },
+      "Aspire.Hosting.AWS": {
+        "type": "Direct",
+        "requested": "[13.7.4, )",
+        "resolved": "13.7.4",
+        "contentHash": "YWCOcXB/KCevd6I/YhKF5nQzMXLPiW8mJKzmjbo99w98DEqXpT2uSOfV8TTegDs3z6RsvDqFYI4xHJKqyIfPXw==",
+        "dependencies": {
+          "AWS.AgentCore.Testing": "1.0.2",
+          "AWSSDK.BedrockAgentCore": "4.0.105.1",
+          "AWSSDK.CloudFormation": "4.0.102.2",
+          "AWSSDK.Core": "4.0.102.1",
+          "AWSSDK.Extensions.NETCore.Setup": "4.0.100.9",
+          "AWSSDK.Lambda": "4.0.105.2",
+          "AWSSDK.S3": "4.0.102.4",
+          "AWSSDK.SSO": "4.0.100.9",
+          "AWSSDK.SSOOIDC": "4.0.100.9",
+          "AWSSDK.SecurityToken": "4.0.100.9",
+          "Amazon.CDK.Lib": "2.262.0",
+          "Aspire.Hosting": "13.6.5",
+          "Aspire.Hosting.Redis": "13.6.5",
+          "Aspire.Hosting.Valkey": "13.6.5",
+          "MessagePack": "2.5.307",
+          "Microsoft.CodeAnalysis.CSharp": "4.14.0",
+          "Microsoft.Extensions.DependencyInjection": "10.0.14",
+          "Microsoft.Extensions.Hosting": "10.0.14",
+          "Microsoft.Extensions.Http": "10.0.14",
+          "OpenTelemetry.Exporter.OpenTelemetryProtocol": "1.17.0",
+          "OpenTelemetry.Extensions.Hosting": "1.17.0"
+        }
+      },
       "Aspire.Hosting.Dotnet": {
         "type": "Direct",
         "requested": "[17.0.0, )",
@@ -137,6 +166,41 @@
           "YamlDotNet": "18.1.0"
         }
       },
+      "Amazon.CDK.Asset.AwsCliV1": {
+        "type": "Transitive",
+        "resolved": "2.2.292",
+        "contentHash": "W0nD1GZzxspjnHzkyuZpwvgR2XSqg7K4GONsWeM2FzEXyo+8b//rOuJvXDsr93LtMXcDdbGGyIFmz0q1p17+eg==",
+        "dependencies": {
+          "Amazon.JSII.Runtime": "[1.139.0, 2.0.0)"
+        }
+      },
+      "Amazon.CDK.Asset.NodeProxyAgentV6": {
+        "type": "Transitive",
+        "resolved": "2.1.3",
+        "contentHash": "+EtIvWJ2P+PBkYcV9LVbOpepCT7TCon9gHaMXikBdlkgLBbM8eBPbCRJpniZKbZ7h7jGuMCyZ6JNAOHalklTCQ==",
+        "dependencies": {
+          "Amazon.JSII.Runtime": "[1.140.0, 2.0.0)"
+        }
+      },
+      "Amazon.CDK.CloudAssembly.Schema": {
+        "type": "Transitive",
+        "resolved": "55.6.0",
+        "contentHash": "iBLQ0ScrZnqpn3HSL2L0GfpRw57MrCZWEZw+VenEqj4cls0i88QW+TbDmP1mOZxPvmuONRmJhoDNWY1rI07f+w==",
+        "dependencies": {
+          "Amazon.JSII.Runtime": "[1.142.0, 2.0.0)"
+        }
+      },
+      "Amazon.JSII.Runtime": {
+        "type": "Transitive",
+        "resolved": "1.142.0",
+        "contentHash": "H5wewjvo3nFeTfvEV7y31e5rIfYqJhq617SJsrZOa6JQtuMMIv9Skg99+8tJVnLS2lHtsPY4i36lZA7LD6J65Q==",
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection": "9.0.1",
+          "Microsoft.Extensions.Logging": "9.0.1",
+          "Microsoft.Extensions.Logging.Console": "9.0.1",
+          "Newtonsoft.Json": "13.0.3"
+        }
+      },
       "Aspire.Hosting": {
         "type": "Transitive",
         "resolved": "17.0.0",
@@ -168,6 +232,40 @@
           "YamlDotNet": "18.1.0"
         }
       },
+      "Aspire.Hosting.Redis": {
+        "type": "Transitive",
+        "resolved": "13.6.5",
+        "contentHash": "uNaqKacIEelK+234wpurgIy2bL7xYZTeluGjFW41hURFfE0O49+Mq6HV+r4+ywc9JRN0Q3WeARJkgiXivhkdIw==",
+        "dependencies": {
+          "AspNetCore.HealthChecks.Redis": "9.0.0",
+          "AspNetCore.HealthChecks.Uris": "9.0.0",
+          "Aspire.Hosting": "13.6.5",
+          "Google.Protobuf": "3.36.1",
+          "Grpc.AspNetCore": "2.83.0",
+          "Grpc.Net.ClientFactory": "2.83.0",
+          "Grpc.Tools": "2.83.0",
+          "Hex1b": "0.168.0",
+          "KubernetesClient": "19.0.2",
+          "MessagePack": "2.5.307",
+          "Microsoft.Extensions.Configuration.Binder": "10.0.14",
+          "Microsoft.Extensions.Configuration.EnvironmentVariables": "10.0.14",
+          "Microsoft.Extensions.Diagnostics.HealthChecks": "8.0.33",
+          "Microsoft.Extensions.FileSystemGlobbing": "10.0.14",
+          "Microsoft.Extensions.Hosting": "10.0.14",
+          "Microsoft.Extensions.Http": "10.0.14",
+          "Microsoft.Extensions.Logging": "10.0.14",
+          "ModelContextProtocol": "1.4.1",
+          "Newtonsoft.Json": "13.0.4",
+          "OpenTelemetry.Exporter.OpenTelemetryProtocol": "1.17.0",
+          "OpenTelemetry.Extensions.Hosting": "1.17.0",
+          "Polly.Core": "8.7.0",
+          "Semver": "3.0.0",
+          "StackExchange.Redis": "2.13.17",
+          "StreamJsonRpc": "2.25.29",
+          "System.IO.Hashing": "10.0.14",
+          "YamlDotNet": "18.1.0"
+        }
+      },
       "AspNetCore.HealthChecks.NpgSql": {
         "type": "Transitive",
         "resolved": "9.0.0",
@@ -193,6 +291,69 @@
         "dependencies": {
           "Microsoft.Extensions.Diagnostics.HealthChecks": "8.0.11",
           "Microsoft.Extensions.Http": "8.0.0"
+        }
+      },
+      "AWS.AgentCore.Testing": {
+        "type": "Transitive",
+        "resolved": "1.0.2",
+        "contentHash": "mN9EnWOBY6FLvg8LKv5W6Kcp4ojmKjtHuly+Grfx+Alz5+D3s3z7zrVqTvLcIN8R/80TqQPKbThju+h3aHzYjw==",
+        "dependencies": {
+          "AWSSDK.BedrockAgentCore": "4.0.23.3",
+          "AWSSDK.Extensions.NETCore.Setup": "4.0.3.40",
+          "Microsoft.Extensions.FileProviders.Embedded": "10.0.8"
+        }
+      },
+      "AWSSDK.BedrockAgentCore": {
+        "type": "Transitive",
+        "resolved": "4.0.105.1",
+        "contentHash": "T8ohy5iawp2te6qUX04X6b9uj5l2D1QvVPW+NW0BQlTEcBSx5lgktv/rR/ZQCOPYj+5MFlpauYm/RW5vGPxHaQ==",
+        "dependencies": {
+          "AWSSDK.Core": "[4.0.101.1, 5.0.0)"
+        }
+      },
+      "AWSSDK.CloudFormation": {
+        "type": "Transitive",
+        "resolved": "4.0.102.2",
+        "contentHash": "HOGvvQqPd9kgg0k1qEebRFGQT1f9xvIW20IXnP9Bpxw1eVSAEGujrGFUkxhbMtdwfRVa7shekahhnHuEpPFLxQ==",
+        "dependencies": {
+          "AWSSDK.Core": "[4.0.101.1, 5.0.0)"
+        }
+      },
+      "AWSSDK.Core": {
+        "type": "Transitive",
+        "resolved": "4.0.102.1",
+        "contentHash": "vsf+/o+S/euH/wG7bO1cha+OWaHvjgvpDeGFO6l3Vcdio9GlSfXkZDD2BogMuAJ+/jDyqqSgqmYVolPKV9ie/A=="
+      },
+      "AWSSDK.Extensions.NETCore.Setup": {
+        "type": "Transitive",
+        "resolved": "4.0.100.9",
+        "contentHash": "fpMtiaDnQdceZS53qTOStWYnat+l/Vf+3zZsnOH3/gDMcL8EckuleXmBLVbnR4g6RdAr3UTQh3rq599SHC3rDA==",
+        "dependencies": {
+          "AWSSDK.Core": "4.0.101.1"
+        }
+      },
+      "AWSSDK.Lambda": {
+        "type": "Transitive",
+        "resolved": "4.0.105.2",
+        "contentHash": "AGT2HbKTUPL5GtMYjUA39lhZXQL6po/fB+FNa0rDbHk1i398euukbwHbraR0oyeRNO7rlWjokJYqXVTeeF8j0Q==",
+        "dependencies": {
+          "AWSSDK.Core": "[4.0.101.1, 5.0.0)"
+        }
+      },
+      "AWSSDK.SSO": {
+        "type": "Transitive",
+        "resolved": "4.0.100.9",
+        "contentHash": "NVqqsx6GJYLiXbJYdfp7vnETAgttwuyUuULaszPOJ/aNv3wYkyIFVEJzyVYAYjey+EVjmk1hpPbYuNMqfvV4vA==",
+        "dependencies": {
+          "AWSSDK.Core": "[4.0.101.1, 5.0.0)"
+        }
+      },
+      "AWSSDK.SSOOIDC": {
+        "type": "Transitive",
+        "resolved": "4.0.100.9",
+        "contentHash": "UOCQq1wCeKaqYDTI3TAW8ZwOoD6SDCEyemXKQWZxcfxFGgNIXE+gWQPklZiJ2jhcflnDkhM5HUkUI9q4bHYoyQ==",
+        "dependencies": {
+          "AWSSDK.Core": "[4.0.101.1, 5.0.0)"
         }
       },
       "Fractions": {
@@ -298,6 +459,19 @@
         "resolved": "2.5.307",
         "contentHash": "kIGiwydfCKWRim1ZoFbZ1qVHDHrQfXdJ+FEFVPEqse/XzvPT7lVUjIb1LOuocP3Tx1+PtFEdEandRhxB64Xd4A=="
       },
+      "Microsoft.CodeAnalysis.Analyzers": {
+        "type": "Transitive",
+        "resolved": "3.11.0",
+        "contentHash": "v/EW3UE8/lbEYHoC2Qq7AR/DnmvpgdtAMndfQNmpuIMx/Mto8L5JnuCfdBYtgvalQOtfNCnxFejxuRrryvUTsg=="
+      },
+      "Microsoft.CodeAnalysis.Common": {
+        "type": "Transitive",
+        "resolved": "4.14.0",
+        "contentHash": "PC3tuwZYnC+idaPuoC/AZpEdwrtX7qFpmnrfQkgobGIWiYmGi5MCRtl5mx6QrfMGQpK78X2lfIEoZDLg/qnuHg==",
+        "dependencies": {
+          "Microsoft.CodeAnalysis.Analyzers": "3.11.0"
+        }
+      },
       "Microsoft.Extensions.AI.Abstractions": {
         "type": "Transitive",
         "resolved": "10.5.2",
@@ -385,6 +559,11 @@
         "type": "Transitive",
         "resolved": "11.0.0",
         "contentHash": "O6Yxj7A2ciRF2NdG80gCAFhWSiVJ0bps+QyFhjWmV/zJktD8NFuEawmm7byrQ/y4oWifs5M6zk4/klEKC1xf5Q=="
+      },
+      "Microsoft.Extensions.FileProviders.Embedded": {
+        "type": "Transitive",
+        "resolved": "10.0.8",
+        "contentHash": "Wv9s0rmrmUEma268HCqqcHGgJI30O9mqMxnORZ/QFxtbjoTFEuMvnqL2kIfbZcOGD6XF6II47Hc6YSff0jKGkw=="
       },
       "Microsoft.Extensions.FileProviders.Physical": {
         "type": "Transitive",
@@ -651,6 +830,63 @@
         "type": "Transitive",
         "resolved": "18.1.0",
         "contentHash": "5K+9KFg2TdTl7VXv88Qzi/0lqK6JFoNP3lRuImPYGRV7K/QYklDyTrj4+A+KAki1JsQi6qKY+hDyY7d6WRqjrw=="
+      },
+      "infra": {
+        "type": "Project",
+        "dependencies": {
+          "Amazon.CDK.Lib": "[2.277.0, )",
+          "Constructs": "[10.8.1, )"
+        }
+      },
+      "Amazon.CDK.Lib": {
+        "type": "CentralTransitive",
+        "requested": "[2.277.0, )",
+        "resolved": "2.277.0",
+        "contentHash": "3uGjIGEBbLspcXO75L1/+0Y7c1a718Mnv91I+IU8mClMJf4TcP6bOKaKXAovLrGJEBrg1u+mKJFL8QaRqDuwrQ==",
+        "dependencies": {
+          "Amazon.CDK.Asset.AwsCliV1": "[2.2.292]",
+          "Amazon.CDK.Asset.NodeProxyAgentV6": "[2.1.3, 3.0.0)",
+          "Amazon.CDK.CloudAssembly.Schema": "[55.6.0, 56.0.0)",
+          "Amazon.JSII.Runtime": "[1.142.0, 2.0.0)",
+          "Constructs": "[10.5.0, 11.0.0)"
+        }
+      },
+      "AWSSDK.S3": {
+        "type": "CentralTransitive",
+        "requested": "[4.1.1, )",
+        "resolved": "4.0.102.4",
+        "contentHash": "rfUhmzlQifO7Uk3AErPweV1FbwZYI+OuogPjfS/7mbVKVWCYYCLkkLozh2mS/qaHPNGPGFeSFAR1NbWnQyd2pQ==",
+        "dependencies": {
+          "AWSSDK.Core": "[4.0.102.1, 5.0.0)"
+        }
+      },
+      "AWSSDK.SecurityToken": {
+        "type": "CentralTransitive",
+        "requested": "[4.1.0.2, )",
+        "resolved": "4.0.100.9",
+        "contentHash": "qgjXYhAafqJSimy2NnWb7Aq8aY+7+e6HL/oP7xSHnL7PeME+GNqRCIToLvP6egHIyKVQ987dncQoEktf9gBOeA==",
+        "dependencies": {
+          "AWSSDK.Core": "[4.0.101.1, 5.0.0)"
+        }
+      },
+      "Constructs": {
+        "type": "CentralTransitive",
+        "requested": "[10.8.1, )",
+        "resolved": "10.8.1",
+        "contentHash": "wiMExIBUAPh/7giqGJip5LTYr96qsQX5M8CDsx0fff7vo5hT0yXL6WqAuMMw51PNOVq4HhDbBkGhKJqSwBi9cQ==",
+        "dependencies": {
+          "Amazon.JSII.Runtime": "[1.139.0, 2.0.0)"
+        }
+      },
+      "Microsoft.CodeAnalysis.CSharp": {
+        "type": "CentralTransitive",
+        "requested": "[5.12.0, )",
+        "resolved": "4.14.0",
+        "contentHash": "568a6wcTivauIhbeWcCwfWwIn7UV7MeHEBvFB2uzGIpM2OhJ4eM/FZ8KS0yhPoNxnSpjGzz7x7CIjTxhslojQA==",
+        "dependencies": {
+          "Microsoft.CodeAnalysis.Analyzers": "3.11.0",
+          "Microsoft.CodeAnalysis.Common": "[4.14.0]"
+        }
       },
       "Npgsql": {
         "type": "CentralTransitive",

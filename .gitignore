@@ -42,3 +42,6 @@ src/HomeBuild.Web/wwwroot/app.css
 
 # C11 Lab 2: the Lambda Runtime Interface Emulator (downloaded binary, for local test invocations)
 tools/aws-lambda-rie-arm64
+
+# C11 Lab 5: the Aspire AppHost synthesizes the CDK stacks into its own cdk.out (contains the account ID; never commit)
+cdk.out/
