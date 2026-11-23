@@ -314,7 +314,7 @@ internal static class JourneyData
         Guid.Parse(await PsqlAsync($"SELECT l.id FROM extras.basket_lines l JOIN extras.baskets b ON b.id = l.basket_id WHERE b.unit_id = '{unitId}';"));
 
     private static Task<string> PsqlAsync(string sql) =>
-        RunAsync("docker", "compose", "exec", "-T", "postgres", "psql", "-q", "-t", "-A", "-v", "ON_ERROR_STOP=1", "-U", "homebuild", "-d", "homebuild", "-c", sql);
+        RunAsync(Path.Combine(RepoRoot(), "scripts", "local-psql.sh"), "-q", "-t", "-A", "-v", "ON_ERROR_STOP=1", "-c", sql);
 
     /// <summary>The API's Payments:WebhookSecret from its user-secrets (the one stripe listen signs with). Never printed.</summary>
     public static async Task<string> WebhookSecretAsync() =>

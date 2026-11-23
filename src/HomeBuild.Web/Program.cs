@@ -27,7 +27,14 @@ builder.Services.AddHttpClient<HomeApiClient>((sp, http) =>
         http.BaseAddress = sp.GetRequiredService<IOptions<CatalogueApiOptions>>().Value.BaseAddress)
     .AddHttpMessageHandler<AccessTokenHandler>();
 
-builder.Services.AddHealthChecks(); // C11 Lab 1: liveness for the container image
+builder.AddServiceDefaults(); // C11 Lab 4: OpenTelemetry, health checks (/alive since Lab 1), service discovery, resilience
+
+// C11 Lab 4: under the AppHost the token store (IDistributedCache) lives in Valkey, so sign-ins survive a restart of
+// the web app; without it (tests, CI) it stays in memory.
+if (!string.IsNullOrEmpty(builder.Configuration.GetConnectionString("cache")))
+{
+    builder.AddRedisDistributedCache("cache");
+}
 
 var app = builder.Build();
 
@@ -46,7 +53,7 @@ app.UseAuthorization();
 // <AntiforgeryToken /> renders nothing and tokens are never checked. HomeBuild keeps tokens as a second layer.
 app.UseAntiforgery();
 
-app.MapHealthChecks("/alive").AllowAnonymous(); // C11 Lab 1
+app.MapDefaultEndpoints(e => e.AllowAnonymous()); // C11 Labs 1 and 4
 app.MapStaticAssets();
 app.MapAccountEndpoints();
 app.MapFloorPlanEndpoints();

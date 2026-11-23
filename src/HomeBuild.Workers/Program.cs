@@ -17,9 +17,9 @@ using Microsoft.Extensions.Options;
 // C11 Lab 1: a slim web host so the container answers /alive (liveness only); the workers are unchanged.
 var builder = WebApplication.CreateSlimBuilder(args);
 builder.Services.AddWorkers(builder.Configuration);
-builder.Services.AddHealthChecks();
+builder.AddServiceDefaults(); // C11 Lab 4: OpenTelemetry and health checks
 var app = builder.Build();
-app.MapHealthChecks("/alive");
+app.MapDefaultEndpoints();
 app.Run();
 
 namespace HomeBuild.Workers

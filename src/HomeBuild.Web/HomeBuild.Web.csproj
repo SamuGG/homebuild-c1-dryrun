@@ -46,4 +46,10 @@
     </ItemGroup>
   </Target>
 
+  <ItemGroup>
+    <!-- C11 Lab 4: Aspire service defaults and the Valkey (Redis protocol) distributed cache. -->
+    <ProjectReference Include="..\HomeBuild.ServiceDefaults\HomeBuild.ServiceDefaults.csproj" />
+    <PackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" />
+  </ItemGroup>
+
 </Project>

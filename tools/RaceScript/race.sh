@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# C8 Lab 5: runs the race script against two local API instances over the compose database.
+# C8 Lab 5: runs the race script against two local API instances over the local database (the AppHost's since C11).
 #   tools/RaceScript/race.sh A|D [code-dir]
 # code-dir: the checkout whose API to run (default: this one; e.g. a worktree of main for the "before" run).
 # Generates a throwaway signing key and webhook secret per run (never printed), gives the race buyers a tenant
@@ -10,7 +10,7 @@ repo=$(cd "$(dirname "$0")/../.." && pwd)
 code=$(cd "${2:-$repo}" && pwd)
 unit=0198a000-0000-7000-8001-000000000001   # Riverside P1
 tenant=0198a000-0000-7000-8000-00000000000a
-psql() { docker compose -f "$repo/compose.yaml" exec -T postgres psql -q -t -A -U homebuild -d homebuild -v ON_ERROR_STOP=1 -c "$1"; }
+psql() { "$repo/scripts/local-psql.sh" -q -t -A -c "$1"; } # C11 Lab 4: the AppHost's PostgreSQL
 
 export RACE_SIGNING_KEY=$(openssl rand -base64 32)
 export RACE_WEBHOOK_SECRET="whsec_race_$(openssl rand -hex 16)"

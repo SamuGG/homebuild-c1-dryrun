@@ -21,8 +21,8 @@ public sealed class ModuleTests
         Assert.NotEmpty(endpoints);
 
         // Lab 5: Program.cs also maps the OpenAPI document (Development and CI only). It is infrastructure, not a feature.
-        // C11 Lab 1: so does the liveness endpoint for the container image.
-        endpoints = endpoints.Where(e => e.RoutePattern.RawText is not ("/openapi/{documentName}.json" or "/alive")).ToList();
+        // C11 Labs 1 and 4: so do the health endpoints (Aspire service defaults).
+        endpoints = endpoints.Where(e => e.RoutePattern.RawText is not ("/openapi/{documentName}.json" or "/alive" or "/health")).ToList();
         Assert.All(endpoints, e =>
         {
             var tags = e.Metadata.GetOrderedMetadata<ITagsMetadata>().SelectMany(t => t.Tags);

@@ -36,4 +36,9 @@
     <InternalsVisibleTo Include="HomeBuild.Architecture.Tests" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- C11 Lab 4: Aspire service defaults. -->
+    <ProjectReference Include="..\HomeBuild.ServiceDefaults\HomeBuild.ServiceDefaults.csproj" />
+  </ItemGroup>
+
 </Project>

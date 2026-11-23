@@ -101,7 +101,7 @@ internal static class ExtrasData
 
     private static async Task<string> PsqlAsync(string sql)
     {
-        using var psql = Process.Start(new ProcessStartInfo("docker", ["compose", "exec", "-T", "postgres", "psql", "-q", "-t", "-A", "-v", "ON_ERROR_STOP=1", "-U", "homebuild", "-d", "homebuild", "-c", sql])
+        using var psql = Process.Start(new ProcessStartInfo(Path.Combine(RepoRoot(), "scripts", "local-psql.sh"), ["-q", "-t", "-A", "-v", "ON_ERROR_STOP=1", "-c", sql])
         {
             WorkingDirectory = RepoRoot(),
             RedirectStandardOutput = true,
