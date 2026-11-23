@@ -39,3 +39,6 @@ src/HomeBuild.Web/wwwroot/app.css
 *.local
 .env
 *.log
+
+# C11 Lab 2: the Lambda Runtime Interface Emulator (downloaded binary, for local test invocations)
+tools/aws-lambda-rie-arm64

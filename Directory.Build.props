@@ -25,6 +25,8 @@
   <Target Name="HomeBuildContainerTags" BeforeTargets="ComputeContainerConfig" DependsOnTargets="InitializeSourceControlInformation">
     <PropertyGroup>
       <_HomeBuildRevision>$(SourceRevisionId)</_HomeBuildRevision>
+      <!-- Builds without .git (C11 Lab 2's build container) pass the commit as HomeBuildRevision. -->
+      <_HomeBuildRevision Condition="'$(_HomeBuildRevision)' == ''">$(HomeBuildRevision)</_HomeBuildRevision>
       <_HomeBuildRevision Condition="'$(_HomeBuildRevision)' == ''">unknown</_HomeBuildRevision>
       <ContainerImageTags>$(_HomeBuildRevision.Substring(0, $([System.Math]::Min(12, $(_HomeBuildRevision.Length)))));latest</ContainerImageTags>
     </PropertyGroup>
