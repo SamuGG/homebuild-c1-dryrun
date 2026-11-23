@@ -16,9 +16,9 @@ namespace HomeBuild.Api.Tests;
 public sealed class AftercareTests(PostgresFixture database)
 {
     private static readonly Guid Unit = Guid.Parse(EndpointTests.RiversidePlot1);
-    private static readonly string Buyer = TestTokens.Access(TestTokens.Users.Owner.ToString(), "buyer");
-    private static readonly string OtherBuyer = TestTokens.Access(TestTokens.Users.OtherBuyer.ToString(), "buyer");
-    private static readonly string Aftercare = TestTokens.Access(TestTokens.Users.Staff("aftercare").ToString(), "aftercare");
+    internal static readonly string Buyer = TestTokens.Access(TestTokens.Users.Owner.ToString(), "buyer");
+    internal static readonly string OtherBuyer = TestTokens.Access(TestTokens.Users.OtherBuyer.ToString(), "buyer");
+    internal static readonly string Aftercare = TestTokens.Access(TestTokens.Users.Staff("aftercare").ToString(), "aftercare");
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -27,7 +27,7 @@ public sealed class AftercareTests(PostgresFixture database)
     [Fact]
     public async Task Completed_handover_starts_the_defects_period_and_publishes_the_pack()
     {
-        var (api, factory, client) = await StartAsync();
+        var (api, factory, client) = await StartAsync(database);
         await using var _ = api;
         await using var __ = factory;
 
@@ -48,7 +48,7 @@ public sealed class AftercareTests(PostgresFixture database)
     [Fact]
     public async Task Internal_notes_not_in_buyer_dto()
     {
-        var (api, factory, client) = await StartAsync();
+        var (api, factory, client) = await StartAsync(database);
         await using var _ = api;
         await using var __ = factory;
         var id = await DraftAndReportAsync(client);
@@ -79,7 +79,7 @@ public sealed class AftercareTests(PostgresFixture database)
     [Fact]
     public async Task Both_parties_move_a_snag_through_its_lifecycle()
     {
-        var (api, factory, client) = await StartAsync();
+        var (api, factory, client) = await StartAsync(database);
         await using var _ = api;
         await using var __ = factory;
         var id = await DraftAndReportAsync(client);
@@ -116,10 +116,14 @@ public sealed class AftercareTests(PostgresFixture database)
     }
 
     /// <summary>The owner's reservation of Riverside plot 1, confirmed by a signed deposit webhook.</summary>
-    private async Task<(ApiFactory Api, WebApplicationFactory<Program> Factory, HttpClient Client)> StartAsync()
+    internal static async Task<(ApiFactory Api, WebApplicationFactory<Program> Factory, HttpClient Client)> StartAsync(PostgresFixture database, Action<Microsoft.AspNetCore.Hosting.IWebHostBuilder>? configure = null)
     {
         var api = await database.CreateApiAsync();
-        var factory = api.WithWebHostBuilder(b => b.UseSetting("Payments:WebhookSecret", StripeTestEvents.Secret));
+        var factory = api.WithWebHostBuilder(b =>
+        {
+            b.UseSetting("Payments:WebhookSecret", StripeTestEvents.Secret);
+            configure?.Invoke(b);
+        });
         var client = factory.CreateClient();
         var reservation = await SendAsync(client, HttpMethod.Post, $"/v1/units/{Unit}/reservations", Buyer, new { deposit = 5000m, currency = "GBP" });
         var payload = StripeTestEvents.Completed("evt_" + Guid.NewGuid().ToString("N"), "cs_" + Guid.NewGuid().ToString("N"), new ReservationId(reservation.GetProperty("id").GetGuid()));
@@ -129,7 +133,7 @@ public sealed class AftercareTests(PostgresFixture database)
         return (api, factory, client);
     }
 
-    private static async Task<Guid> DraftAndReportAsync(HttpClient client)
+    internal static async Task<Guid> DraftAndReportAsync(HttpClient client)
     {
         var draft = await SendAsync(client, HttpMethod.Post, "/v2/me/snags", Buyer, new { unitId = Unit, area = "Kitchen", description = "Crack in the ceiling", severity = "Minor" });
         Assert.Equal("Draft", draft.GetProperty("state").GetString());
@@ -138,14 +142,14 @@ public sealed class AftercareTests(PostgresFixture database)
         return id;
     }
 
-    private static async Task<JsonElement> SendAsync(HttpClient client, HttpMethod method, string path, string token, object? body = null)
+    internal static async Task<JsonElement> SendAsync(HttpClient client, HttpMethod method, string path, string token, object? body = null)
     {
         using var response = await RawAsync(client, method, path, token, body);
         Assert.True(response.IsSuccessStatusCode, $"{method} {path}: {response.StatusCode} {await response.Content.ReadAsStringAsync(Ct)}");
         return JsonElement.Parse(await response.Content.ReadAsStringAsync(Ct));
     }
 
-    private static async Task<HttpResponseMessage> RawAsync(HttpClient client, HttpMethod method, string path, string token, object? body = null)
+    internal static async Task<HttpResponseMessage> RawAsync(HttpClient client, HttpMethod method, string path, string token, object? body = null)
     {
         using var request = new HttpRequestMessage(method, path) { Content = body is null ? null : JsonContent.Create(body) };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);

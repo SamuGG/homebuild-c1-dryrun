@@ -1,0 +1,24 @@
+info:
+  name: Cleanup snag victim reservation (buyer 2)
+  type: http
+  seq: 27
+
+http:
+  method: DELETE
+  url: "{{host}}{{snagVictimReservation}}"
+  headers:
+    - name: Authorization
+      value: Bearer {{buyer2Token}}
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "204"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

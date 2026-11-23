@@ -16,9 +16,11 @@ public sealed class StorageStack : Stack
 {
     public StorageStack(Construct scope, string id, IStackProps props, string[] webOrigins) : base(scope, id, props)
     {
+        // C10 Lab 5's Break only (-c snagPhotosPublic=true): snag photos readable by URL, straight from S3.
+        var snagPhotosPublic = Node.TryGetContext("snagPhotosPublic") is "true";
         var bucket = new Bucket(this, "FloorPlans", new BucketProps
         {
-            BlockPublicAccess = BlockPublicAccess.BLOCK_ALL,
+            BlockPublicAccess = snagPhotosPublic ? BlockPublicAccess.BLOCK_ACLS_ONLY : BlockPublicAccess.BLOCK_ALL,
             Encryption = BucketEncryption.S3_MANAGED,
             EnforceSSL = true,
             ObjectOwnership = ObjectOwnership.BUCKET_OWNER_ENFORCED,
@@ -81,6 +83,58 @@ public sealed class StorageStack : Stack
             Resources = [bucket.ArnForObjects("diary/*")],
         }));
 
+        UploadRole.AddToPolicy(new PolicyStatement(new PolicyStatementProps
+        {
+            // C10 Lab 5: snag photos are posted straight to snags/{tenant}/{snag}/{guid} (images only, 5 MB).
+            Sid = "SignSnagPhotoUploads",
+            Actions = ["s3:PutObject"],
+            Resources = [bucket.ArnForObjects("snags/*")],
+        }));
+
+        // C10 Lab 5: snag photos are served through CloudFront only. Origin access control: the bucket policy lets this
+        // distribution (and nothing else) read objects; the bucket stays private. The key group means every request needs
+        // a URL signed with the private key (in SSM and user-secrets, never in the repository); the public key is here.
+        var publicKey = new Amazon.CDK.AWS.CloudFront.PublicKey(this, "SnagPhotosPublicKey", new Amazon.CDK.AWS.CloudFront.PublicKeyProps
+        {
+            PublicKeyName = "homebuild-snag-photos",
+            Comment = "HomeBuild: verifies signed URLs for snag photos",
+            EncodedKey = System.IO.File.ReadAllText(System.IO.Path.Combine("keys", "snag-photos-public.pem")),
+        });
+        var keyGroup = new Amazon.CDK.AWS.CloudFront.KeyGroup(this, "SnagPhotosKeyGroup", new Amazon.CDK.AWS.CloudFront.KeyGroupProps
+        {
+            KeyGroupName = "homebuild-snag-photos",
+            Comment = "HomeBuild: snag photo signers",
+            Items = [publicKey],
+        });
+        Photos = new Amazon.CDK.AWS.CloudFront.Distribution(this, "Photos", new Amazon.CDK.AWS.CloudFront.DistributionProps
+        {
+            Comment = "homebuild snag photos (signed URLs only)",
+            PriceClass = Amazon.CDK.AWS.CloudFront.PriceClass.PRICE_CLASS_100,
+            DefaultBehavior = new Amazon.CDK.AWS.CloudFront.BehaviorOptions
+            {
+                Origin = Amazon.CDK.AWS.CloudFront.Origins.S3BucketOrigin.WithOriginAccessControl(bucket),
+                ViewerProtocolPolicy = Amazon.CDK.AWS.CloudFront.ViewerProtocolPolicy.HTTPS_ONLY,
+                AllowedMethods = Amazon.CDK.AWS.CloudFront.AllowedMethods.ALLOW_GET_HEAD,
+                CachePolicy = Amazon.CDK.AWS.CloudFront.CachePolicy.CACHING_OPTIMIZED,
+                TrustedKeyGroups = [keyGroup],
+            },
+        });
+        Amazon.CDK.Tags.Of(Photos).Add("lab", "c10-lab5", new TagProps { Priority = 200 }); // above the stack's lab=c5-lab7
+        _ = new CfnOutput(this, "PhotosDomain", new CfnOutputProps { Value = Photos.DistributionDomainName });
+        _ = new CfnOutput(this, "SnagPhotosKeyId", new CfnOutputProps { Value = publicKey.PublicKeyId });
+
+        if (snagPhotosPublic)
+        {
+            // The Break: anyone may read snags/* straight from S3, bypassing CloudFront and its signed URLs.
+            bucket.AddToResourcePolicy(new PolicyStatement(new PolicyStatementProps
+            {
+                Sid = "BreakPublicSnagPhotos",
+                Principals = [new AnyPrincipal()],
+                Actions = ["s3:GetObject"],
+                Resources = [bucket.ArnForObjects("snags/*")],
+            }));
+        }
+
         // autoDeleteObjects' provider role and Lambda are raw CfnResources, which Tags.Of does not reach, so the teardown
         // tag query would miss them. Tag them directly with the stack's tags.
         if (Node.TryFindChild("Custom::S3AutoDeleteObjectsCustomResourceProvider") is Construct provider)
@@ -134,6 +188,9 @@ public sealed class StorageStack : Stack
     private static readonly string[] ProviderParts = ["Role", "Handler"];
 
     public Role UploadRole { get; }
+
+    /// <summary>C10 Lab 5: the snag photo distribution.</summary>
+    public Amazon.CDK.AWS.CloudFront.Distribution Photos { get; }
 
     /// <summary>C9 Lab 7: the notifications Lambda writes under notifications/ (a cross-stack reference).</summary>
     public Bucket Bucket { get; }

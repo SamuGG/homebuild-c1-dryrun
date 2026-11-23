@@ -155,9 +155,33 @@ else if (DepositReturn == "cancelled")
                     <ol class="mt-2 text-sm" data-testid="timeline">
                         @foreach (var entry in snag.Timeline)
                         {
-                            <li>@entry.At.ToString("d MMM, HH:mm", System.Globalization.CultureInfo.GetCultureInfo("en-GB")) · @(entry.Actor == "Buyer" ? "You" : "Aftercare"): @entry.Text</li>
+                            var when = entry.At.ToString("d MMM, HH:mm", System.Globalization.CultureInfo.GetCultureInfo("en-GB"));
+                            var who = entry.Actor == "Buyer" ? "You" : "Aftercare";
+                            @if (entry.Kind != "Photo")
+                            {
+                                <li>@when · @who: @entry.Text</li>
+                            }
+                            else if (photos.TryGetValue(entry.Text, out var photo))
+                            {
+                                @* C10 Lab 5: a CloudFront signed URL that works for 10 minutes; the bucket itself refuses the browser. *@
+                                <li>@when · @who added a photo: <img src="@photo.Url" alt="Snag photo added @when" class="mt-1 max-h-48 rounded" data-testid="snag-photo" /></li>
+                            }
+                            else
+                            {
+                                <li>@when · @who added a photo (unavailable just now)</li>
+                            }
                         }
                     </ol>
+                    @if (snag.State != "Closed")
+                    {
+                        <snag-photo-upload class="mt-2 grid max-w-md gap-2" data-ticket="snags/@snag.Id/photo/ticket" data-complete="snags/@snag.Id/photo/complete">
+                            <AntiforgeryToken />
+                            <label for="photo-@snag.Id">Add a photo (an image, up to 5 MB)</label>
+                            <input id="photo-@snag.Id" type="file" accept="image/*" class="@Styles.FocusRing" />
+                            <div><Button Variant="ButtonVariant.Secondary">Upload photo</Button></div>
+                            <p role="status" aria-live="polite" data-testid="snag-photo-status"></p>
+                        </snag-photo-upload>
+                    }
                     @if (snag.State == "Draft")
                     {
                         <form method="post" @formname="@($"report-{snag.Id}")" @onsubmit='() => SnagAsync(snag.Id, "report")'><AntiforgeryToken /><Button Type="submit">Report to Aftercare</Button></form>
@@ -202,6 +226,7 @@ else if (DepositReturn == "cancelled")
     private IReadOnlyList<Basket> baskets = [];
     private IReadOnlyList<HandoverPack> handovers = [];
     private IReadOnlyList<Snag> snags = [];
+    private Dictionary<string, SnagPhoto> photos = [];
 
     [SupplyParameterFromForm(Name = "reason")]
     private string? DisputeReason { get; set; }
@@ -237,6 +262,7 @@ else if (DepositReturn == "cancelled")
         baskets = user.IsInRole("buyer") ? await Api.GetMyBasketsAsync() : [];
         handovers = user.IsInRole("buyer") ? await Api.GetMyHandoverAsync() : [];
         snags = user.IsInRole("buyer") ? await Api.GetMySnagsAsync() : [];
+        photos = await SnagPhotoUrls.LoadAsync(Api, snags);
     }
 
     private async Task SnagAsync(Guid id, string action)

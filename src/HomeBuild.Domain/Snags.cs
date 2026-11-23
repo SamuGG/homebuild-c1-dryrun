@@ -142,6 +142,9 @@ public enum SnagEntryKind
 
     /// <summary>Aftercare's internal note: never in the buyer's view.</summary>
     InternalNote,
+
+    /// <summary>C10 Lab 5: a photo (its S3 key in <see cref="SnagEntry.Text"/>), from either party.</summary>
+    Photo,
 }
 
 /// <summary>One line of a snag's timeline: who (actor and their ID), when, and what (a transition, a comment or a note).</summary>
@@ -228,6 +231,13 @@ public sealed class Snag
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
         _timeline.Add(new SnagEntry(Guid.CreateVersion7(), SnagEntryKind.Comment, actor, actorId, at, text));
+    }
+
+    /// <summary>C10 Lab 5: a photo the buyer or Aftercare uploaded; the timeline keeps its key, never a URL.</summary>
+    public void AddPhoto(SnagActor actor, string actorId, string key, DateTimeOffset at)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        _timeline.Add(new SnagEntry(Guid.CreateVersion7(), SnagEntryKind.Photo, actor, actorId, at, key));
     }
 
     /// <summary>Aftercare only (the caller checks the role); never shown to the buyer.</summary>
