@@ -1,4 +1,5 @@
 using Amazon;
+using Microsoft.AspNetCore.Builder;
 using Amazon.S3;
 using Amazon.SimpleNotificationService;
 using Amazon.SQS;
@@ -13,9 +14,13 @@ using Microsoft.Extensions.Options;
 //   Messaging:TopicArn           homebuild-events, for ContractIssued (the relay runs only when it is set)
 //   Workers:Contracts:DeadLetterQueueUrl  homebuild-contracts-dlq, whose depth is logged every DeadLetterCheck (Lab 4)
 //   Workers:Notifications:QueueUrl        homebuild-notifications (Lab 5; the consumer runs only when it is set)
-var builder = Host.CreateApplicationBuilder(args);
+// C11 Lab 1: a slim web host so the container answers /alive (liveness only); the workers are unchanged.
+var builder = WebApplication.CreateSlimBuilder(args);
 builder.Services.AddWorkers(builder.Configuration);
-builder.Build().Run();
+builder.Services.AddHealthChecks();
+var app = builder.Build();
+app.MapHealthChecks("/alive");
+app.Run();
 
 namespace HomeBuild.Workers
 {

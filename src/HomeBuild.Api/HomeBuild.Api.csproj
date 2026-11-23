@@ -47,6 +47,7 @@
          in the OpenAPI source generator's output. Remove when a compatible release ships. -->
     <NoWarn>$(NoWarn);AV0029;AV0030</NoWarn>
     <UserSecretsId>027b04ea-0e16-497b-a8a8-7da1ad7477ff</UserSecretsId>
+      <ContainerRepository>homebuild-api</ContainerRepository> <!-- C11 Lab 1 -->
   </PropertyGroup>
 
   <ItemGroup>

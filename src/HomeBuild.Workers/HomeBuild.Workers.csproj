@@ -4,7 +4,13 @@
        It shares the API's user-secrets (same UserSecretsId) for the local connection string and AWS settings. -->
   <PropertyGroup>
     <UserSecretsId>027b04ea-0e16-497b-a8a8-7da1ad7477ff</UserSecretsId>
+      <ContainerRepository>homebuild-workers</ContainerRepository> <!-- C11 Lab 1 -->
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- C11 Lab 1: Kestrel for /alive, so the image can be health-checked like the API and the web app. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\HomeBuild.Domain\HomeBuild.Domain.csproj" />

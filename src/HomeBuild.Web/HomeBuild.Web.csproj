@@ -4,6 +4,7 @@
   <PropertyGroup>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
     <UserSecretsId>52e0ca11-a987-4475-a331-913ffb7a49a4</UserSecretsId>
+      <ContainerRepository>homebuild-web</ContainerRepository> <!-- C11 Lab 1 -->
   </PropertyGroup>
 
   <ItemGroup>
