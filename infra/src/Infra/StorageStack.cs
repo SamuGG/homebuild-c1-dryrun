@@ -94,9 +94,9 @@ public sealed class StorageStack : Stack
         // C10 Lab 5: snag photos are served through CloudFront only. Origin access control: the bucket policy lets this
         // distribution (and nothing else) read objects; the bucket stays private. The key group means every request needs
         // a URL signed with the private key (in SSM and user-secrets, never in the repository); the public key is here.
-        var publicKey = new Amazon.CDK.AWS.CloudFront.PublicKey(this, "SnagPhotosPublicKey", new Amazon.CDK.AWS.CloudFront.PublicKeyProps
+        var publicKey = new Amazon.CDK.AWS.CloudFront.PublicKey(this, "SnagPhotosPublicKey2", new Amazon.CDK.AWS.CloudFront.PublicKeyProps
         {
-            PublicKeyName = "homebuild-snag-photos",
+            PublicKeyName = "homebuild-snag-photos-2", // rotated at the C10 teardown: the encoded key cannot change in place, so a new construct ID (and name) creates a new key and the old one is deleted
             Comment = "HomeBuild: verifies signed URLs for snag photos",
             EncodedKey = System.IO.File.ReadAllText(System.IO.Path.Combine("keys", "snag-photos-public.pem")),
         });
