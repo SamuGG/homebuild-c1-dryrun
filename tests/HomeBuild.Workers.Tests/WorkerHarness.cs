@@ -21,7 +21,7 @@ public sealed class WorkerDatabase : ICollectionFixture<PostgresFixture>
 /// <summary>One PostgreSQL container; each test gets a fresh, migrated database.</summary>
 public sealed class PostgresFixture : IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:18").Build();
+    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:19").Build();
     private int _databases;
 
     public async ValueTask InitializeAsync() => await _container.StartAsync();
