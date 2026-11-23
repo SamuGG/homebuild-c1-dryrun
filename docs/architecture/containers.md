@@ -8,7 +8,7 @@ flowchart TB
   subgraph homebuild [HomeBuild]
     web["Web<br/>[container: ASP.NET Core, Blazor]<br/>HomeBuild.Web: pages for buyers and staff"]
     api["API<br/>[container: ASP.NET Core minimal APIs]<br/>HomeBuild.Api: modules, rules, versioned JSON API"]
-    db[("PostgreSQL<br/>[container: PostgreSQL 18]<br/>One schema per module, row-level security per tenant")]
+    db[("PostgreSQL<br/>[container: PostgreSQL 19]<br/>One schema per module, row-level security per tenant")]
     s3[("S3 bucket<br/>[container: Amazon S3]<br/>incoming/, floor-plans/, diary/, contracts/, notifications/, snags/ (C10)")]
     workers["Workers<br/>[container: .NET worker service, C9]<br/>HomeBuild.Workers: contracts and notifications consumers"]
     lambda["Notifications function<br/>[container: AWS Lambda, Native AOT, C9]<br/>Buyer notifications to S3; reminder emails (C10)"]

@@ -69,7 +69,7 @@ public sealed class JourneyTests(Journeys browser)
         await page.GotoAsync($"{RealSignInTests.WebUrl}/staff/developments/{Riverside}/board");
         var count = page.GetByTestId("row-count");
         await Assertions.Expect(count).ToHaveTextAsync("3 of 3 plots");
-        await Assertions.Expect(page.Locator("#stage option")).ToHaveCountAsync(9); // all stages, 7 milestones, finished
+        await Assertions.Expect(page.Locator("#stage option")).ToHaveCountAsync(10); // all stages, 8 milestones (C7 added utilities connected), finished
         await Assertions.Expect(page.GetByTestId("board-root")).ToHaveAttributeAsync("data-interactive", "true"); // circuit up
         var keyboard = await Keyboard.CheckTabOrderAsync(page);
         await page.Locator("#plot-search").FillAsync("P1");

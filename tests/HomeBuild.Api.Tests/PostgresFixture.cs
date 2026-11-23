@@ -21,14 +21,14 @@ public sealed class IntegrationDatabase : ICollectionFixture<PostgresFixture>
 }
 
 /// <summary>
-/// One PostgreSQL 18 container and one database for the test run (C6 Lab 3). Migrations run once, with the same
+/// One PostgreSQL 19 container and one database for the test run (C6 Lab 3). Migrations run once, with the same
 /// module-by-module logic as the migration bundles (<see cref="HomeBuildDatabase.MigrateAsync"/>). Before each test the
 /// data is reset by truncating every module table and re-running the seed, not by recreating the database.
 /// </summary>
 public sealed class PostgresFixture : IAsyncLifetime
 {
     // Migration tests still create their own databases, and each ApiFactory has its own connection pool.
-    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:18")
+    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:19")
         .WithCommand("-c", "max_connections=500")
         .Build();
 
