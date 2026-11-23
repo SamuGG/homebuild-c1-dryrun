@@ -68,6 +68,9 @@ if (builder.Environment.IsDevelopment())
 }
 #endif
 
+// C11 Lab 1: a liveness endpoint for the container image ("does the process answer?"); no checks yet (Lab 6 adds them).
+builder.Services.AddHealthChecks();
+
 var app = builder.Build();
 
 // C8 Lab 6: `dotnet run --project src/HomeBuild.Api -- reconcile --from <date> --to <date>` runs the reconciliation
@@ -96,6 +99,8 @@ app.UseRateLimiter();
 app.UseMiddleware<TenantMiddleware>();
 // 8. Idempotency keys (C8 Lab 3): after the tenant, so 400/401/403 answers are never stored; it needs the caller.
 app.UseMiddleware<IdempotencyMiddleware>();
+
+app.MapHealthChecks("/alive").AllowAnonymous().WithMetadata(new TenantNotRequiredAttribute()); // C11 Lab 1
 
 // The OpenAPI document is published only in Development and in CI, where Bruno and reviewers use it.
 if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("CI"))

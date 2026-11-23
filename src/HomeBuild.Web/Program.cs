@@ -27,6 +27,8 @@ builder.Services.AddHttpClient<HomeApiClient>((sp, http) =>
         http.BaseAddress = sp.GetRequiredService<IOptions<CatalogueApiOptions>>().Value.BaseAddress)
     .AddHttpMessageHandler<AccessTokenHandler>();
 
+builder.Services.AddHealthChecks(); // C11 Lab 1: liveness for the container image
+
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
@@ -44,6 +46,7 @@ app.UseAuthorization();
 // <AntiforgeryToken /> renders nothing and tokens are never checked. HomeBuild keeps tokens as a second layer.
 app.UseAntiforgery();
 
+app.MapHealthChecks("/alive").AllowAnonymous(); // C11 Lab 1
 app.MapStaticAssets();
 app.MapAccountEndpoints();
 app.MapFloorPlanEndpoints();

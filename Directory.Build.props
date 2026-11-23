@@ -8,4 +8,28 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
+
+  <!-- C11 Lab 1: images from the SDK (dotnet publish /t:PublishContainer). Shared here; each project sets only its
+       ContainerRepository. .NET 11's chiseled images are Ubuntu 26.04 ("resolute"): no shell, no package manager,
+       non-root (app, UID 1654), port 8080. -->
+  <PropertyGroup>
+    <ContainerFamily>resolute-chiseled</ContainerFamily>
+  </PropertyGroup>
+  <ItemGroup>
+    <ContainerLabel Include="org.opencontainers.image.source" Value="https://github.com/SamuGG/homebuild-c1-dryrun" />
+  </ItemGroup>
+
+  <!-- Tags: the commit (git SHA, 12 characters) and latest (local only: C11 pushes nothing). The SHA is known only
+       after source-control information is read, so the tags and the revision label are set just before the SDK
+       computes the image configuration. -->
+  <Target Name="HomeBuildContainerTags" BeforeTargets="ComputeContainerConfig" DependsOnTargets="InitializeSourceControlInformation">
+    <PropertyGroup>
+      <_HomeBuildRevision>$(SourceRevisionId)</_HomeBuildRevision>
+      <_HomeBuildRevision Condition="'$(_HomeBuildRevision)' == ''">unknown</_HomeBuildRevision>
+      <ContainerImageTags>$(_HomeBuildRevision.Substring(0, $([System.Math]::Min(12, $(_HomeBuildRevision.Length)))));latest</ContainerImageTags>
+    </PropertyGroup>
+    <ItemGroup>
+      <ContainerLabel Include="org.opencontainers.image.revision" Value="$(_HomeBuildRevision)" />
+    </ItemGroup>
+  </Target>
 </Project>
