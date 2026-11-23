@@ -93,6 +93,52 @@ public sealed class NotificationsFunctionTests
         Assert.StartsWith("New extras are open for your home: Premium kitchen, Smart home package.", JsonSerializer.Deserialize(json, MessageJson.Default.BuyerNotification)!.Text, StringComparison.Ordinal);
     }
 
+    // C10 Lab 6: a reminder becomes one email to the address for its kind: plain text plus HTML, the snag's text encoded,
+    // the SES message ID in the log and never the address. A redelivery sends nothing; a failed send can be retried.
+    [Fact]
+    public async Task Snag_reminder_is_emailed_once_to_its_recipient()
+    {
+        var store = new MemoryStore();
+        var email = new MemoryEmail();
+        var function = new NotificationsFunction(store, TimeProvider.System, partialBatchResponses: true, email, new EmailRouting("aftercare@example.test", "buyer@example.test"));
+        var reminder = new SnagReminderMessage(Guid.NewGuid(), Guid.NewGuid(), Tenant, SnagReminderMessage.VisitTomorrow, "Kitchen", "Crack <in> the ceiling",
+            DateTimeOffset.UtcNow, "Northgate Plastering", new DateOnly(2026, 12, 18));
+        var message = Record(IntegrationEvents.SnagReminderDue, JsonSerializer.Serialize(reminder, MessageJson.Default.SnagReminderMessage), Guid.NewGuid());
+        var log = new TestLog();
+
+        email.FailNext = true;
+        Assert.Single((await function.HandleAsync(new SQSEvent { Records = [message] }, new Context(log))).BatchItemFailures);
+        Assert.Empty(store.Objects); // the claim was released
+        await function.HandleAsync(new SQSEvent { Records = [message] }, new Context(log));
+        await function.HandleAsync(new SQSEvent { Records = [message] }, new Context(log)); // redelivered
+
+        var sent = Assert.Single(email.Sent);
+        Assert.Equal(("buyer@example.test", "Your snag visit is tomorrow"), (sent.To, sent.Subject));
+        Assert.Contains("Northgate Plastering will visit on Friday 18 December 2026", sent.Text, StringComparison.Ordinal);
+        Assert.Contains("Crack &lt;in&gt; the ceiling", sent.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("example.test", string.Join("\n", log.Lines), StringComparison.Ordinal);
+        Assert.Contains(log.Lines, l => l.Contains("VisitTomorrow email ses-1", StringComparison.Ordinal));
+    }
+
+    private sealed class MemoryEmail : IEmailSender
+    {
+        public List<EmailMessage> Sent { get; } = [];
+
+        public bool FailNext { get; set; }
+
+        public Task<string> SendAsync(EmailMessage email, CancellationToken cancellationToken)
+        {
+            if (FailNext)
+            {
+                FailNext = false;
+                throw new HttpRequestException("SES unreachable");
+            }
+
+            Sent.Add(email);
+            return Task.FromResult($"ses-{Sent.Count}");
+        }
+    }
+
     private static readonly string[] Milestones = ["Foundations", "Frame", "Roof", "FirstFix", "Plastering", "SecondFix", "UtilitiesConnected", "PracticalCompletion", "Foundations"];
 
     private static SQSEvent.SQSMessage Milestone(Guid unit, int version, Guid? messageId = null) =>
@@ -114,7 +160,7 @@ public sealed class NotificationsFunctionTests
         },
     };
 
-    private sealed class MemoryStore : INotificationStore
+    internal sealed class MemoryStore : INotificationStore
     {
         private int _puts;
 
@@ -128,9 +174,17 @@ public sealed class NotificationsFunctionTests
             Objects[key] = json;
             return Task.CompletedTask;
         }
+
+        public Task<bool> TryClaimAsync(string key, CancellationToken cancellationToken) => Task.FromResult(Objects.TryAdd(key, "{}"u8.ToArray()));
+
+        public Task DeleteAsync(string key, CancellationToken cancellationToken)
+        {
+            Objects.TryRemove(key, out _);
+            return Task.CompletedTask;
+        }
     }
 
-    private sealed class Context : ILambdaContext
+    private sealed class Context(TestLog? log = null) : ILambdaContext
     {
         public string AwsRequestId => "test";
         public IClientContext ClientContext => null!;
@@ -138,7 +192,7 @@ public sealed class NotificationsFunctionTests
         public string FunctionVersion => "$LATEST";
         public ICognitoIdentity Identity => null!;
         public string InvokedFunctionArn => "arn:aws:lambda:eu-west-2:000000000000:function:homebuild-notifications";
-        public ILambdaLogger Logger { get; } = new TestLog();
+        public ILambdaLogger Logger { get; } = log ?? new TestLog();
         public string LogGroupName => "/aws/lambda/homebuild-notifications";
         public string LogStreamName => "test";
         public int MemoryLimitInMB => 256;
@@ -147,7 +201,13 @@ public sealed class NotificationsFunctionTests
 
     private sealed class TestLog : ILambdaLogger
     {
-        public void Log(string message) => TestContext.Current.TestOutputHelper?.WriteLine(message);
+        public ConcurrentQueue<string> Lines { get; } = new();
+
+        public void Log(string message)
+        {
+            Lines.Enqueue(message);
+            TestContext.Current.TestOutputHelper?.WriteLine(message);
+        }
 
         public void LogLine(string message) => Log(message);
     }

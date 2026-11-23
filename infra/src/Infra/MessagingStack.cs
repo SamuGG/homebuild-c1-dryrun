@@ -26,7 +26,7 @@ public sealed class MessagingStack : Stack
         // milestone (C7's in-process handler moves here) and expiries (Lab 6 also sends ReservationExpiryDue directly).
         ["payments"] = ["DepositPaid", "MilestoneCompleted", "ReservationExpired"],
         // The buyer's messages (Lab 7's Lambda): progress, the contract, an expired hold; C10: extras now open.
-        ["notifications"] = ["MilestoneCompleted", "ContractIssued", "ReservationExpired", "ExtrasUnlocked"],
+        ["notifications"] = ["MilestoneCompleted", "ContractIssued", "ReservationExpired", "ExtrasUnlocked", "SnagReminderDue"], // C10 Lab 6: reminder emails
         // C16's cache invalidation: availability changes when a hold ends.
         ["cache-invalidation"] = ["ReservationExpired"],
         // C10 Lab 1: Extras keeps its own copy of each unit's progress (the API consumes this queue).

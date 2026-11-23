@@ -38,7 +38,9 @@ if (app.Node.TryGetContext("notificationsLambda") is "true")
     var notifications = new NotificationsLambdaStack(app, "HomeBuild-Notifications", new StackProps { Env = env }, storage.Bucket,
         artifacts: System.IO.Path.GetFullPath("../artifacts"), partialBatch: app.Node.TryGetContext("partialBatch") is not "false",
         batchingWindowSeconds: int.TryParse(app.Node.TryGetContext("batchingWindow") as string, out var window) ? window : null,
-        withJit: app.Node.TryGetContext("jit") is "true");
+        withJit: app.Node.TryGetContext("jit") is "true",
+        // C10 Lab 6: SES addresses, given at deploy time (never committed): -c emailFrom=… -c aftercareEmail=… -c buyerEmail=…
+        email: app.Node.TryGetContext("emailFrom") is string from ? new NotificationEmail(from, app.Node.TryGetContext("aftercareEmail") as string ?? from, app.Node.TryGetContext("buyerEmail") as string ?? from) : null);
     // Built in C9 Lab 7, destroyed, redeployed in C10 Lab 1 (ExtrasUnlocked; Lab 6 adds email).
     Tags.Of(notifications).Add("lab", "c10-lab1");
 }

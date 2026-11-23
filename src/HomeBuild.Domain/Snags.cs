@@ -145,6 +145,9 @@ public enum SnagEntryKind
 
     /// <summary>C10 Lab 5: a photo (its S3 key in <see cref="SnagEntry.Text"/>), from either party.</summary>
     Photo,
+
+    /// <summary>C10 Lab 6: a reminder was sent to the buyer (Aftercare's own reminders are internal notes).</summary>
+    Reminder,
 }
 
 /// <summary>One line of a snag's timeline: who (actor and their ID), when, and what (a transition, a comment or a note).</summary>
@@ -216,7 +219,7 @@ public sealed class Snag
         {
             var text = moved.To switch
             {
-                SnagState.Scheduled s => $"Visit by {s.Subcontractor} on {s.VisitOn:d MMMM yyyy}",
+                SnagState.Scheduled s => string.Create(System.Globalization.CultureInfo.GetCultureInfo("en-GB"), $"Visit by {s.Subcontractor} on {s.VisitOn:d MMMM yyyy}"), // not the server's culture
                 SnagState.Disputed d => d.Reason,
                 _ => action.ToString(),
             };
@@ -239,6 +242,26 @@ public sealed class Snag
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         _timeline.Add(new SnagEntry(Guid.CreateVersion7(), SnagEntryKind.Photo, actor, actorId, at, key));
     }
+
+    /// <summary>
+    /// C10 Lab 6: records that a reminder went out, once: false if this reminder is already in the timeline (a schedule
+    /// that fired twice). Aftercare's reminders are internal notes; the buyer's show in their timeline.
+    /// </summary>
+    public bool RecordReminder(string text, bool toAftercare, DateTimeOffset at)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(text);
+        var kind = toAftercare ? SnagEntryKind.InternalNote : SnagEntryKind.Reminder;
+        if (_timeline.Any(e => e.Kind == kind && e.Text == text))
+        {
+            return false;
+        }
+
+        _timeline.Add(new SnagEntry(Guid.CreateVersion7(), kind, SnagActor.Aftercare, "system", at, text));
+        return true;
+    }
+
+    /// <summary>When the snag was last reported (its Reported transition, or creation for a staff-recorded snag).</summary>
+    public DateTimeOffset? ReportedAt => _timeline.LastOrDefault(e => e.To == nameof(SnagState.Reported))?.At;
 
     /// <summary>Aftercare only (the caller checks the role); never shown to the buyer.</summary>
     public void InternalNote(string staffId, string text, DateTimeOffset at)

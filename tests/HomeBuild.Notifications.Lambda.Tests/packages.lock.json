@@ -149,6 +149,7 @@
         "type": "Project",
         "dependencies": {
           "AWSSDK.S3": "[4.1.1, )",
+          "AWSSDK.SimpleEmailV2": "[4.1.1, )",
           "Amazon.Lambda.Core": "[3.4.0, )",
           "Amazon.Lambda.RuntimeSupport": "[2.3.1, )",
           "Amazon.Lambda.SQSEvents": "[3.0.1, )",
@@ -195,6 +196,15 @@
         "requested": "[4.1.1, )",
         "resolved": "4.1.1",
         "contentHash": "iqT0dNuaUHkh4hHyG40/brQj0220YomPzAmhSrx82xul+LNTUTMzxcQSQrD+rvtHMlOwxmqaN+xhCnthgKNIFw==",
+        "dependencies": {
+          "AWSSDK.Core": "[4.1.1.1, 5.0.0)"
+        }
+      },
+      "AWSSDK.SimpleEmailV2": {
+        "type": "CentralTransitive",
+        "requested": "[4.1.1, )",
+        "resolved": "4.1.1",
+        "contentHash": "CMWkFh1cQ0//BBaIfpHTpWDGctbF1uS7J1tThWHMEDq5Whon0wyL/XIQONeEto3jJoV6LekPCkH0Wc1pFSz/Qw==",
         "dependencies": {
           "AWSSDK.Core": "[4.1.1.1, 5.0.0)"
         }

@@ -21,7 +21,8 @@ namespace Infra;
 public sealed class NotificationsLambdaStack : Stack
 #pragma warning restore CA1711
 {
-    public NotificationsLambdaStack(Construct scope, string id, IStackProps props, IBucket bucket, string artifacts, bool partialBatch, int? batchingWindowSeconds = null, bool withJit = false) : base(scope, id, props)
+    public NotificationsLambdaStack(Construct scope, string id, IStackProps props, IBucket bucket, string artifacts, bool partialBatch, int? batchingWindowSeconds = null, bool withJit = false,
+        NotificationEmail? email = null) : base(scope, id, props)
     {
         // By name, not a cross-stack reference: the messaging stack stays unchanged.
         var queue = Queue.FromQueueArn(this, "NotificationsQueue", $"arn:{Aws.PARTITION}:sqs:{Region}:{Account}:homebuild-notifications");
@@ -61,6 +62,20 @@ public sealed class NotificationsLambdaStack : Stack
                 },
             });
             bucket.GrantPut(function, "notifications/*");
+            bucket.GrantReadWrite(function, "emails/*"); // C10 Lab 6: the send-once claims (conditional put, delete on failure)
+            if (email is not null)
+            {
+                function.AddEnvironment("EMAIL_FROM", email.From);
+                function.AddEnvironment("AFTERCARE_EMAIL", email.Aftercare);
+                function.AddEnvironment("BUYER_EMAIL", email.Buyer);
+                // SES checks the sender identity and, in the sandbox, every recipient identity: allow those identities only.
+                function.AddToRolePolicy(new PolicyStatement(new PolicyStatementProps
+                {
+                    Sid = "SendSnagReminders",
+                    Actions = ["ses:SendEmail"],
+                    Resources = [.. new[] { email.From, email.Aftercare, email.Buyer }.Distinct().Select(a => $"arn:{Aws.PARTITION}:ses:{Region}:{Account}:identity/{a}")],
+                }));
+            }
 
             if (kind == "aot")
             {
@@ -75,3 +90,6 @@ public sealed class NotificationsLambdaStack : Stack
         }
     }
 }
+
+/// <summary>C10 Lab 6: the notification emails' sender and recipients (SES sandbox: all verified addresses).</summary>
+public sealed record NotificationEmail(string From, string Aftercare, string Buyer);

@@ -42,6 +42,15 @@
           "AWSSDK.Core": "[4.1.1.1, 5.0.0)"
         }
       },
+      "AWSSDK.SimpleEmailV2": {
+        "type": "Direct",
+        "requested": "[4.1.1, )",
+        "resolved": "4.1.1",
+        "contentHash": "CMWkFh1cQ0//BBaIfpHTpWDGctbF1uS7J1tThWHMEDq5Whon0wyL/XIQONeEto3jJoV6LekPCkH0Wc1pFSz/Qw==",
+        "dependencies": {
+          "AWSSDK.Core": "[4.1.1.1, 5.0.0)"
+        }
+      },
       "Microsoft.NET.ILLink.Tasks": {
         "type": "Direct",
         "requested": "[11.0.0, )",

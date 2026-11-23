@@ -46,13 +46,21 @@ public sealed class SchedulingOptions
 /// What a schedule sends: the body is all there is (EventBridge Scheduler's SQS target sets no message attributes), so
 /// the type travels in it. Recurring schedules fill <see cref="ScheduledTime"/> from <c>&lt;aws.scheduler.scheduled-time&gt;</c>.
 /// </summary>
-public sealed record ScheduledMessage(string Type, Guid? ReservationId = null, Guid? TenantId = null, DateTimeOffset? ExpiresAt = null, DateTimeOffset? ScheduledTime = null)
+/// <remarks>C10 Lab 6 adds the snag jobs: <see cref="SnagId"/>, the deadline <see cref="DueAt"/> and, for a visit, its date.</remarks>
+public sealed record ScheduledMessage(string Type, Guid? ReservationId = null, Guid? TenantId = null, DateTimeOffset? ExpiresAt = null, DateTimeOffset? ScheduledTime = null,
+    Guid? SnagId = null, DateTimeOffset? DueAt = null, DateOnly? VisitOn = null)
 {
+    public const string SnagAcknowledgementDue = nameof(SnagAcknowledgementDue);
+    public const string SnagVisitDue = nameof(SnagVisitDue);
+
     public const string ReservationExpiryDue = nameof(ReservationExpiryDue);
     public const string HourlyCleanup = nameof(HourlyCleanup);
     public const string NightlyReconciliation = nameof(NightlyReconciliation);
 
     public static ScheduledMessage ExpiryDue(Guid reservationId, Guid tenantId, DateTimeOffset expiresAt) => new(ReservationExpiryDue, reservationId, tenantId, expiresAt);
+
+    public static ScheduledMessage SnagDue(string type, Guid snagId, Guid tenantId, DateTimeOffset dueAt, DateOnly? visitOn = null) =>
+        new(type, TenantId: tenantId, SnagId: snagId, DueAt: dueAt, VisitOn: visitOn);
 }
 
 /// <summary>A message arrived before the hold's end (clock skew): retried after a back-off, like any transient failure.</summary>
@@ -92,6 +100,10 @@ internal sealed partial class ScheduledWorkHandler(IServiceProvider services, Ti
         {
             case { Type: ScheduledMessage.ReservationExpiryDue, ReservationId: { } id, TenantId: { } tenant }:
                 await ExpireAsync(new ReservationId(id), tenant, cancellationToken);
+                break;
+            case { Type: ScheduledMessage.SnagAcknowledgementDue or ScheduledMessage.SnagVisitDue, SnagId: not null, TenantId: { } snagTenant }:
+                services.GetRequiredService<RequestTenantContext>().TenantId = snagTenant; // row-level security: this tenant only
+                await ActivatorUtilities.CreateInstance<HomeBuild.Api.Modules.Aftercare.SnagReminderJob>(services).RunAsync(scheduled, cancellationToken);
                 break;
             case { Type: ScheduledMessage.HourlyCleanup }:
                 await CleanUpAsync(cancellationToken);

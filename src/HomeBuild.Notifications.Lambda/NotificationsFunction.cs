@@ -17,12 +17,33 @@ public sealed record BuyerNotification(
 public interface INotificationStore
 {
     Task PutAsync(string key, byte[] json, CancellationToken cancellationToken);
+
+    /// <summary>C10 Lab 6: creates the object only if it does not exist; false if another delivery got there first.</summary>
+    Task<bool> TryClaimAsync(string key, CancellationToken cancellationToken);
+
+    Task DeleteAsync(string key, CancellationToken cancellationToken);
 }
 
 public sealed class S3NotificationStore(IAmazonS3 s3, string bucket) : INotificationStore
 {
     public Task PutAsync(string key, byte[] json, CancellationToken cancellationToken) =>
         s3.PutObjectAsync(new PutObjectRequest { BucketName = bucket, Key = key, InputStream = new MemoryStream(json), ContentType = "application/json" }, cancellationToken);
+
+    public async Task<bool> TryClaimAsync(string key, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // S3 conditional write: If-None-Match: * fails with 412 when the key exists.
+            await s3.PutObjectAsync(new PutObjectRequest { BucketName = bucket, Key = key, ContentBody = "{}", ContentType = "application/json", IfNoneMatch = "*" }, cancellationToken);
+            return true;
+        }
+        catch (AmazonS3Exception e) when (e.StatusCode is System.Net.HttpStatusCode.PreconditionFailed or System.Net.HttpStatusCode.Conflict)
+        {
+            return false;
+        }
+    }
+
+    public Task DeleteAsync(string key, CancellationToken cancellationToken) => s3.DeleteObjectAsync(bucket, key, cancellationToken);
 }
 
 /// <summary>
@@ -32,7 +53,12 @@ public sealed class S3NotificationStore(IAmazonS3 s3, string bucket) : INotifica
 /// duplicate overwrites the same object: idempotent without a database. A message that fails is reported in the
 /// partial batch response, so only it is retried; with partial responses off the whole batch fails and is retried.
 /// </summary>
-public sealed class NotificationsFunction(INotificationStore store, TimeProvider time, bool partialBatchResponses)
+/// <remarks>
+/// C10 Lab 6: SnagReminderDue is an email through SES, not a stored notification. A claim object at
+/// <c>emails/{messageId}</c> (an S3 conditional write) makes a redelivered message send nothing; a failed send releases
+/// the claim so the retry sends it.
+/// </remarks>
+public sealed class NotificationsFunction(INotificationStore store, TimeProvider time, bool partialBatchResponses, IEmailSender? email = null, EmailRouting? routing = null)
 {
     public async Task<SQSBatchResponse> HandleAsync(SQSEvent sqsEvent, ILambdaContext context)
     {
@@ -69,6 +95,11 @@ public sealed class NotificationsFunction(INotificationStore store, TimeProvider
         var messageId = Guid.TryParse(record.MessageAttributes?.GetValueOrDefault("message_id")?.StringValue, out var id) ? id
             : throw new InvalidOperationException($"Message {record.MessageId} has no message_id attribute.");
         var now = time.GetUtcNow();
+        if (type == IntegrationEvents.SnagReminderDue)
+        {
+            return await EmailAsync(messageId, Read(record.Body, MessageJson.Default.SnagReminderMessage), cancellationToken);
+        }
+
         var notification = type switch
         {
             IntegrationEvents.MilestoneCompleted when Read(record.Body, MessageJson.Default.MilestoneCompletedMessage) is var m =>
@@ -90,6 +121,29 @@ public sealed class NotificationsFunction(INotificationStore store, TimeProvider
         return key;
     }
 
+    private async Task<string> EmailAsync(Guid messageId, SnagReminderMessage reminder, CancellationToken cancellationToken)
+    {
+        var to = (routing ?? throw new InvalidOperationException("Email is not configured (no routing).")).For(reminder.Kind)
+            ?? throw new InvalidOperationException($"No recipient is configured for {reminder.Kind}.");
+        var sender = email ?? throw new InvalidOperationException("Email is not configured (no sender).");
+        var claim = $"emails/{reminder.TenantId}/{messageId}.json";
+        if (!await store.TryClaimAsync(claim, cancellationToken))
+        {
+            return $"{claim} (already sent)";
+        }
+
+        try
+        {
+            var sesId = await sender.SendAsync(SnagEmailTemplates.For(reminder, to), cancellationToken);
+            return $"{claim} ({reminder.Kind} email {sesId})"; // the provider's ID, never the address
+        }
+        catch
+        {
+            await store.DeleteAsync(claim, cancellationToken);
+            throw;
+        }
+    }
+
     public static string KeyFor(BuyerNotification n) => n.BuyerId is { } buyer
         ? $"notifications/{n.TenantId}/{buyer}/{n.MessageId}.json"
         : $"notifications/{n.TenantId}/units/{n.UnitId}/{n.MessageId}.json";
@@ -107,6 +161,7 @@ public sealed class NotificationsFunction(INotificationStore store, TimeProvider
 [JsonSerializable(typeof(ReservationExpiredMessage))]
 [JsonSerializable(typeof(ExtrasUnlockedMessage))]
 [JsonSerializable(typeof(BuyerNotification))]
+[JsonSerializable(typeof(SnagReminderMessage))]
 public sealed partial class MessageJson : JsonSerializerContext;
 
 /// <summary>Source-generated JSON for the Lambda event and response.</summary>
