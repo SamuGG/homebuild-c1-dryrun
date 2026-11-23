@@ -196,7 +196,8 @@ internal static class ScheduledWorkServices
         {
             services.TryAddSingleton<IAmazonSQS>(_ => new AmazonSQSClient(RegionEndpoint.EUWest2));
             var options = configuration.GetSection($"{SchedulingOptions.Section}:Consumer").Get<ConsumerOptions>() ?? new ConsumerOptions { Processors = 2, VisibilityTimeout = TimeSpan.FromMinutes(5) };
-            services.AddHostedService(sp => new QueueConsumer(ScheduledWorkHandler.Name, new SqsQueueClient(sp.GetRequiredService<IAmazonSQS>(), queueUrl),
+            // AddSingleton, not AddHostedService: that adds through TryAddEnumerable, one per implementation type, so a second QueueConsumer in the host was dropped (C10 Lab 7).
+            services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(sp => new QueueConsumer(ScheduledWorkHandler.Name, new SqsQueueClient(sp.GetRequiredService<IAmazonSQS>(), queueUrl),
                 sp.GetRequiredService<IServiceScopeFactory>(), options, sp.GetRequiredService<ILogger<QueueConsumer>>()));
         }
 

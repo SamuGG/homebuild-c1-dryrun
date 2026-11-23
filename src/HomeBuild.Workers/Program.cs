@@ -51,13 +51,14 @@ namespace HomeBuild.Workers
                 services.AddSingleton<IQueueClient>(sp => new SqsQueueClient(sp.GetRequiredService<IAmazonSQS>(), queueUrl));
                 services.AddSingleton(sp => new QueueConsumer(ContractWorker.Name, sp.GetRequiredService<IQueueClient>(), sp.GetRequiredService<IServiceScopeFactory>(),
                     sp.GetRequiredService<IOptions<ConsumerOptions>>().Value, sp.GetRequiredService<ILogger<QueueConsumer>>()));
-                services.AddHostedService(sp => sp.GetRequiredService<QueueConsumer>());
+                services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(sp => sp.GetRequiredService<QueueConsumer>()); // not AddHostedService: see the notifications consumer below
             }
 
             if (configuration["Workers:Notifications:QueueUrl"] is { Length: > 0 } notificationsUrl)
             {
                 var options = configuration.GetSection("Workers:Notifications").Get<ConsumerOptions>() ?? new ConsumerOptions();
-                services.AddHostedService(sp => new QueueConsumer(NotificationWorker.Name, new SqsQueueClient(sp.GetRequiredService<IAmazonSQS>(), notificationsUrl),
+                // AddSingleton, not AddHostedService: that adds through TryAddEnumerable, one per implementation type, so a second QueueConsumer in the host was dropped (C10 Lab 7).
+                services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(sp => new QueueConsumer(NotificationWorker.Name, new SqsQueueClient(sp.GetRequiredService<IAmazonSQS>(), notificationsUrl),
                     sp.GetRequiredService<IServiceScopeFactory>(), options, sp.GetRequiredService<ILogger<QueueConsumer>>()));
             }
 
