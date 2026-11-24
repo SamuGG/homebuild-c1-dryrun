@@ -9,17 +9,17 @@
       ],
       "rollForward": false
     },
-    "aspire.cli": {
-      "version": "17.0.0",
-      "commands": [
-        "aspire"
-      ],
-      "rollForward": false
-    },
     "dotnet-counters": {
       "version": "10.0.750501",
       "commands": [
         "dotnet-counters"
+      ],
+      "rollForward": false
+    },
+    "aspire.cli": {
+      "version": "17.0.0",
+      "commands": [
+        "aspire"
       ],
       "rollForward": false
     }
