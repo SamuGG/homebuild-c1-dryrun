@@ -28,9 +28,11 @@ App Prepared(Constructs.Construct scope)
 }
 
 var identity = builder.AddAWSCDKStack("identity", scope => HomeBuildStacks.Identity(Prepared(scope), env)).WithReference(awsConfig);
+// C10 Lab 5's snag photo CDN is opt-in since the C11 teardown (Storage:SnagPhotosCdn=true).
+var snagPhotosCdn = builder.Configuration["Storage:SnagPhotosCdn"] is "true";
 var storage = builder.AddAWSCDKStack("storage", scope =>
 {
-    var stack = HomeBuildStacks.Storage(Prepared(scope), env, Path.Combine(infra, "keys"));
+    var stack = HomeBuildStacks.Storage(Prepared(scope), env, Path.Combine(infra, "keys"), snagPhotosCdn);
     HomeBuildStacks.KeepNotificationsOutputs(stack); // HomeBuild-Notifications (C10) reads these; the AppHost doesn't own it
     return stack;
 }).WithReference(awsConfig);
@@ -71,8 +73,6 @@ var api = builder.AddDotnetProject("api", "../HomeBuild.Api/HomeBuild.Api.csproj
     .WithEnvironment("Storage__BucketName", storage.GetOutput("BucketName"))
     .WithEnvironment("Storage__UploadRoleArn", storage.GetOutput("UploadRoleArn"))
     .WithEnvironment("Notifications__BucketName", storage.GetOutput("BucketName"))
-    .WithEnvironment("CloudFront__Domain", storage.GetOutput("PhotosDomain"))
-    .WithEnvironment("CloudFront__KeyPairId", storage.GetOutput("SnagPhotosKeyId"))
     .WithEnvironment("Messaging__TopicArn", messaging.GetOutput("TopicArn"))
     .WithEnvironment("Messaging__RelayEnabled", "true")
     .WithEnvironment("Extras__QueueUrl", messaging.GetOutput("ExtrasQueueUrl"))
@@ -81,6 +81,12 @@ var api = builder.AddDotnetProject("api", "../HomeBuild.Api/HomeBuild.Api.csproj
     .WaitFor(identity).WaitFor(storage).WaitFor(messaging)
     .WithHttpHealthCheck("/alive")
     .WaitForCompletion(migrations);
+
+if (snagPhotosCdn)
+{
+    api.WithEnvironment("CloudFront__Domain", storage.GetOutput("PhotosDomain"))
+        .WithEnvironment("CloudFront__KeyPairId", storage.GetOutput("SnagPhotosKeyId"));
+}
 
 var workers = builder.AddDotnetProject("workers", "../HomeBuild.Workers/HomeBuild.Workers.csproj")
     .WithEnvironment("ConnectionStrings__HomeBuild", appConnection)
