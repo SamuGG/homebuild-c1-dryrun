@@ -2251,6 +2251,18 @@
           }
         }
       }
+    },
+    "/ready": {
+      "get": {
+        "tags": [
+          "HomeBuild.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -4312,6 +4324,9 @@
     },
     {
       "name": "Extras"
+    },
+    {
+      "name": "HomeBuild.Api"
     },
     {
       "name": "Notifications"

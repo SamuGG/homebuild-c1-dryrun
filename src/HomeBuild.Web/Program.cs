@@ -28,6 +28,9 @@ builder.Services.AddHttpClient<HomeApiClient>((sp, http) =>
     .AddHttpMessageHandler<AccessTokenHandler>();
 
 builder.AddServiceDefaults(); // C11 Lab 4: OpenTelemetry, health checks (/alive since Lab 1), service discovery, resilience
+builder.Services.AddHealthChecks() // C11 Lab 6: readiness: the API and the token store answer
+    .AddReadinessCheck<HomeBuild.Web.Api.ApiReachableCheck>("api")
+    .AddReadinessCheck<HomeBuild.Web.Api.TokenCacheReachableCheck>("token-store");
 
 // C11 Lab 4: under the AppHost the token store (IDistributedCache) lives in Valkey, so sign-ins survive a restart of
 // the web app; without it (tests, CI) it stays in memory.

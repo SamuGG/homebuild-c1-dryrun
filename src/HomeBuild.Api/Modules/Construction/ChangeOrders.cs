@@ -145,7 +145,7 @@ internal static class ChangeOrderServices
             var options = configuration.GetSection("ChangeOrders:Consumer").Get<ConsumerOptions>() ?? new ConsumerOptions { Processors = 2, VisibilityTimeout = TimeSpan.FromMinutes(1) };
             // AddSingleton, not AddHostedService: that adds through TryAddEnumerable, one per implementation type, so a second QueueConsumer in the host was dropped (C10 Lab 7).
             services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(sp => new QueueConsumer(ChangeOrdersConsumer.Name, new SqsQueueClient(sp.GetRequiredService<Amazon.SQS.IAmazonSQS>(), queueUrl),
-                sp.GetRequiredService<IServiceScopeFactory>(), options, sp.GetRequiredService<ILogger<QueueConsumer>>(), sp.GetRequiredService<ConsumerPauses>()));
+                sp.GetRequiredService<IServiceScopeFactory>(), options, sp.GetRequiredService<ILogger<QueueConsumer>>(), sp.GetRequiredService<ConsumerPauses>(), sp.GetService<ConsumerReadiness>()));
         }
 
         return services;

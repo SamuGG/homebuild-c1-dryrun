@@ -666,6 +666,18 @@
           }
         }
       }
+    },
+    "/ready": {
+      "get": {
+        "tags": [
+          "HomeBuild.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1316,6 +1328,9 @@
     },
     {
       "name": "Catalogue"
+    },
+    {
+      "name": "HomeBuild.Api"
     },
     {
       "name": "Payments"

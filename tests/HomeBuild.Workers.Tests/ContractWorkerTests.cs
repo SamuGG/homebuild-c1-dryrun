@@ -131,6 +131,61 @@ public sealed class ContractWorkerTests(PostgresFixture database)
         Assert.Equal(0, await worker.ContractsAsync());
     }
 
+    // C11 Lab 6: a host that is not ready (its database or queue unreachable) receives nothing; once ready, it receives.
+    [Fact]
+    public async Task Worker_stops_receiving_when_not_ready()
+    {
+        var queue = new CountingQueue();
+        var readiness = new ConsumerReadiness(); // not ready until the first readiness report says so
+        await using var worker = WorkerHarness.Create(await database.CreateDatabaseAsync());
+        using var consumer = new QueueConsumer(ContractWorker.Name, queue, worker.Services.GetRequiredService<IServiceScopeFactory>(),
+            new ConsumerOptions(), Microsoft.Extensions.Logging.Abstractions.NullLogger<QueueConsumer>.Instance, readiness: readiness);
+
+        await consumer.StartAsync(Ct);
+        await Task.Delay(1_000, Ct);
+        var whileNotReady = queue.Receives;
+        readiness.Set(true);
+        for (var i = 0; i < 50 && queue.Receives == 0; i++)
+        {
+            await Task.Delay(50, Ct);
+        }
+
+        var onceReady = queue.Receives;
+        readiness.Set(false);
+        await Task.Delay(300, Ct); // a receive in progress finishes; then no more
+        var afterNotReadyAgain = queue.Receives;
+        await Task.Delay(1_000, Ct);
+        await consumer.StopAsync(Ct);
+
+        TestContext.Current.TestOutputHelper?.WriteLine($"receives: not ready {whileNotReady}, ready {onceReady}, not ready again +{queue.Receives - afterNotReadyAgain}");
+        Assert.Equal(0, whileNotReady);
+        Assert.True(onceReady > 0, "no receive once ready");
+        Assert.Equal(afterNotReadyAgain, queue.Receives);
+    }
+
+    /// <summary>A queue that counts receives and answers each with nothing after a short wait.</summary>
+    private sealed class CountingQueue : IQueueClient
+    {
+        private int _receives;
+
+        public int Receives => Volatile.Read(ref _receives);
+
+        public async Task<IReadOnlyList<QueueMessage>> ReceiveAsync(int maxMessages, TimeSpan wait, CancellationToken cancellationToken)
+        {
+            Interlocked.Increment(ref _receives);
+            await Task.Delay(50, CancellationToken.None);
+            return [];
+        }
+
+        public Task DeleteAsync(QueueMessage message, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task ReleaseAsync(QueueMessage message, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task ChangeVisibilityAsync(QueueMessage message, TimeSpan timeout, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task<int> DepthAsync(CancellationToken cancellationToken) => Task.FromResult(0);
+    }
+
     /// <summary>A queue whose receive is a long poll that answers only when messages arrive, whatever the token says.</summary>
     private sealed class PollingQueue : IQueueClient
     {

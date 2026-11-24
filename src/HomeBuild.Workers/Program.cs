@@ -18,7 +18,21 @@ using Microsoft.Extensions.Options;
 var builder = WebApplication.CreateSlimBuilder(args);
 builder.Services.AddWorkers(builder.Configuration);
 builder.AddServiceDefaults(); // C11 Lab 4: OpenTelemetry and health checks
+
+// C11 Lab 6: readiness (database with the workers' tables, and the contracts queue when it is configured); the
+// consumers stop receiving while the host is not ready.
+var readinessChecks = builder.Services.AddHealthChecks()
+    .AddReadinessCheck("database", sp => new DatabaseReadyCheck(sp.GetRequiredService<IServiceScopeFactory>(), typeof(ContractsDbContext), typeof(NotificationsDbContext)));
+if (builder.Configuration["Workers:Contracts:QueueUrl"] is { Length: > 0 } contractsUrl)
+{
+    readinessChecks.AddReadinessCheck("queue:contracts", sp => new QueueReachableCheck(sp.GetRequiredService<IAmazonSQS>(), contractsUrl));
+}
+
+builder.Services.AddSingleton<ConsumerReadiness>();
 var app = builder.Build();
+var consumerReadiness = app.Services.GetRequiredService<ConsumerReadiness>();
+app.Services.GetRequiredService<ReadinessCache>().Published +=
+    report => consumerReadiness.Set(report.Status == Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy);
 app.MapDefaultEndpoints();
 app.Run();
 
@@ -55,7 +69,7 @@ namespace HomeBuild.Workers
             {
                 services.AddSingleton<IQueueClient>(sp => new SqsQueueClient(sp.GetRequiredService<IAmazonSQS>(), queueUrl));
                 services.AddSingleton(sp => new QueueConsumer(ContractWorker.Name, sp.GetRequiredService<IQueueClient>(), sp.GetRequiredService<IServiceScopeFactory>(),
-                    sp.GetRequiredService<IOptions<ConsumerOptions>>().Value, sp.GetRequiredService<ILogger<QueueConsumer>>()));
+                    sp.GetRequiredService<IOptions<ConsumerOptions>>().Value, sp.GetRequiredService<ILogger<QueueConsumer>>(), readiness: sp.GetService<ConsumerReadiness>()));
                 services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(sp => sp.GetRequiredService<QueueConsumer>()); // not AddHostedService: see the notifications consumer below
             }
 
@@ -64,7 +78,7 @@ namespace HomeBuild.Workers
                 var options = configuration.GetSection("Workers:Notifications").Get<ConsumerOptions>() ?? new ConsumerOptions();
                 // AddSingleton, not AddHostedService: that adds through TryAddEnumerable, one per implementation type, so a second QueueConsumer in the host was dropped (C10 Lab 7).
                 services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(sp => new QueueConsumer(NotificationWorker.Name, new SqsQueueClient(sp.GetRequiredService<IAmazonSQS>(), notificationsUrl),
-                    sp.GetRequiredService<IServiceScopeFactory>(), options, sp.GetRequiredService<ILogger<QueueConsumer>>()));
+                    sp.GetRequiredService<IServiceScopeFactory>(), options, sp.GetRequiredService<ILogger<QueueConsumer>>(), readiness: sp.GetService<ConsumerReadiness>()));
             }
 
             if (configuration["Workers:Contracts:DeadLetterQueueUrl"] is { Length: > 0 } dlqUrl)
