@@ -166,12 +166,30 @@
           "YamlDotNet": "18.1.0"
         }
       },
+      "AWSSDK.S3": {
+        "type": "Direct",
+        "requested": "[4.1.2, )",
+        "resolved": "4.1.2",
+        "contentHash": "vGRpeXIxK7uRRHzVIrp2dYDri4wwlerUutG8TG7jHMolb3hX6Zu6VVDZpmwB8AlTIZ9BKLIV+V4Oi4xEsamZsQ==",
+        "dependencies": {
+          "AWSSDK.Core": "[4.1.1.1, 5.0.0)"
+        }
+      },
+      "AWSSDK.SecurityToken": {
+        "type": "Direct",
+        "requested": "[4.1.1.1, )",
+        "resolved": "4.1.1.1",
+        "contentHash": "kPtMCvLbVqG/vwsdXwNlwVTkxNcfIBh9MnXacfv8rrdZaZrbLCxRqdGCdGY2Ccc08ySqkwThMLHKu6jUyA88OA==",
+        "dependencies": {
+          "AWSSDK.Core": "[4.1.1.2, 5.0.0)"
+        }
+      },
       "Amazon.CDK.Asset.AwsCliV1": {
         "type": "Transitive",
-        "resolved": "2.2.292",
-        "contentHash": "W0nD1GZzxspjnHzkyuZpwvgR2XSqg7K4GONsWeM2FzEXyo+8b//rOuJvXDsr93LtMXcDdbGGyIFmz0q1p17+eg==",
+        "resolved": "2.2.297",
+        "contentHash": "qVD7skXaGQnjvTLcKNPIG6Bh/NctuMc57CGVAQfLCdCRASJ9XyxXFAaxQoej4d+p6lXgTYoK9hPRYuySr5SwSg==",
         "dependencies": {
-          "Amazon.JSII.Runtime": "[1.139.0, 2.0.0)"
+          "Amazon.JSII.Runtime": "[1.142.0, 2.0.0)"
         }
       },
       "Amazon.CDK.Asset.NodeProxyAgentV6": {
@@ -192,8 +210,8 @@
       },
       "Amazon.JSII.Runtime": {
         "type": "Transitive",
-        "resolved": "1.142.0",
-        "contentHash": "H5wewjvo3nFeTfvEV7y31e5rIfYqJhq617SJsrZOa6JQtuMMIv9Skg99+8tJVnLS2lHtsPY4i36lZA7LD6J65Q==",
+        "resolved": "1.143.0",
+        "contentHash": "wLBinmA30fsDEKou5W1ZSBuYEEVYYLLkDjRJYSg8KBukA+QR4ohjLEkApJYofjrhf8pycQ5NTnFKzWAmdqhksA==",
         "dependencies": {
           "Microsoft.Extensions.DependencyInjection": "9.0.1",
           "Microsoft.Extensions.Logging": "9.0.1",
@@ -321,8 +339,12 @@
       },
       "AWSSDK.Core": {
         "type": "Transitive",
-        "resolved": "4.0.102.1",
-        "contentHash": "vsf+/o+S/euH/wG7bO1cha+OWaHvjgvpDeGFO6l3Vcdio9GlSfXkZDD2BogMuAJ+/jDyqqSgqmYVolPKV9ie/A=="
+        "resolved": "4.1.1.2",
+        "contentHash": "RETCWprYHiCwwL6mgLnhCF/w7gwpHaGVIKU+Th+xDs0yzs2b7rgz09nicLT5+k0qm7OJxze6fqiU4ZdmC3tu5A==",
+        "dependencies": {
+          "AWSSDK.Extensions.Numerics": "[4.1.0, 5.0.0)",
+          "System.IO.Hashing": "11.0.0"
+        }
       },
       "AWSSDK.Extensions.NETCore.Setup": {
         "type": "Transitive",
@@ -331,6 +353,11 @@
         "dependencies": {
           "AWSSDK.Core": "4.0.101.1"
         }
+      },
+      "AWSSDK.Extensions.Numerics": {
+        "type": "Transitive",
+        "resolved": "4.1.0",
+        "contentHash": "hhoiXT1aUyVgIiQbQoqG3L1EEneqXDh2GKyH5izUlO6Rzi9GAAi8S6mlLiVwow23+EGg77zHjdmUi+ia3RSUTg=="
       },
       "AWSSDK.Lambda": {
         "type": "Transitive",
@@ -834,39 +861,21 @@
       "infra": {
         "type": "Project",
         "dependencies": {
-          "Amazon.CDK.Lib": "[2.277.0, )",
+          "Amazon.CDK.Lib": "[2.278.0, )",
           "Constructs": "[10.8.1, )"
         }
       },
       "Amazon.CDK.Lib": {
         "type": "CentralTransitive",
-        "requested": "[2.277.0, )",
-        "resolved": "2.277.0",
-        "contentHash": "3uGjIGEBbLspcXO75L1/+0Y7c1a718Mnv91I+IU8mClMJf4TcP6bOKaKXAovLrGJEBrg1u+mKJFL8QaRqDuwrQ==",
+        "requested": "[2.278.0, )",
+        "resolved": "2.278.0",
+        "contentHash": "8i/eXDrO+FaLatN4+P9mrSUiEYGlyPEK3fztO4eV1OSpd/J+uIIZM/zUceTrPzolcvkf2xpT82uKuVag2LoW/A==",
         "dependencies": {
-          "Amazon.CDK.Asset.AwsCliV1": "[2.2.292]",
+          "Amazon.CDK.Asset.AwsCliV1": "[2.2.297]",
           "Amazon.CDK.Asset.NodeProxyAgentV6": "[2.1.3, 3.0.0)",
           "Amazon.CDK.CloudAssembly.Schema": "[55.6.0, 56.0.0)",
-          "Amazon.JSII.Runtime": "[1.142.0, 2.0.0)",
+          "Amazon.JSII.Runtime": "[1.143.0, 2.0.0)",
           "Constructs": "[10.5.0, 11.0.0)"
-        }
-      },
-      "AWSSDK.S3": {
-        "type": "CentralTransitive",
-        "requested": "[4.1.1, )",
-        "resolved": "4.0.102.4",
-        "contentHash": "rfUhmzlQifO7Uk3AErPweV1FbwZYI+OuogPjfS/7mbVKVWCYYCLkkLozh2mS/qaHPNGPGFeSFAR1NbWnQyd2pQ==",
-        "dependencies": {
-          "AWSSDK.Core": "[4.0.102.1, 5.0.0)"
-        }
-      },
-      "AWSSDK.SecurityToken": {
-        "type": "CentralTransitive",
-        "requested": "[4.1.0.2, )",
-        "resolved": "4.0.100.9",
-        "contentHash": "qgjXYhAafqJSimy2NnWb7Aq8aY+7+e6HL/oP7xSHnL7PeME+GNqRCIToLvP6egHIyKVQ987dncQoEktf9gBOeA==",
-        "dependencies": {
-          "AWSSDK.Core": "[4.0.101.1, 5.0.0)"
         }
       },
       "Constructs": {

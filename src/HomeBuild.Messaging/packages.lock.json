@@ -4,11 +4,11 @@
     "net11.0": {
       "AWSSDK.SimpleNotificationService": {
         "type": "Direct",
-        "requested": "[4.1.0.1, )",
-        "resolved": "4.1.0.1",
-        "contentHash": "ZkLhhi8lE8mkW5PFY/70EeC90UKUzV9BA924gdfWIOFM9XGFuk+U4HFGZCJrm0cgcJJCsHoPxDqyRURMHxIsEw==",
+        "requested": "[4.1.0.2, )",
+        "resolved": "4.1.0.2",
+        "contentHash": "CxbWafXjYyOy2LrfbDIkWcBaucrXBnfDhHRAEzGPXhvCQdps7Pwa/XO03yNJxvv2QUlP+CqHG5sMfDeCDyJ/2Q==",
         "dependencies": {
-          "AWSSDK.Core": "[4.1.1, 5.0.0)"
+          "AWSSDK.Core": "[4.1.1.1, 5.0.0)"
         }
       },
       "AWSSDK.SQS": {

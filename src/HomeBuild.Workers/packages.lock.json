@@ -4,9 +4,9 @@
     "net11.0": {
       "AWSSDK.S3": {
         "type": "Direct",
-        "requested": "[4.1.1, )",
-        "resolved": "4.1.1",
-        "contentHash": "iqT0dNuaUHkh4hHyG40/brQj0220YomPzAmhSrx82xul+LNTUTMzxcQSQrD+rvtHMlOwxmqaN+xhCnthgKNIFw==",
+        "requested": "[4.1.2, )",
+        "resolved": "4.1.2",
+        "contentHash": "vGRpeXIxK7uRRHzVIrp2dYDri4wwlerUutG8TG7jHMolb3hX6Zu6VVDZpmwB8AlTIZ9BKLIV+V4Oi4xEsamZsQ==",
         "dependencies": {
           "AWSSDK.Core": "[4.1.1.1, 5.0.0)"
         }
@@ -336,7 +336,7 @@
         "type": "Project",
         "dependencies": {
           "AWSSDK.SQS": "[4.1.0.2, )",
-          "AWSSDK.SimpleNotificationService": "[4.1.0.1, )",
+          "AWSSDK.SimpleNotificationService": "[4.1.0.2, )",
           "Microsoft.EntityFrameworkCore.Relational": "[11.0.0, )"
         }
       },
@@ -354,11 +354,11 @@
       },
       "AWSSDK.SimpleNotificationService": {
         "type": "CentralTransitive",
-        "requested": "[4.1.0.1, )",
-        "resolved": "4.1.0.1",
-        "contentHash": "ZkLhhi8lE8mkW5PFY/70EeC90UKUzV9BA924gdfWIOFM9XGFuk+U4HFGZCJrm0cgcJJCsHoPxDqyRURMHxIsEw==",
+        "requested": "[4.1.0.2, )",
+        "resolved": "4.1.0.2",
+        "contentHash": "CxbWafXjYyOy2LrfbDIkWcBaucrXBnfDhHRAEzGPXhvCQdps7Pwa/XO03yNJxvv2QUlP+CqHG5sMfDeCDyJ/2Q==",
         "dependencies": {
-          "AWSSDK.Core": "[4.1.1, 5.0.0)"
+          "AWSSDK.Core": "[4.1.1.1, 5.0.0)"
         }
       },
       "AWSSDK.SQS": {
