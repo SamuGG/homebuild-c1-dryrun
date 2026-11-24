@@ -42,6 +42,8 @@ var messaging = builder.AddAWSCDKStack("messaging", scope => HomeBuildStacks.Mes
 var postgres = builder.AddPostgres("postgres")
     .WithImageTag("19")
     .WithDataVolume("homebuild-pgdata-aspire")
+    // C11 Lab 7 (ADR-0018): hard memory limits, so a runaway container fails visibly instead of swapping the laptop.
+    .WithContainerRuntimeArgs("--memory", builder.Configuration["Limits:Postgres"] ?? "1g")
     .WithLifetime(ContainerLifetime.Persistent);
 var database = postgres.AddDatabase("homebuild");
 var endpoint = postgres.Resource.PrimaryEndpoint;
@@ -51,6 +53,7 @@ var appConnection = ReferenceExpression.Create(
 // Valkey: the web app's token store (IDistributedCache), which was in memory and lost every session on restart.
 var cache = builder.AddValkey("cache")
     .WithDataVolume("homebuild-valkey-aspire")
+    .WithContainerRuntimeArgs("--memory", builder.Configuration["Limits:Valkey"] ?? "256m")
     .WithLifetime(ContainerLifetime.Persistent);
 
 // C3's migration bundles, built for this machine on first use (scripts/migrate-local.sh), as the superuser.
@@ -79,7 +82,7 @@ var api = builder.AddDotnetProject("api", "../HomeBuild.Api/HomeBuild.Api.csproj
     .WithHttpHealthCheck("/alive")
     .WaitForCompletion(migrations);
 
-builder.AddDotnetProject("workers", "../HomeBuild.Workers/HomeBuild.Workers.csproj")
+var workers = builder.AddDotnetProject("workers", "../HomeBuild.Workers/HomeBuild.Workers.csproj")
     .WithEnvironment("ConnectionStrings__HomeBuild", appConnection)
     // C9 Lab 3: the contracts worker (its queue, the bucket for contract packs, the topic for ContractIssued).
     .WithEnvironment("Workers__Contracts__QueueUrl", messaging.GetOutput("ContractsQueueUrl"))
@@ -88,6 +91,14 @@ builder.AddDotnetProject("workers", "../HomeBuild.Workers/HomeBuild.Workers.cspr
     .WithReference(awsConfig)
     .WaitFor(storage).WaitFor(messaging)
     .WaitForCompletion(migrations);
+
+// C11 Lab 7 (ADR-0018): a 128 MB heap limit makes a runaway worker fail with OutOfMemoryException instead of
+// growing into swap. Measured: server GC (DATAS, the default) committed 18 MB idle and workstation GC 25 MB, with
+// RSS about 200 MB either way, so the GC mode stays the default; Limits:WorkersGcServer overrides it to compare.
+if (builder.Configuration["Limits:WorkersGcServer"] is { Length: > 0 } gcServer)
+    workers.WithEnvironment("DOTNET_gcServer", gcServer);
+if (builder.Configuration["Limits:WorkersHeapHardLimit"] is not "")
+    workers.WithEnvironment("DOTNET_GCHeapHardLimit", builder.Configuration["Limits:WorkersHeapHardLimit"] ?? "0x8000000");
 
 builder.AddDotnetProject("web", "../HomeBuild.Web/HomeBuild.Web.csproj")
     .WithExternalHttpEndpoints()
