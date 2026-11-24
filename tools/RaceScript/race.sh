@@ -19,8 +19,22 @@ values=$(for i in $(seq -w 1 20); do printf "('0198a000-0000-7000-9000-0000000b0
 psql "INSERT INTO accounts.tenant_memberships (subject, tenant_id, roles) VALUES ${values%,} ON CONFLICT (subject) DO NOTHING;"
 psql "DELETE FROM sales.reservations WHERE unit_id = '$unit'; UPDATE sales.units SET status = 'Available' WHERE id = '$unit';"
 
+# C11 Lab 7: the APIs use the AppHost's PostgreSQL (its host port changes per container), as the app role, with the
+# same local-only password the AppHost gives the API. Before this, they still pointed at C3's compose port 5432.
+pg_port=$(docker port "$(docker ps --filter name=postgres- --format '{{.Names}}' | head -1)" 5432/tcp | head -1 | sed 's/.*://')
+export ConnectionStrings__HomeBuild="Host=localhost;Port=$pg_port;Database=homebuild;Username=homebuild_app;Password=homebuild-dev-app"
+
 pids=()
-cleanup() { for p in "${pids[@]}"; do kill "$p" 2>/dev/null || true; done; }
+# C11 Lab 7: killing `dotnet run` leaves the API it started running (and holding the port, with this run's key), so
+# stop whatever listens on the two ports too.
+cleanup() {
+  for p in "${pids[@]}"; do kill "$p" 2>/dev/null || true; done
+  for port in 5181 5182; do lsof -t -iTCP:"$port" -sTCP:LISTEN 2>/dev/null | xargs kill 2>/dev/null || true; done
+  for i in $(seq 1 20); do lsof -t -iTCP:5181 -iTCP:5182 >/dev/null 2>&1 || break; sleep 0.5; done
+}
+for port in 5181 5182; do
+  if lsof -t -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; then echo "port $port is in use: stop that process first" >&2; exit 1; fi
+done
 trap cleanup EXIT
 for port in 5181 5182; do
   ASPNETCORE_ENVIRONMENT=Development \
