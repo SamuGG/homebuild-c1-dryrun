@@ -8,7 +8,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- C11 Lab 5: the CDK stacks (Identity, Storage, Messaging) come from the infra project's shared factory. Not an
+         Aspire project resource: it is a library of constructs here. -->
+    <ProjectReference Include="..\..\infra\src\Infra\Infra.csproj" IsAspireProjectResource="false" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Aspire.Hosting.AppHost" />
+    <PackageReference Include="Aspire.Hosting.AWS" />
     <PackageReference Include="Aspire.Hosting.Dotnet" />
     <PackageReference Include="Aspire.Hosting.PostgreSQL" />
     <PackageReference Include="Aspire.Hosting.Valkey" />

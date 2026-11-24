@@ -121,6 +121,13 @@ public sealed class MessagingStack : Stack
                 }
             }
         }
+
+        // C11 Lab 5: outputs, so the Aspire AppHost can hand the topic and the queue URLs to the projects as configuration.
+        _ = new CfnOutput(this, "TopicArn", new CfnOutputProps { Value = Topic.TopicArn });
+        foreach (var (name, queue) in Queues)
+        {
+            _ = new CfnOutput(this, $"{Pascal(name)}QueueUrl", new CfnOutputProps { Value = queue.QueueUrl });
+        }
     }
 
     public Topic Topic { get; }

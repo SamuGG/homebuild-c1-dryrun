@@ -196,6 +196,18 @@ public sealed partial class QueueConsumer(string name, IQueueClient queue, IServ
                     break;
                 }
 
+                // C11 Lab 5: a pause that arrives during the long poll must hold what that poll returns too, or the
+                // paused consumer still handles one batch (the change-order journey saw "Ordered on site" while paused).
+                if (pauses?.IsPaused(name) == true)
+                {
+                    foreach (var held in batch)
+                    {
+                        await queue.ReleaseAsync(held, CancellationToken.None);
+                    }
+
+                    continue;
+                }
+
                 for (var i = 0; i < batch.Count; i++)
                 {
                     try

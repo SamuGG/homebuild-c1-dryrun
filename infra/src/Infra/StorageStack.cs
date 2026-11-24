@@ -14,7 +14,7 @@ namespace Infra;
 public sealed class StorageStack : Stack
 #pragma warning restore CA1711
 {
-    public StorageStack(Construct scope, string id, IStackProps props, string[] webOrigins) : base(scope, id, props)
+    public StorageStack(Construct scope, string id, IStackProps props, string[] webOrigins, string keysDirectory = "keys") : base(scope, id, props)
     {
         // C10 Lab 5's Break only (-c snagPhotosPublic=true): snag photos readable by URL, straight from S3.
         var snagPhotosPublic = Node.TryGetContext("snagPhotosPublic") is "true";
@@ -98,7 +98,7 @@ public sealed class StorageStack : Stack
         {
             PublicKeyName = "homebuild-snag-photos-2", // rotated at the C10 teardown: the encoded key cannot change in place, so a new construct ID (and name) creates a new key and the old one is deleted
             Comment = "HomeBuild: verifies signed URLs for snag photos",
-            EncodedKey = System.IO.File.ReadAllText(System.IO.Path.Combine("keys", "snag-photos-public.pem")),
+            EncodedKey = System.IO.File.ReadAllText(System.IO.Path.Combine(keysDirectory, "snag-photos-public.pem")) /* C11 Lab 5: the AppHost passes infra/keys */,
         });
         var keyGroup = new Amazon.CDK.AWS.CloudFront.KeyGroup(this, "SnagPhotosKeyGroup", new Amazon.CDK.AWS.CloudFront.KeyGroupProps
         {

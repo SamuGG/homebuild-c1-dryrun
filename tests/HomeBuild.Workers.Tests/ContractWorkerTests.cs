@@ -105,6 +105,32 @@ public sealed class ContractWorkerTests(PostgresFixture database)
         Assert.Equal(0, await worker.ContractsAsync());
     }
 
+    // C11 Lab 5: a pause that comes while a long poll is open holds what that poll returns. Before, the paused consumer
+    // still handled that one batch (C10's change-order journey saw "Ordered on site" while the worker was paused).
+    [Fact]
+    public async Task Pause_during_a_long_poll_holds_the_messages_it_returns()
+    {
+        var queue = new PollingQueue();
+        var pauses = new ConsumerPauses();
+        await using var worker = WorkerHarness.Create(await database.CreateDatabaseAsync());
+        using var consumer = new QueueConsumer(ContractWorker.Name, queue, worker.Services.GetRequiredService<IServiceScopeFactory>(),
+            new ConsumerOptions(), Microsoft.Extensions.Logging.Abstractions.NullLogger<QueueConsumer>.Instance, pauses);
+
+        await consumer.StartAsync(Ct);
+        await queue.Polling.Task.WaitAsync(TimeSpan.FromSeconds(10), Ct); // the first poll is open
+        pauses.Pause(ContractWorker.Name);
+        queue.Arrive([WorkerHarness.DepositPaid(), WorkerHarness.DepositPaid(), WorkerHarness.DepositPaid()]); // SQS answers it
+        for (var i = 0; i < 50 && queue.Released.Count < 3; i++)
+        {
+            await Task.Delay(100, Ct);
+        }
+
+        await consumer.StopAsync(Ct);
+        Assert.Equal(3, queue.Released.Count);
+        Assert.Empty(queue.Deleted);
+        Assert.Equal(0, await worker.ContractsAsync());
+    }
+
     /// <summary>A queue whose receive is a long poll that answers only when messages arrive, whatever the token says.</summary>
     private sealed class PollingQueue : IQueueClient
     {

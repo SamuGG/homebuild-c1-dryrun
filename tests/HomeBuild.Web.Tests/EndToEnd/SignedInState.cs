@@ -50,7 +50,19 @@ internal static class SignedInState
     private static async Task<bool> StillSignedInAsync(IBrowser browser, string path)
     {
         await using var context = await browser.NewContextAsync(new() { StorageStatePath = path });
-        var response = await (await context.NewPageAsync()).GotoAsync(RealSignInTests.WebUrl + "/my-home");
-        return response is not null && new Uri(response.Url).Host == "localhost";
+        var page = await context.NewPageAsync();
+        var response = await page.GotoAsync(RealSignInTests.WebUrl + "/my-home");
+        // C11 Lab 5: staying on localhost is not enough. When the web app no longer has the session's tokens (a restart, a
+        // new token store), it ends the session, and Cognito's own session cookie (also in the saved state) signs the
+        // browser straight back in: a new web session that exists only in this context. So the state counts only if
+        // the page shows "Sign out", and it is saved again, so the caller gets the session that works now.
+        if (response is null || new Uri(response.Url).Host != "localhost"
+            || await page.GetByRole(Microsoft.Playwright.AriaRole.Button, new() { Name = "Sign out" }).CountAsync() == 0)
+        {
+            return false;
+        }
+
+        await context.StorageStateAsync(new() { Path = path });
+        return true;
     }
 }

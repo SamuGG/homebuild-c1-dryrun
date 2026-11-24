@@ -4,28 +4,19 @@ using Infra;
 // HomeBuild's AWS infrastructure. Every resource gets project=homebuild and a lab tag, so the teardown query
 // (docs/teardown.md) finds everything the labs create.
 var app = new App();
-Tags.Of(app).Add("project", "homebuild");
-Tags.Of(app).Add("lab", app.Node.TryGetContext("lab") as string ?? "c4");
+HomeBuildStacks.Prepare(app);
 
 // Account from the CLI profile at synth time (never hard-coded: the repository is public); Region is fixed.
-var env = new Amazon.CDK.Environment
-{
-    Account = System.Environment.GetEnvironmentVariable("CDK_DEFAULT_ACCOUNT"),
-    Region = "eu-west-2",
-};
+var env = HomeBuildStacks.Env(System.Environment.GetEnvironmentVariable("CDK_DEFAULT_ACCOUNT"));
 
 _ = new FoundationStack(app, "HomeBuild-Foundation", new StackProps { Env = env });
 
-var identity = new IdentityStack(app, "HomeBuild-Identity", new StackProps { Env = env },
-    domainPrefix: app.Node.TryGetContext("domainPrefix") as string ?? "homebuild-dryrun-dev");
-Tags.Of(identity).Add("lab", "c4-lab2");
-
-var storage = new StorageStack(app, "HomeBuild-Storage", new StackProps { Env = env }, webOrigins: ["http://localhost:5266"]);
-Tags.Of(storage).Add("lab", "c5-lab7");
+// C11 Lab 5: Identity, Storage and Messaging are built by HomeBuildStacks, which the Aspire AppHost uses too.
+_ = HomeBuildStacks.Identity(app, env);
+var storage = HomeBuildStacks.Storage(app, env);
 
 // C9 Lab 1: the messaging stack (SNS topic, SQS queues with DLQs). Queues and topics are free when idle.
-var messaging = new MessagingStack(app, "HomeBuild-Messaging", new StackProps { Env = env });
-Tags.Of(messaging).Add("lab", "c9");
+_ = HomeBuildStacks.Messaging(app, env);
 
 // C9 Lab 6: scheduled work (EventBridge Scheduler group, recurring schedules, the queue they send to).
 var scheduling = new SchedulingStack(app, "HomeBuild-Scheduling", new StackProps { Env = env });
@@ -33,6 +24,11 @@ Tags.Of(scheduling).Add("lab", "c9-lab6");
 
 // C9 Lab 7: the notifications Lambda (destroyed after the lab; C10 Lab 6 recreates it to send email). Needs the zips
 // from scripts/build-notifications-lambda.sh, so it is synthesized only with -c notificationsLambda=true.
+if (app.Node.TryGetContext("notificationsLambda") is not "true")
+{
+    HomeBuildStacks.KeepNotificationsOutputs(storage); // C11 Lab 5: keep the outputs the Notifications stack reads
+}
+
 if (app.Node.TryGetContext("notificationsLambda") is "true")
 {
     var notifications = new NotificationsLambdaStack(app, "HomeBuild-Notifications", new StackProps { Env = env }, storage.Bucket,
