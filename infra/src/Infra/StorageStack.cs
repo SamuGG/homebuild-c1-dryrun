@@ -14,7 +14,7 @@ namespace Infra;
 public sealed class StorageStack : Stack
 #pragma warning restore CA1711
 {
-    public StorageStack(Construct scope, string id, IStackProps props, string[] webOrigins, string keysDirectory = "keys") : base(scope, id, props)
+    public StorageStack(Construct scope, string id, IStackProps props, string[] webOrigins, string keysDirectory = "keys", bool snagPhotosCdn = false) : base(scope, id, props)
     {
         // C10 Lab 5's Break only (-c snagPhotosPublic=true): snag photos readable by URL, straight from S3.
         var snagPhotosPublic = Node.TryGetContext("snagPhotosPublic") is "true";
@@ -94,34 +94,39 @@ public sealed class StorageStack : Stack
         // C10 Lab 5: snag photos are served through CloudFront only. Origin access control: the bucket policy lets this
         // distribution (and nothing else) read objects; the bucket stays private. The key group means every request needs
         // a URL signed with the private key (in SSM and user-secrets, never in the repository); the public key is here.
-        var publicKey = new Amazon.CDK.AWS.CloudFront.PublicKey(this, "SnagPhotosPublicKey2", new Amazon.CDK.AWS.CloudFront.PublicKeyProps
+        // C11 teardown: the distribution is opt-in (-c snagPhotosCdn=true, or Storage:SnagPhotosCdn in the AppHost), so
+        // it exists only while a lab uses it. Without it the API answers 503 for snag photos (CloudFront not configured).
+        if (snagPhotosCdn)
         {
-            PublicKeyName = "homebuild-snag-photos-2", // rotated at the C10 teardown: the encoded key cannot change in place, so a new construct ID (and name) creates a new key and the old one is deleted
-            Comment = "HomeBuild: verifies signed URLs for snag photos",
-            EncodedKey = System.IO.File.ReadAllText(System.IO.Path.Combine(keysDirectory, "snag-photos-public.pem")) /* C11 Lab 5: the AppHost passes infra/keys */,
-        });
-        var keyGroup = new Amazon.CDK.AWS.CloudFront.KeyGroup(this, "SnagPhotosKeyGroup", new Amazon.CDK.AWS.CloudFront.KeyGroupProps
-        {
-            KeyGroupName = "homebuild-snag-photos",
-            Comment = "HomeBuild: snag photo signers",
-            Items = [publicKey],
-        });
-        Photos = new Amazon.CDK.AWS.CloudFront.Distribution(this, "Photos", new Amazon.CDK.AWS.CloudFront.DistributionProps
-        {
-            Comment = "homebuild snag photos (signed URLs only)",
-            PriceClass = Amazon.CDK.AWS.CloudFront.PriceClass.PRICE_CLASS_100,
-            DefaultBehavior = new Amazon.CDK.AWS.CloudFront.BehaviorOptions
+            var publicKey = new Amazon.CDK.AWS.CloudFront.PublicKey(this, "SnagPhotosPublicKey2", new Amazon.CDK.AWS.CloudFront.PublicKeyProps
             {
-                Origin = Amazon.CDK.AWS.CloudFront.Origins.S3BucketOrigin.WithOriginAccessControl(bucket),
-                ViewerProtocolPolicy = Amazon.CDK.AWS.CloudFront.ViewerProtocolPolicy.HTTPS_ONLY,
-                AllowedMethods = Amazon.CDK.AWS.CloudFront.AllowedMethods.ALLOW_GET_HEAD,
-                CachePolicy = Amazon.CDK.AWS.CloudFront.CachePolicy.CACHING_OPTIMIZED,
-                TrustedKeyGroups = [keyGroup],
-            },
-        });
-        Amazon.CDK.Tags.Of(Photos).Add("lab", "c10-lab5", new TagProps { Priority = 200 }); // above the stack's lab=c5-lab7
-        _ = new CfnOutput(this, "PhotosDomain", new CfnOutputProps { Value = Photos.DistributionDomainName });
-        _ = new CfnOutput(this, "SnagPhotosKeyId", new CfnOutputProps { Value = publicKey.PublicKeyId });
+                PublicKeyName = "homebuild-snag-photos-2", // rotated at the C10 teardown: the encoded key cannot change in place, so a new construct ID (and name) creates a new key and the old one is deleted
+                Comment = "HomeBuild: verifies signed URLs for snag photos",
+                EncodedKey = System.IO.File.ReadAllText(System.IO.Path.Combine(keysDirectory, "snag-photos-public.pem")) /* C11 Lab 5: the AppHost passes infra/keys */,
+            });
+            var keyGroup = new Amazon.CDK.AWS.CloudFront.KeyGroup(this, "SnagPhotosKeyGroup", new Amazon.CDK.AWS.CloudFront.KeyGroupProps
+            {
+                KeyGroupName = "homebuild-snag-photos",
+                Comment = "HomeBuild: snag photo signers",
+                Items = [publicKey],
+            });
+            Photos = new Amazon.CDK.AWS.CloudFront.Distribution(this, "Photos", new Amazon.CDK.AWS.CloudFront.DistributionProps
+            {
+                Comment = "homebuild snag photos (signed URLs only)",
+                PriceClass = Amazon.CDK.AWS.CloudFront.PriceClass.PRICE_CLASS_100,
+                DefaultBehavior = new Amazon.CDK.AWS.CloudFront.BehaviorOptions
+                {
+                    Origin = Amazon.CDK.AWS.CloudFront.Origins.S3BucketOrigin.WithOriginAccessControl(bucket),
+                    ViewerProtocolPolicy = Amazon.CDK.AWS.CloudFront.ViewerProtocolPolicy.HTTPS_ONLY,
+                    AllowedMethods = Amazon.CDK.AWS.CloudFront.AllowedMethods.ALLOW_GET_HEAD,
+                    CachePolicy = Amazon.CDK.AWS.CloudFront.CachePolicy.CACHING_OPTIMIZED,
+                    TrustedKeyGroups = [keyGroup],
+                },
+            });
+            Amazon.CDK.Tags.Of(Photos).Add("lab", "c10-lab5", new TagProps { Priority = 200 }); // above the stack's lab=c5-lab7
+            _ = new CfnOutput(this, "PhotosDomain", new CfnOutputProps { Value = Photos.DistributionDomainName });
+            _ = new CfnOutput(this, "SnagPhotosKeyId", new CfnOutputProps { Value = publicKey.PublicKeyId });
+        }
 
         if (snagPhotosPublic)
         {
@@ -190,7 +195,7 @@ public sealed class StorageStack : Stack
     public Role UploadRole { get; }
 
     /// <summary>C10 Lab 5: the snag photo distribution.</summary>
-    public Amazon.CDK.AWS.CloudFront.Distribution Photos { get; }
+    public Amazon.CDK.AWS.CloudFront.Distribution? Photos { get; }
 
     /// <summary>C9 Lab 7: the notifications Lambda writes under notifications/ (a cross-stack reference).</summary>
     public Bucket Bucket { get; }

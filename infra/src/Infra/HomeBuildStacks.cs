@@ -55,9 +55,11 @@ public static class HomeBuildStacks
         return stack;
     }
 
-    public static StorageStack Storage(Construct scope, Amazon.CDK.Environment env, string keysDirectory = "keys")
+    public static StorageStack Storage(Construct scope, Amazon.CDK.Environment env, string keysDirectory = "keys", bool? snagPhotosCdn = null)
     {
-        var stack = new StorageStack(scope, "HomeBuild-Storage", new StackProps { Env = env }, webOrigins: ["http://localhost:5266"], keysDirectory);
+        ArgumentNullException.ThrowIfNull(scope);
+        var stack = new StorageStack(scope, "HomeBuild-Storage", new StackProps { Env = env }, webOrigins: ["http://localhost:5266"], keysDirectory,
+            snagPhotosCdn ?? scope.Node.TryGetContext("snagPhotosCdn") is "true" or true);
         Tags.Of(stack).Add("lab", "c5-lab7");
         return stack;
     }

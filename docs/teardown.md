@@ -36,7 +36,7 @@ Stopping the AppHost (Ctrl+C or `dotnet aspire stop`) deletes nothing in AWS. Th
 | Stack | What stays | Idle cost |
 | --- | --- | --- |
 | `HomeBuild-Identity` | Cognito user pool, web and dev-tools clients, managed login domain | $0 (free tier) |
-| `HomeBuild-Storage` | S3 bucket (floor plans, contracts, notifications), upload role, CloudFront distribution `Photos` with its key group and OAC | S3 storage of the stored files (cents); CloudFront $0 idle |
+| `HomeBuild-Storage` | S3 bucket (floor plans, contracts, notifications), upload role; CloudFront distribution `Photos` with its key group and OAC only with `-c snagPhotosCdn=true` (AppHost: `Storage:SnagPhotosCdn=true`), off since the C11 teardown | S3 storage of the stored files (cents); CloudFront $0 idle |
 | `HomeBuild-Messaging` | SNS topic `homebuild-events`, 14 SQS queues and DLQs, worker roles | $0 idle |
 
 Locally, the persistent PostgreSQL and Valkey containers keep running after `aspire stop` (stop them with
