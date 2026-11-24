@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -19,6 +21,10 @@ public static class Extensions
 {
     private const string HealthEndpointPath = "/health";
     private const string AlivenessEndpointPath = "/alive";
+    private const string ReadinessEndpointPath = "/ready";
+
+    /// <summary>C11 Lab 6: the tag for readiness checks (dependencies: database, queues, the API). Liveness has none.</summary>
+    public const string ReadyTag = "ready";
 
     public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
@@ -106,6 +112,38 @@ public static class Extensions
             // Add a default liveness check to ensure app is responsive
             .AddCheck("self", () => HealthCheckResult.Healthy(), ["live"]);
 
+        // C11 Lab 6: readiness runs on a schedule, not on every probe. The publisher runs the "ready" checks every
+        // HealthChecks:Period (default 10 s) and the cache keeps the last report; /ready only reads it.
+        builder.Services.AddSingleton<ReadinessCache>();
+        builder.Services.AddSingleton<IHealthCheckPublisher>(sp => sp.GetRequiredService<ReadinessCache>());
+        builder.Services.Configure<HealthCheckPublisherOptions>(options =>
+        {
+            options.Predicate = r => r.Tags.Contains(ReadyTag);
+            options.Delay = builder.Configuration.GetValue("HealthChecks:Delay", TimeSpan.FromSeconds(1));
+            options.Period = builder.Configuration.GetValue("HealthChecks:Period", TimeSpan.FromSeconds(10));
+            options.Timeout = TimeSpan.FromSeconds(10); // the whole run; each check has its own, shorter timeout
+        });
+
+        return builder;
+    }
+
+    /// <summary>
+    /// C11 Lab 6: a readiness check ("can this process do useful work now?") with a short timeout: a slow dependency
+    /// reports Unhealthy after <paramref name="timeout"/> (default 2 s) instead of holding the report.
+    /// </summary>
+    public static IHealthChecksBuilder AddReadinessCheck<T>(this IHealthChecksBuilder builder, string name, TimeSpan? timeout = null)
+        where T : class, IHealthCheck
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        return builder.AddCheck<T>(name, HealthStatus.Unhealthy, [ReadyTag], timeout ?? TimeSpan.FromSeconds(2));
+    }
+
+    /// <summary>A readiness check from a delegate (for checks that need constructor arguments, such as a queue URL).</summary>
+    public static IHealthChecksBuilder AddReadinessCheck(this IHealthChecksBuilder builder, string name, Func<IServiceProvider, IHealthCheck> factory, TimeSpan? timeout = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        builder.Services.Configure<HealthCheckServiceOptions>(options => options.Registrations.Add(
+            new HealthCheckRegistration(name, factory, HealthStatus.Unhealthy, [ReadyTag], timeout ?? TimeSpan.FromSeconds(2))));
         return builder;
     }
 
@@ -121,6 +159,18 @@ public static class Extensions
         });
         configure?.Invoke(alive);
 
+        // C11 Lab 6: readiness from the cached report (503 until the first run, and while any "ready" check fails). Mapped
+        // in every environment; C12 keeps it off the public internet (the load balancer's target group only).
+        var ready = app.MapGet(ReadinessEndpointPath, (ReadinessCache cache) => cache.Latest is not { } report
+            ? Results.Json(new { status = "Starting" }, statusCode: StatusCodes.Status503ServiceUnavailable)
+            : Results.Json(new
+            {
+                status = report.Status.ToString(),
+                checkedAt = cache.CheckedAt,
+                entries = report.Entries.ToDictionary(e => e.Key, e => new { status = e.Value.Status.ToString(), e.Value.Description, durationMs = (int)e.Value.Duration.TotalMilliseconds }),
+            }, statusCode: report.Status == HealthStatus.Healthy ? StatusCodes.Status200OK : StatusCodes.Status503ServiceUnavailable));
+        configure?.Invoke(ready);
+
         // Adding health checks endpoints to applications in non-development environments has security implications.
         // See https://aka.ms/aspire/healthchecks for details before enabling these endpoints in non-development environments.
         if (app.Environment.IsDevelopment())
@@ -131,5 +181,24 @@ public static class Extensions
         }
 
         return app;
+    }
+}
+
+/// <summary>C11 Lab 6: the last readiness report, published on a schedule (IHealthCheckPublisher); /ready reads it.</summary>
+public sealed class ReadinessCache(TimeProvider? time = null) : IHealthCheckPublisher
+{
+    public HealthReport? Latest { get; private set; }
+
+    public DateTimeOffset? CheckedAt { get; private set; }
+
+    /// <summary>Raised after each report, so other parts of the host (queue consumers) can follow readiness.</summary>
+    public event Action<HealthReport>? Published;
+
+    public Task PublishAsync(HealthReport report, CancellationToken cancellationToken)
+    {
+        Latest = report;
+        CheckedAt = (time ?? TimeProvider.System).GetUtcNow();
+        Published?.Invoke(report);
+        return Task.CompletedTask;
     }
 }

@@ -143,7 +143,7 @@ public sealed class SqsQueueClient(IAmazonSQS sqs, string queueUrl) : IQueueClie
 /// <see cref="PermanentMessageException"/> releases it at once. Either way the queue's redrive policy moves it to the
 /// dead-letter queue after maxReceiveCount receives, and the other messages keep flowing meanwhile.
 /// </summary>
-public sealed partial class QueueConsumer(string name, IQueueClient queue, IServiceScopeFactory scopes, ConsumerOptions options, ILogger<QueueConsumer> logger, ConsumerPauses? pauses = null)
+public sealed partial class QueueConsumer(string name, IQueueClient queue, IServiceScopeFactory scopes, ConsumerOptions options, ILogger<QueueConsumer> logger, ConsumerPauses? pauses = null, ConsumerReadiness? readiness = null)
     : BackgroundService
 {
     private int _inFlight;
@@ -176,8 +176,9 @@ public sealed partial class QueueConsumer(string name, IQueueClient queue, IServ
             while (!stoppingToken.IsCancellationRequested)
             {
                 // C10 Lab 3: a paused consumer receives nothing; its messages wait in the queue (a test of pending states).
-                if (pauses?.IsPaused(name) == true)
+                if (pauses?.IsPaused(name) == true || readiness?.IsReady == false)
                 {
+                    // C11 Lab 6: a host that is not ready (database or queue unreachable) receives nothing either.
                     await Task.Delay(TimeSpan.FromMilliseconds(250), stoppingToken).ContinueWith(_ => { }, TaskScheduler.Default);
                     continue;
                 }
@@ -198,7 +199,7 @@ public sealed partial class QueueConsumer(string name, IQueueClient queue, IServ
 
                 // C11 Lab 5: a pause that arrives during the long poll must hold what that poll returns too, or the
                 // paused consumer still handles one batch (the change-order journey saw "Ordered on site" while paused).
-                if (pauses?.IsPaused(name) == true)
+                if (pauses?.IsPaused(name) == true || readiness?.IsReady == false)
                 {
                     foreach (var held in batch)
                     {
@@ -374,4 +375,17 @@ public sealed class ConsumerPauses
     public void Pause(string consumer) => _paused[consumer] = true;
 
     public void Resume(string consumer) => _paused[consumer] = false;
+}
+
+/// <summary>
+/// C11 Lab 6: whether this host's consumers may receive. The host sets it from each readiness report (database
+/// reachable, its queues reachable); until the first report it is not ready. Consumers without one always receive.
+/// </summary>
+public sealed class ConsumerReadiness
+{
+    private volatile bool _ready;
+
+    public bool IsReady => _ready;
+
+    public void Set(bool ready) => _ready = ready;
 }

@@ -72,7 +72,28 @@ if (builder.Environment.IsDevelopment())
 // liveness endpoint the container image (Lab 1) and the AppHost check.
 builder.AddServiceDefaults();
 
+// C11 Lab 6: readiness (database reachable with every module's tables, and each queue this host consumes), run on the
+// service defaults' schedule. Consumers stop receiving while the host is not ready.
+var readinessChecks = builder.Services.AddHealthChecks()
+    .AddReadinessCheck("database", sp => new HomeBuild.Messaging.DatabaseReadyCheck(sp.GetRequiredService<IServiceScopeFactory>(),
+        typeof(HomeBuild.Api.Modules.Catalogue.CatalogueDbContext), typeof(HomeBuild.Api.Modules.Sales.SalesDbContext),
+        typeof(HomeBuild.Api.Modules.Accounts.AccountsDbContext), typeof(HomeBuild.Api.Modules.Construction.ConstructionDbContext),
+        typeof(HomeBuild.Api.Modules.Payments.PaymentsDbContext), typeof(HomeBuild.Api.Http.Idempotency.IdempotencyDbContext),
+        typeof(HomeBuild.Api.Modules.Extras.ExtrasDbContext), typeof(HomeBuild.Api.Modules.Aftercare.AftercareDbContext)));
+foreach (var (check, key) in new[] { ("queue:extras", "Extras:QueueUrl"), ("queue:change-orders", "ChangeOrders:QueueUrl"), ("queue:scheduled", "Scheduling:QueueUrl") })
+{
+    if (builder.Configuration[key] is { Length: > 0 } queueUrl)
+    {
+        readinessChecks.AddReadinessCheck(check, sp => new HomeBuild.Messaging.QueueReachableCheck(sp.GetRequiredService<Amazon.SQS.IAmazonSQS>(), queueUrl));
+    }
+}
+
+builder.Services.AddSingleton<HomeBuild.Messaging.ConsumerReadiness>();
+
 var app = builder.Build();
+var consumerReadiness = app.Services.GetRequiredService<HomeBuild.Messaging.ConsumerReadiness>();
+app.Services.GetRequiredService<Microsoft.Extensions.Hosting.ReadinessCache>().Published +=
+    report => consumerReadiness.Set(report.Status == Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy);
 
 // C8 Lab 6: `dotnet run --project src/HomeBuild.Api -- reconcile --from <date> --to <date>` runs the reconciliation
 // report with the API's configuration and services, then exits (exit code 2 when there are mismatches).
